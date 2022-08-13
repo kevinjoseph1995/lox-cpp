@@ -6,18 +6,18 @@
 #define LOX_CPP_COMPILER_H
 
 #include "common.h"
+#include "error.h"
 #include "scanner.h"
 
-class Compiler
-{
-  public:
-    bool CompileSource(std::string const *source);
+class Compiler {
+public:
+    ErrorOr<Chunk> CompileSource(std::string const* source);
 
-  private:
-    void reset(std::string const *source);
+private:
+    void reset(std::string const* source);
     bool extract_tokens();
 
-  private:
+private:
     Scanner m_scanner;
     std::vector<Token> m_tokens;
 };

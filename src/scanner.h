@@ -7,8 +7,9 @@
 
 #include <cassert>
 #include <string>
-enum class TokenType
-{
+
+#include "error.h"
+enum class TokenType {
     // Single-character tokens.
     LEFT_PAREN,
     RIGHT_PAREN,
@@ -53,41 +54,44 @@ enum class TokenType
     WHILE,
 
     TOKEN_EOF,
-    TOKEN_ERROR,
 };
 
-struct Token
-{
-    TokenType type = TokenType::TOKEN_ERROR;
-    uint64_t length{};
-    uint64_t line_number{};
-    uint64_t start{};
-    std::string error_message;
+struct Token {
+    TokenType type {};
+    uint64_t length {};
+    uint64_t line_number {};
+    uint64_t start {};
 };
 
-class Scanner
-{
-  public:
+[[maybe_unused]] [[maybe_unused]] char const* GetTokenTypeString(TokenType type);
+std::string FormatToken(Token const& token, std::string const* source_code);
+
+class Scanner {
+public:
     /**
      * Resets scanner state with new source code to scan
      * @param source_code
      */
-    void Reset(std::string const *source_code);
+    void Reset(std::string const* source_code);
 
     /**
      *
      * @return Next token(can be in invalid state)
      */
-    Token GetNextToken();
+    ErrorOr<Token> GetNextToken();
 
-  private:
-    char advance();
+private:
+    [[nodiscard]] ErrorOr<Token> number();
+
+    [[nodiscard]] ErrorOr<Token> string();
+
+    [[nodiscard]] ErrorOr<Token> identifierOrKeyword();
 
     [[nodiscard]] char peek() const;
 
-    [[nodiscard]] bool matchEqual();
+    char advance();
 
-    [[nodiscard]] Token string();
+    [[nodiscard]] bool matchEqual();
 
     [[nodiscard]] Token makeToken(TokenType) const;
 
@@ -95,15 +99,11 @@ class Scanner
 
     [[nodiscard]] bool isAtEnd() const;
 
-    [[nodiscard]] Token errorToken(const char *string) const;
-
-    [[nodiscard]] Token number();
-
-  private:
-    std::string const *m_source_code_ptr = nullptr;
+private:
+    std::string const* m_source_code_ptr = nullptr;
     uint64_t m_current_index = 0; // Current scanner index
-    uint64_t m_start = 0;         // Start of the current token under consideration
-    uint64_t m_line = 0;          // Current line number
+    uint64_t m_start = 0; // Start of the current token under consideration
+    uint64_t m_line = 0; // Current line number
 };
 
 #endif // LOX_CPP_SCANNER_H

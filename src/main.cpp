@@ -9,19 +9,30 @@ static constexpr auto USAGE =
 usage: lox_cpp [file | - ]
 )";
 
-static int Run(VirtualMachine &vm, std::string const &source)
+static int Run(VirtualMachine& vm, std::string const& source)
 {
     auto result = vm.Interpret(&source);
-    switch (result)
-    {
-    case InterpretResult::INTERPRET_OK:
-        // TODO Figure out if we want to propagate error codes from Lox to here
-        return 0;
-    case InterpretResult::INTERPRET_COMPILE_ERROR:
-    case InterpretResult::INTERPRET_RUNTIME_ERROR:
-    default:
-        return 1;
+    if (result.IsError()) {
+        auto& error = result.GetError();
+        switch (error.type) {
+        case ErrorType::ScanError:
+            fmt::print(stderr, "ScanError\n");
+            return 1;
+        case ErrorType::ParseError:
+            fmt::print(stderr, "ParseError\n");
+            return 1;
+        case ErrorType::RuntimeError:
+            fmt::print(stderr, "RuntimeError\n");
+            return 1;
+        case ErrorType::InternalError:
+            fmt::print(stderr, "InternalError\n");
+            return 1;
+        default:
+            fmt::print(stderr, "Unknown error\n");
+            return 1;
+        }
     }
+    return 0;
 }
 
 static void RunInteractive()
@@ -29,28 +40,23 @@ static void RunInteractive()
     VirtualMachine vm;
     std::string line;
     std::string source;
-    while (true)
-    {
+    while (true) {
         source.clear();
         line.clear();
-        if (isatty(STDIN_FILENO))
-        {
+        if (isatty(STDIN_FILENO)) {
             fmt::print("->> ");
         }
 
         std::getline(std::cin, line);
-        if (line == "quit" || line == "q")
-        {
+        if (line == "quit" || line == "q") {
             break;
         }
-        if (line == "clear")
-        {
-            fmt::print("{}[2J{esc}[2J{esc}[1;1H", static_cast<char>(27), fmt::arg("esc", static_cast<char>(27)));
+        if (line == "clear") {
+            fmt::print("{}[2J{esc}[2J{esc}[1;1H", static_cast<char>(27),
+                fmt::arg("esc", static_cast<char>(27)));
         }
-        if (!line.empty() && line[line.length() - 1] == '\\')
-        {
-            do
-            {
+        if (!line.empty() && line[line.length() - 1] == '\\') {
+            do {
                 source.append(line.begin(), line.end() - 1);
                 std::getline(std::cin, line);
             } while (!line.empty() && line[line.length() - 1] == '\\');
@@ -61,23 +67,22 @@ static void RunInteractive()
     }
 }
 
-static int RunFromFile(char const *const file_name)
+static int RunFromFile(char const* const file_name)
 {
     VirtualMachine vm;
     std::ifstream file;
     file.open(file_name);
-    if (!file.good())
-    {
+    if (!file.good()) {
         fmt::print(stderr, "Failed to read file:{}", file_name);
     }
-    std::string source((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+    std::string source((std::istreambuf_iterator<char>(file)),
+        std::istreambuf_iterator<char>());
     return Run(vm, source);
 }
 
-int main(int argc, char **argv)
+int main(int argc, char** argv)
 {
-    switch (argc)
-    {
+    switch (argc) {
     case 1:
         RunInteractive();
         return 0;

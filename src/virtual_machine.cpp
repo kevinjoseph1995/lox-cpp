@@ -3,32 +3,30 @@
 //
 
 #include "virtual_machine.h"
+#include "error.h"
 #include <fmt/core.h>
 
 #define DEBUG_TRACE_EXECUTION
 
-InterpretResult VirtualMachine::Interpret(std::string const *source_code)
+ErrorOr<VoidType> VirtualMachine::Interpret(std::string const* source_code)
 {
     m_compiler.CompileSource(source_code);
-    exit(0);
-    return InterpretResult::INTERPRET_OK;
+    return VoidType {};
 }
 
-[[maybe_unused]] InterpretResult VirtualMachine::run()
+[[maybe_unused]] ErrorOr<VoidType> VirtualMachine::run()
 {
     LOX_ASSERT(m_current_chunk != nullptr);
     LOX_ASSERT(m_instruction_pointer == 0);
 
-    while (true)
-    {
+    while (true) {
 #ifdef DEBUG_TRACE_EXECUTION
         Disassemble_instruction(*m_current_chunk, m_instruction_pointer);
 #endif
         auto const instruction = this->read_byte();
-        switch (instruction)
-        {
+        switch (instruction) {
         case OP_RETURN: {
-            return InterpretResult::INTERPRET_OK;
+            // TODO
         }
         case OP_CONSTANT: {
             auto constant = this->read_constant();
@@ -36,10 +34,11 @@ InterpretResult VirtualMachine::Interpret(std::string const *source_code)
             break;
         }
         default: {
-            return InterpretResult::INTERPRET_RUNTIME_ERROR;
+            // TODO
         }
         }
     }
+    return VoidType {};
 }
 
 uint8_t VirtualMachine::read_byte()

@@ -3,20 +3,20 @@
 //
 
 #include "compiler.h"
+#include "fmt/core.h"
 
-bool Compiler::CompileSource(std::string const *source)
+ErrorOr<Chunk> Compiler::CompileSource(std::string const* source)
 {
+    LOX_ASSERT(source != nullptr);
     this->reset(source);
-
-    if (!this->extract_tokens())
-    {
-        return false;
+    if (!this->extract_tokens()) {
+        return Error { .type = ErrorType::ScanError, .error_message = "Error while scanning" };
     }
-    // TODO Parser
-    return false;
+
+    return Chunk {};
 }
 
-void Compiler::reset(const std::string *source)
+void Compiler::reset(const std::string* source)
 {
     m_scanner.Reset(source);
     m_tokens.clear(); // Clear old tokens
@@ -24,18 +24,26 @@ void Compiler::reset(const std::string *source)
 
 bool Compiler::extract_tokens()
 {
-    while (true)
-    {
-        auto token = m_scanner.GetNextToken();
-        if (token.type == TokenType::TOKEN_ERROR)
-        {
+    LOX_ASSERT(m_tokens.empty());
+    for (;;) {
+        auto token_or_result = m_scanner.GetNextToken();
+        if (token_or_result.IsError()) {
+            auto& error = token_or_result.GetError();
+            fmt::print(stderr, "[ERROR][SCANNER] {}\n", error.error_message);
+            fflush(stderr);
             return false;
         }
-        m_tokens.push_back(token);
-        if (token.type == TokenType::TOKEN_EOF)
-        {
+        auto& last_inserted = m_tokens.emplace_back(token_or_result.GetValue());
+        if (last_inserted.type == TokenType::TOKEN_EOF) {
             break;
         }
     }
     return true;
+}
+
+[[maybe_unused]] static void printCurrentTokens(std::vector<Token> const& tokens, const std::string* source)
+{
+    for (auto token : tokens) {
+        fmt::print("{}\n", FormatToken(token, source));
+    }
 }

@@ -1,4 +1,4 @@
-add_library(lox_compiler STATIC common.h common.cpp virtual_machine.cpp virtual_machine.h scanner.cpp scanner.h compiler.cpp compiler.h)
+add_library(lox_compiler STATIC common.cpp virtual_machine.cpp scanner.cpp compiler.cpp)
 target_include_directories(lox_compiler PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(lox_compiler fmt)
 
