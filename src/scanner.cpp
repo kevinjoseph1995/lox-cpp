@@ -12,17 +12,18 @@ void Scanner::Reset(const std::string* source_code)
     m_source_code_ptr = source_code;
     m_current_index = 0;
     m_start = 0;
-    m_line = 0;
+    m_line = 1;
 }
 
 ErrorOr<Token> Scanner::GetNextToken()
 {
     LOX_ASSERT(m_source_code_ptr != nullptr);
+
+    this->consumeWhitespacesAndComments();
+
     if (isAtEnd()) {
         return this->makeToken(TokenType::TOKEN_EOF);
     }
-
-    this->consumeWhitespaces();
 
     m_start = m_current_index;
 
@@ -105,10 +106,9 @@ char Scanner::peek() const
     return m_source_code_ptr->at(m_current_index);
 }
 
-void Scanner::consumeWhitespaces()
+void Scanner::consumeWhitespacesAndComments()
 {
     LOX_ASSERT(m_source_code_ptr != nullptr);
-    LOX_ASSERT(!isAtEnd());
     while (!isAtEnd()) {
         char c = this->peek();
         switch (c) {
@@ -341,8 +341,15 @@ std::string FormatToken(Token const& token, std::string const* source_code)
         auto name = std::string_view(source_code->data() + token.start, token.length);
         return fmt::format("IDENTIFIER[{}] LineNumber:{}  StartIndex:{} Length:{}",
             name, token.line_number, token.start, token.length);
+    } else if (token.type == TokenType::STRING) {
+        auto string_literal = std::string_view(source_code->data() + token.start, token.length);
+        return fmt::format("STRING[{}] LineNumber:{}  StartIndex:{} Length:{}",
+            string_literal, token.line_number, token.start, token.length);
+    } else if (token.type == TokenType::NUMBER) {
+        auto number_literal = std::string_view(source_code->data() + token.start, token.length);
+        return fmt::format("NUMBER[{}] LineNumber:{}  StartIndex:{} Length:{}",
+            number_literal, token.line_number, token.start, token.length);
     } else {
-
         return fmt::format("{} LineNumber:{}  StartIndex:{} Length:{}",
             GetTokenTypeString(token.type), token.line_number, token.start, token.length);
     }

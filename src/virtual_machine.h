@@ -32,7 +32,7 @@ private:
     [[maybe_unused]] Value read_constant();
 
 private:
-    Chunk const* m_current_chunk = nullptr;
+    Chunk m_current_chunk {};
     uint64_t m_instruction_pointer = 0;
 
     std::vector<Value> m_value_stack;

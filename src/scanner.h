@@ -95,7 +95,7 @@ private:
 
     [[nodiscard]] Token makeToken(TokenType) const;
 
-    void consumeWhitespaces();
+    void consumeWhitespacesAndComments();
 
     [[nodiscard]] bool isAtEnd() const;
 

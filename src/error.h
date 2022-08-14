@@ -41,6 +41,7 @@ struct ErrorOr : public std::variant<Error, T> {
         : std::variant<Error, T>(std::forward<T>(value))
     {
     }
+
     bool IsError() { return std::holds_alternative<Error>(*this); }
     bool IsValue() { return std::holds_alternative<T>(*this); }
 
