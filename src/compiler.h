@@ -46,8 +46,6 @@ public:
      */
     ErrorOr<VoidType> CompileSource(std::string const* source, Chunk& chunk);
 
-    static consteval ParseTable GenerateParseTable();
-
 private:
     // Compiler state
     Scanner m_scanner;
@@ -63,6 +61,8 @@ private:
     bool m_encountered_error = false;
 
 private:
+    friend consteval ParseTable GenerateParseTable();
+
     // Reset state
     void reset(std::string const* source, Chunk& chunk);
 

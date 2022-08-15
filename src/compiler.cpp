@@ -6,7 +6,7 @@
 #include "fmt/core.h"
 #include <functional>
 
-consteval ParseTable Compiler::GenerateParseTable()
+consteval ParseTable GenerateParseTable()
 {
     ParseTable table;
     // clang-format off
@@ -53,7 +53,7 @@ consteval ParseTable Compiler::GenerateParseTable()
     return table;
 }
 
-static constexpr auto PARSE_TABLE = Compiler::GenerateParseTable();
+static constexpr auto PARSE_TABLE = GenerateParseTable();
 
 [[maybe_unused]] static void PrintTokens(std::vector<Token> const& tokens, const std::string* source)
 {
