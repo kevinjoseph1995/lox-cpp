@@ -6,6 +6,55 @@
 #include "fmt/core.h"
 #include <functional>
 
+consteval ParseTable Compiler::GenerateParseTable()
+{
+    ParseTable table;
+    // clang-format off
+    table[LEFT_PAREN]    = { .prefix = &Compiler::grouping, .infix = nullptr,           .precedence = PREC_NONE };
+    table[RIGHT_PAREN]   = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
+    table[LEFT_BRACE]    = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
+    table[RIGHT_BRACE]   = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
+    table[COMMA]         = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
+    table[DOT]           = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
+    table[MINUS]         = { .prefix = &Compiler::unary,    .infix = &Compiler::binary, .precedence = PREC_TERM };
+    table[PLUS]          = { .prefix = nullptr,             .infix = &Compiler::binary, .precedence = PREC_TERM };
+    table[SEMICOLON]     = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
+    table[SLASH]         = { .prefix = nullptr,             .infix = &Compiler::binary, .precedence = PREC_FACTOR };
+    table[STAR]          = { .prefix = nullptr,             .infix = &Compiler::binary, .precedence = PREC_FACTOR };
+    table[BANG]          = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
+    table[BANG_EQUAL]    = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
+    table[EQUAL]         = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
+    table[EQUAL_EQUAL]   = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
+    table[GREATER]       = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
+    table[GREATER_EQUAL] = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
+    table[LESS]          = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
+    table[LESS_EQUAL]    = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
+    table[IDENTIFIER]    = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
+    table[STRING]        = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
+    table[NUMBER]        = { .prefix = &Compiler::number,   .infix = nullptr,           .precedence = PREC_NONE };
+    table[AND]           = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
+    table[CLASS]         = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
+    table[ELSE]          = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
+    table[FALSE]         = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
+    table[FOR]           = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
+    table[FUN]           = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
+    table[IF]            = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
+    table[NIL]           = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
+    table[OR]            = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
+    table[PRINT]         = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
+    table[RETURN]        = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
+    table[SUPER]         = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
+    table[THIS]          = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
+    table[TRUE]          = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
+    table[VAR]           = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
+    table[WHILE]         = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
+    table[TOKEN_EOF]     = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
+    // clang-format on
+    return table;
+}
+
+static constexpr auto PARSE_TABLE = Compiler::GenerateParseTable();
+
 [[maybe_unused]] static void PrintTokens(std::vector<Token> const& tokens, const std::string* source)
 {
     for (auto token : tokens) {
@@ -13,56 +62,9 @@
     }
 }
 
-Compiler::ParseTable Compiler::m_parse_table;
-
-Compiler::Compiler()
+static constexpr ParseRule const* GetRule(TokenType type)
 {
-    auto generateParseTable = []() -> ParseTable {
-        ParseTable table;
-        // clang-format off
-        table[LEFT_PAREN]    = { .prefix = &Compiler::grouping, .infix = nullptr,           .precedence = PREC_NONE };
-        table[RIGHT_PAREN]   = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
-        table[LEFT_BRACE]    = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
-        table[RIGHT_BRACE]   = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
-        table[COMMA]         = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
-        table[DOT]           = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
-        table[MINUS]         = { .prefix = &Compiler::unary,    .infix = &Compiler::binary, .precedence = PREC_TERM };
-        table[PLUS]          = { .prefix = nullptr,             .infix = &Compiler::binary, .precedence = PREC_TERM };
-        table[SEMICOLON]     = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
-        table[SLASH]         = { .prefix = nullptr,             .infix = &Compiler::binary, .precedence = PREC_FACTOR };
-        table[STAR]          = { .prefix = nullptr,             .infix = &Compiler::binary, .precedence = PREC_FACTOR };
-        table[BANG]          = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
-        table[BANG_EQUAL]    = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
-        table[EQUAL]         = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
-        table[EQUAL_EQUAL]   = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
-        table[GREATER]       = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
-        table[GREATER_EQUAL] = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
-        table[LESS]          = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
-        table[LESS_EQUAL]    = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
-        table[IDENTIFIER]    = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
-        table[STRING]        = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
-        table[NUMBER]        = { .prefix = &Compiler::number,   .infix = nullptr,           .precedence = PREC_NONE };
-        table[AND]           = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
-        table[CLASS]         = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
-        table[ELSE]          = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
-        table[FALSE]         = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
-        table[FOR]           = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
-        table[FUN]           = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
-        table[IF]            = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
-        table[NIL]           = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
-        table[OR]            = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
-        table[PRINT]         = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
-        table[RETURN]        = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
-        table[SUPER]         = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
-        table[THIS]          = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
-        table[TRUE]          = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
-        table[VAR]           = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
-        table[WHILE]         = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
-        table[TOKEN_EOF]     = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
-        // clang-format on
-        return table;
-    };
-    Compiler::m_parse_table = generateParseTable();
+    return &PARSE_TABLE[type];
 }
 
 void Compiler::reportError(std::string_view error_string)
@@ -151,23 +153,18 @@ void Compiler::addConstant(Value constant)
 void Compiler::parsePrecedence(Precedence level)
 {
     advance();
-    auto prefixRuleFunction = getRule(m_parser.previous_token->type)->prefix;
+    auto prefixRuleFunction = GetRule(m_parser.previous_token->type)->prefix;
     if (prefixRuleFunction == nullptr) {
         reportError("Expected expression");
         return;
     }
     (this->*prefixRuleFunction)();
 
-    while (level <= getRule(m_parser.current_token->type)->precedence) {
+    while (level <= GetRule(m_parser.current_token->type)->precedence) {
         advance();
-        auto infixRuleFunction = getRule(m_parser.previous_token->type)->infix;
+        auto infixRuleFunction = GetRule(m_parser.previous_token->type)->infix;
         (this->*infixRuleFunction)();
     }
-}
-
-Compiler::ParseRule const* Compiler::getRule(TokenType type)
-{
-    return &m_parse_table[type];
 }
 
 void Compiler::expression()
@@ -204,7 +201,7 @@ void Compiler::binary()
     LOX_ASSERT(m_parser.previous_token.has_value());
 
     auto type = m_parser.previous_token->type;
-    parsePrecedence(static_cast<Precedence>(getRule(m_parser.previous_token->type)->precedence + 1));
+    parsePrecedence(static_cast<Precedence>(GetRule(m_parser.previous_token->type)->precedence + 1));
     switch (type) {
     case PLUS:
         emitByte(OP_ADD);

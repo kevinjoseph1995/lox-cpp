@@ -27,9 +27,17 @@ enum  Precedence {
 };
 // clang-format on
 
+class Compiler;
+using ParseFunc = void (Compiler::*)();
+struct ParseRule {
+    ParseFunc prefix;
+    ParseFunc infix;
+    Precedence precedence;
+};
+using ParseTable = std::array<ParseRule, static_cast<int>(TokenType::NUMBER_OF_TOKEN_TYPES)>;
+
 class Compiler {
 public:
-    Compiler();
     /**
      *
      * @param source[in] Input source code
@@ -38,14 +46,10 @@ public:
      */
     ErrorOr<VoidType> CompileSource(std::string const* source, Chunk& chunk);
 
+    static consteval ParseTable GenerateParseTable();
+
 private:
-    using ParseFunc = void (Compiler::*)();
-    struct ParseRule {
-        ParseFunc prefix;
-        ParseFunc infix;
-        Precedence precedence;
-    };
-    using ParseTable = std::array<ParseRule, static_cast<int>(TokenType::NUMBER_OF_TOKEN_TYPES)>;
+    // Compiler state
     Scanner m_scanner;
     std::string const* m_source_code = nullptr;
     Chunk* m_current_chunk = nullptr;
@@ -54,28 +58,33 @@ private:
         std::optional<Token> current_token;
     } m_parser {};
 
+    //  Error state
     bool m_panic = false;
     bool m_encountered_error = false;
-    static ParseTable m_parse_table;
 
 private:
+    // Reset state
     void reset(std::string const* source, Chunk& chunk);
-    void errorAt(Token const& token, std::string_view message);
-    void reportError(std::string_view error_string);
+
+    // Token processing
     void advance();
     bool consume(TokenType type);
 
+    // Error reporting
+    void errorAt(Token const& token, std::string_view message);
+    void reportError(std::string_view error_string);
+
+    // Chunk manipulation functions
     void emitByte(uint8_t byte);
     void addConstant(Value constant);
 
+    // Parse functions
     void parsePrecedence(Precedence level);
     void expression();
     void number();
     void binary();
     void unary();
     void grouping();
-
-    static ParseRule const* getRule(TokenType type);
 };
 
 #endif // LOX_CPP_COMPILER_H
