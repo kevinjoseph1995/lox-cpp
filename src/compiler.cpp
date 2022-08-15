@@ -4,12 +4,65 @@
 
 #include "compiler.h"
 #include "fmt/core.h"
+#include <functional>
 
 [[maybe_unused]] static void PrintTokens(std::vector<Token> const& tokens, const std::string* source)
 {
     for (auto token : tokens) {
         fmt::print("{}\n", FormatToken(token, source));
     }
+}
+
+Compiler::ParseTable Compiler::m_parse_table;
+
+Compiler::Compiler()
+{
+    auto generateParseTable = []() -> ParseTable {
+        ParseTable table;
+        // clang-format off
+        table[LEFT_PAREN]    = { .prefix = &Compiler::grouping, .infix = nullptr,           .precedence = PREC_NONE };
+        table[RIGHT_PAREN]   = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
+        table[LEFT_BRACE]    = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
+        table[RIGHT_BRACE]   = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
+        table[COMMA]         = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
+        table[DOT]           = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
+        table[MINUS]         = { .prefix = &Compiler::unary,    .infix = &Compiler::binary, .precedence = PREC_TERM };
+        table[PLUS]          = { .prefix = nullptr,             .infix = &Compiler::binary, .precedence = PREC_TERM };
+        table[SEMICOLON]     = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
+        table[SLASH]         = { .prefix = nullptr,             .infix = &Compiler::binary, .precedence = PREC_FACTOR };
+        table[STAR]          = { .prefix = nullptr,             .infix = &Compiler::binary, .precedence = PREC_FACTOR };
+        table[BANG]          = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
+        table[BANG_EQUAL]    = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
+        table[EQUAL]         = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
+        table[EQUAL_EQUAL]   = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
+        table[GREATER]       = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
+        table[GREATER_EQUAL] = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
+        table[LESS]          = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
+        table[LESS_EQUAL]    = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
+        table[IDENTIFIER]    = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
+        table[STRING]        = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
+        table[NUMBER]        = { .prefix = &Compiler::number,   .infix = nullptr,           .precedence = PREC_NONE };
+        table[AND]           = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
+        table[CLASS]         = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
+        table[ELSE]          = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
+        table[FALSE]         = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
+        table[FOR]           = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
+        table[FUN]           = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
+        table[IF]            = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
+        table[NIL]           = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
+        table[OR]            = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
+        table[PRINT]         = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
+        table[RETURN]        = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
+        table[SUPER]         = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
+        table[THIS]          = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
+        table[TRUE]          = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
+        table[VAR]           = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
+        table[WHILE]         = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
+        table[TOKEN_EOF]     = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
+        // clang-format on
+        return table;
+    };
+    Compiler::m_parse_table = generateParseTable();
 }
 
 void Compiler::reportError(std::string_view error_string)
@@ -53,6 +106,7 @@ ErrorOr<VoidType> Compiler::CompileSource(std::string const* source, Chunk& chun
     this->reset(source, chunk);
 
     this->advance();
+    this->expression();
 
     return VoidType {};
 }
@@ -94,28 +148,90 @@ void Compiler::addConstant(Value constant)
     m_current_chunk->constant_pool.push_back(constant);
 }
 
-void Compiler::number()
+void Compiler::parsePrecedence(Precedence level)
 {
-    // Pre-conditions
-    LOX_ASSERT(m_parser.previous_token.has_value());
-    LOX_ASSERT(m_parser.previous_token->type == TokenType::NUMBER);
-    LOX_ASSERT(m_parser.previous_token->start + m_parser.previous_token->length <= m_source_code->length());
-    char* endpoint = nullptr;
-    double value = std::strtod(m_source_code->data() + m_parser.previous_token->start, &endpoint);
-    // Post conditions
-    LOX_ASSERT(endpoint != m_source_code->data() + m_parser.previous_token->start);
-    LOX_ASSERT(endpoint - m_source_code->data() + m_parser.previous_token->start == m_parser.previous_token->length);
-    emitByte(OP_CONSTANT);
-    addConstant(value);
+    advance();
+    auto prefixRuleFunction = getRule(m_parser.previous_token->type)->prefix;
+    if (prefixRuleFunction == nullptr) {
+        reportError("Expected expression");
+        return;
+    }
+    (this->*prefixRuleFunction)();
+
+    while (level <= getRule(m_parser.current_token->type)->precedence) {
+        advance();
+        auto infixRuleFunction = getRule(m_parser.previous_token->type)->infix;
+        (this->*infixRuleFunction)();
+    }
+}
+
+Compiler::ParseRule const* Compiler::getRule(TokenType type)
+{
+    return &m_parse_table[type];
 }
 
 void Compiler::expression()
 {
+    parsePrecedence(PREC_ASSIGNMENT);
 }
+
 void Compiler::grouping()
 {
     expression();
     if (!consume(TokenType::RIGHT_PAREN)) {
         errorAt(m_parser.current_token.value(), "Expected \")\" at the end of a group expression");
+    }
+}
+
+void Compiler::number()
+{
+    LOX_ASSERT(m_parser.previous_token.has_value());
+    LOX_ASSERT(m_parser.previous_token->type == TokenType::NUMBER);
+    LOX_ASSERT(m_parser.previous_token->start + m_parser.previous_token->length <= m_source_code->length());
+
+    char* endpoint = nullptr;
+    double value = std::strtod(m_source_code->data() + m_parser.previous_token->start, &endpoint);
+
+    LOX_ASSERT(endpoint != m_source_code->data() + m_parser.previous_token->start);
+    LOX_ASSERT(endpoint - m_source_code->data() + m_parser.previous_token->start == m_parser.previous_token->length);
+
+    emitByte(OP_CONSTANT);
+    addConstant(value);
+}
+
+void Compiler::binary()
+{
+    LOX_ASSERT(m_parser.previous_token.has_value());
+
+    auto type = m_parser.previous_token->type;
+    parsePrecedence(static_cast<Precedence>(getRule(m_parser.previous_token->type)->precedence + 1));
+    switch (type) {
+    case PLUS:
+        emitByte(OP_ADD);
+        break;
+    case MINUS:
+        emitByte(OP_SUBTRACT);
+        break;
+    case STAR:
+        emitByte(OP_MULTIPLY);
+        break;
+    case SLASH:
+        emitByte(OP_DIVIDE);
+        break;
+    default:
+        LOX_ASSERT(false); // Unreachable.
+    }
+}
+
+void Compiler::unary()
+{
+    LOX_ASSERT(m_parser.previous_token.has_value());
+
+    auto const type = m_parser.previous_token->type;
+    parsePrecedence(PREC_UNARY);
+    if (type == TokenType::MINUS) {
+        emitByte(OP_NEGATE);
+    } else {
+        LOX_ASSERT(false);
     }
 }

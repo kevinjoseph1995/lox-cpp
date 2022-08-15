@@ -9,9 +9,9 @@
 #include <string>
 
 #include "error.h"
-enum class TokenType {
+enum TokenType {
     // Single-character tokens.
-    LEFT_PAREN,
+    LEFT_PAREN = 0,
     RIGHT_PAREN,
     LEFT_BRACE,
     RIGHT_BRACE,
@@ -54,6 +54,7 @@ enum class TokenType {
     WHILE,
 
     TOKEN_EOF,
+    NUMBER_OF_TOKEN_TYPES
 };
 
 struct Token {

@@ -331,6 +331,8 @@ ErrorOr<Token> Scanner::identifierOrKeyword()
         return "WHILE";
     case TokenType::TOKEN_EOF:
         return "TOKEN_EOF";
+    case TokenType::NUMBER_OF_TOKEN_TYPES:
+        LOX_ASSERT(false);
     }
     LOX_ASSERT(false);
 }
