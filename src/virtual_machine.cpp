@@ -10,47 +10,11 @@
 
 ErrorOr<VoidType> VirtualMachine::Interpret(std::string const* source_code)
 {
-    m_compiler.CompileSource(source_code, m_current_chunk);
-    return VoidType {};
-}
-
-[[maybe_unused]] ErrorOr<VoidType> VirtualMachine::run()
-{
-    LOX_ASSERT(m_instruction_pointer == 0);
-
-    while (true) {
-#ifdef DEBUG_TRACE_EXECUTION
-        Disassemble_instruction(m_current_chunk, m_instruction_pointer);
-#endif
-        auto const instruction = this->read_byte();
-        switch (instruction) {
-        case OP_RETURN: {
-            // TODO
-        }
-        case OP_CONSTANT: {
-            auto constant = this->read_constant();
-            fmt::print("{}\n", constant);
-            break;
-        }
-        default: {
-            // TODO
-        }
-        }
+    auto compilation_status = m_compiler.CompileSource(source_code, m_current_chunk);
+    if (compilation_status.IsError()) {
+        return compilation_status;
     }
-    return VoidType {};
-}
-
-uint8_t VirtualMachine::read_byte()
-{
-    auto current_byte = m_current_chunk.byte_code[m_instruction_pointer];
-    ++m_instruction_pointer;
-    return current_byte;
-}
-
-Value VirtualMachine::read_constant()
-{
-    auto const constant_index = this->read_byte();
-    return m_current_chunk.constant_pool[constant_index];
+    return this->run();
 }
 
 void VirtualMachine::Reset()
@@ -58,4 +22,115 @@ void VirtualMachine::Reset()
     m_current_chunk.Reset();
     m_instruction_pointer = 0;
     m_value_stack.clear();
+}
+
+ErrorOr<VoidType> VirtualMachine::run()
+{
+    while (true) {
+#ifdef DEBUG_TRACE_EXECUTION
+        Disassemble_instruction(m_current_chunk, m_instruction_pointer);
+#endif
+        auto const instruction = static_cast<OpCode>(readByte());
+        switch (instruction) {
+        case OP_RETURN:
+            return VoidType {};
+        case OP_CONSTANT: {
+            m_value_stack.push_back(readConstant());
+            break;
+        }
+        case OP_NEGATE: {
+            Value value = popStack();
+            double* double_value_ptr = std::get_if<double>(&value);
+            if (double_value_ptr == nullptr) {
+                return Error { .type = ErrorType::RuntimeError,
+                    .error_message = fmt::format("Cannot negate non-number type, line number:{}", m_current_chunk.lines[m_instruction_pointer]) };
+            }
+            m_value_stack.emplace_back(-(*double_value_ptr));
+            break;
+        }
+        case OP_ADD: {
+            auto result = binaryOperation(OP_ADD);
+            if (result.IsError()) {
+                return result;
+            }
+            break;
+        }
+        case OP_SUBTRACT: {
+            auto result = binaryOperation(OP_SUBTRACT);
+            if (result.IsError()) {
+                return result;
+            }
+            break;
+        }
+        case OP_MULTIPLY: {
+            auto result = binaryOperation(OP_MULTIPLY);
+            if (result.IsError()) {
+                return result;
+            }
+            break;
+        }
+        case OP_DIVIDE: {
+            auto result = binaryOperation(OP_DIVIDE);
+            if (result.IsError()) {
+                return result;
+            }
+            break;
+        }
+        }
+    }
+}
+
+uint8_t VirtualMachine::readByte()
+{
+    LOX_ASSERT(m_instruction_pointer < m_current_chunk.byte_code.size());
+    return m_current_chunk.byte_code.at(m_instruction_pointer++);
+}
+
+Value VirtualMachine::readConstant()
+{
+    auto constant_pool_index = static_cast<uint64_t>(readByte());
+    return m_current_chunk.constant_pool.at(constant_pool_index);
+}
+
+Value VirtualMachine::popStack()
+{
+    LOX_ASSERT(!m_value_stack.empty());
+    double* value = std::get_if<double>(&m_value_stack.at(m_value_stack.size() - 1));
+    m_value_stack.pop_back();
+    return *value;
+}
+
+ErrorOr<VoidType> VirtualMachine::binaryOperation(OpCode op)
+{
+    char operator_ch;
+    switch (op) {
+    case OP_ADD:
+        operator_ch = '+';
+        break;
+    case OP_SUBTRACT:
+        operator_ch = '-';
+        break;
+    case OP_MULTIPLY:
+        operator_ch = '*';
+        break;
+    case OP_DIVIDE:
+        operator_ch = '/';
+        break;
+    default:
+        LOX_ASSERT(false, "Unreachable code, internal error");
+    }
+
+    Value lhs = popStack();
+    Value rhs = popStack();
+
+    double const* lhs_double_ptr = std::get_if<double>(&lhs);
+    if (lhs_double_ptr == nullptr) {
+        return Error { .type = ErrorType::RuntimeError, .error_message = fmt::format("LHS of \"{}\" operator is not of number type, line number:{}", operator_ch, m_current_chunk.lines[m_instruction_pointer]) };
+    }
+    double const* rhs_double_ptr = std::get_if<double>(&rhs);
+    if (rhs_double_ptr == nullptr) {
+        return Error { .type = ErrorType::RuntimeError, .error_message = fmt::format("RHS of \"{}\" operator is not of number type, line number:{}", operator_ch, m_current_chunk.lines[m_instruction_pointer]) };
+    }
+    m_value_stack.emplace_back((*lhs_double_ptr) * (*rhs_double_ptr));
+    return VoidType {};
 }

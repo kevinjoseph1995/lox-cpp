@@ -1,8 +1,10 @@
 #include "virtual_machine.h"
-#include <fmt/core.h>
+
 #include <fstream>
 #include <iostream>
 #include <unistd.h>
+
+#include "fmt/core.h"
 
 static constexpr auto USAGE =
     R"(

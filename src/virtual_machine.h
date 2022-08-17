@@ -5,7 +5,7 @@
 #ifndef LOX_CPP_VIRTUAL_MACHINE_H
 #define LOX_CPP_VIRTUAL_MACHINE_H
 
-#include "common.h"
+#include "chunk.h"
 #include "compiler.h"
 
 #include <cstdint>
@@ -27,9 +27,11 @@ public:
     ErrorOr<VoidType> Interpret(std::string const* source_code);
 
 private:
-    [[maybe_unused]] ErrorOr<VoidType> run();
-    [[maybe_unused]] uint8_t read_byte();
-    [[maybe_unused]] Value read_constant();
+    ErrorOr<VoidType> run();
+    uint8_t readByte();
+    Value readConstant();
+    Value popStack();
+    ErrorOr<VoidType> binaryOperation(OpCode op);
 
 private:
     Chunk m_current_chunk {};

@@ -5,11 +5,13 @@
 #ifndef LOX_CPP_COMPILER_H
 #define LOX_CPP_COMPILER_H
 
-#include "common.h"
-#include "error.h"
-#include "scanner.h"
+#include "chunk.h"
+
 #include <array>
 #include <optional>
+
+#include "error.h"
+#include "scanner.h"
 
 // clang-format off
 enum  Precedence {

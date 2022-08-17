@@ -107,8 +107,14 @@ ErrorOr<VoidType> Compiler::CompileSource(std::string const* source, Chunk& chun
     LOX_ASSERT(source != nullptr);
     this->reset(source, chunk);
 
+    ////////////////////////////////////////Temporary//////////////////////////////////////////////////////////
     this->advance();
     this->expression();
+    this->emitByte(OP_RETURN);
+    if (m_encountered_error) {
+        return Error { .type = ErrorType::ParseError, .error_message = "Parse error" };
+    }
+    ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     return VoidType {};
 }
@@ -147,7 +153,10 @@ void Compiler::addConstant(Value constant)
 {
     LOX_ASSERT(m_current_chunk != nullptr);
     LOX_ASSERT(m_current_chunk->constant_pool.size() < MAX_NUMBER_CONSTANTS);
+
     m_current_chunk->constant_pool.push_back(constant);
+    emitByte(OP_CONSTANT);
+    emitByte(static_cast<uint8_t>(m_current_chunk->constant_pool.size() - 1));
 }
 
 void Compiler::parsePrecedence(Precedence level)
@@ -190,9 +199,8 @@ void Compiler::number()
     double value = std::strtod(m_source_code->data() + m_parser.previous_token->start, &endpoint);
 
     LOX_ASSERT(endpoint != m_source_code->data() + m_parser.previous_token->start);
-    LOX_ASSERT(endpoint - m_source_code->data() + m_parser.previous_token->start == m_parser.previous_token->length);
+    LOX_ASSERT(endpoint - (m_source_code->data() + m_parser.previous_token->start) == static_cast<int64_t>(m_parser.previous_token->length));
 
-    emitByte(OP_CONSTANT);
     addConstant(value);
 }
 
