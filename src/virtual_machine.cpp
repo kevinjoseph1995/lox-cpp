@@ -33,6 +33,7 @@ ErrorOr<VoidType> VirtualMachine::run()
         auto const instruction = static_cast<OpCode>(readByte());
         switch (instruction) {
         case OP_RETURN:
+            fmt::print("{}", *(m_value_stack.end() - 1));
             return VoidType {};
         case OP_CONSTANT: {
             m_value_stack.push_back(readConstant());
@@ -103,17 +104,24 @@ Value VirtualMachine::popStack()
 ErrorOr<VoidType> VirtualMachine::binaryOperation(OpCode op)
 {
     char operator_ch;
+    double (*binary_operation_function)(double const&, double const&);
     switch (op) {
     case OP_ADD:
         operator_ch = '+';
+        // Cool trick from Timur's cpp north video
+        // https://www.youtube.com/watch?v=iWKewYYKPHk
+        binary_operation_function = +[](double const& lhs, double const& rhs) -> double { return lhs + rhs; };
         break;
     case OP_SUBTRACT:
+        binary_operation_function = +[](double const& lhs, double const& rhs) -> double { return lhs - rhs; };
         operator_ch = '-';
         break;
     case OP_MULTIPLY:
+        binary_operation_function = +[](double const& lhs, double const& rhs) -> double { return lhs * rhs; };
         operator_ch = '*';
         break;
     case OP_DIVIDE:
+        binary_operation_function = +[](double const& lhs, double const& rhs) -> double { return lhs / rhs; };
         operator_ch = '/';
         break;
     default:
@@ -131,6 +139,6 @@ ErrorOr<VoidType> VirtualMachine::binaryOperation(OpCode op)
     if (rhs_double_ptr == nullptr) {
         return Error { .type = ErrorType::RuntimeError, .error_message = fmt::format("RHS of \"{}\" operator is not of number type, line number:{}", operator_ch, m_current_chunk.lines[m_instruction_pointer]) };
     }
-    m_value_stack.emplace_back((*lhs_double_ptr) * (*rhs_double_ptr));
+    m_value_stack.emplace_back(binary_operation_function(*lhs_double_ptr, *rhs_double_ptr));
     return VoidType {};
 }

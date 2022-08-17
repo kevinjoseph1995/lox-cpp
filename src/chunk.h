@@ -9,6 +9,10 @@
 #include <variant>
 #include <vector>
 
+#include <fmt/format.h>
+
+#include "error.h"
+
 enum OpCode : uint8_t {
     OP_RETURN,
     OP_CONSTANT,
@@ -39,6 +43,36 @@ struct Value : public std::variant<NilType, double, bool> {
     {
         return std::holds_alternative<bool>(*this);
     }
+};
+
+template <>
+struct fmt::formatter<Value> {
+    template <typename ParseContext>
+    constexpr auto parse(ParseContext& ctx)
+    {
+        return ctx.begin();
+    }
+
+    template <typename FormatContext>
+    auto format(Value const& value, FormatContext& ctx)
+    {
+        switch (value.index()) {
+        case 0:
+            return fmt::format_to(ctx.out(), "Nil");
+        case 1: {
+            double const* double_pointer = std::get_if<double>(&value);
+            LOX_ASSERT(double_pointer != nullptr);
+            return fmt::format_to(ctx.out(), "{}", *double_pointer);
+        }
+        case 2: {
+            bool const* bool_pointer = std::get_if<bool>(&value);
+            LOX_ASSERT(bool_pointer != nullptr);
+            return fmt::format_to(ctx.out(), "{}", *bool_pointer);
+        }
+        default:
+            LOX_ASSERT(false);
+        }
+    };
 };
 
 static constexpr auto MAX_NUMBER_CONSTANTS = 256; // Currently we can only store as many constants that can be addressed by 8 bits
