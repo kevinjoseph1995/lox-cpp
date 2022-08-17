@@ -35,17 +35,17 @@ consteval ParseTable GenerateParseTable()
     table[AND]           = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
     table[CLASS]         = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
     table[ELSE]          = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
-    table[FALSE]         = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
+    table[FALSE]         = { .prefix = &Compiler::literal,  .infix = nullptr,           .precedence = PREC_NONE };
     table[FOR]           = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
     table[FUN]           = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
     table[IF]            = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
-    table[NIL]           = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
+    table[NIL]           = { .prefix = &Compiler::literal,  .infix = nullptr,           .precedence = PREC_NONE };
     table[OR]            = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
     table[PRINT]         = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
     table[RETURN]        = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
     table[SUPER]         = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
     table[THIS]          = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
-    table[TRUE]          = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
+    table[TRUE]          = { .prefix = &Compiler::literal,  .infix = nullptr,           .precedence = PREC_NONE };
     table[VAR]           = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
     table[WHILE]         = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
     table[TOKEN_EOF]     = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
@@ -73,7 +73,7 @@ void Compiler::reportError(std::string_view error_string)
         return;
     }
     m_panic = true;
-    fmt::print(stderr, "{}", error_string);
+    fmt::print(stderr, "{}\n", error_string);
     m_encountered_error = true;
 }
 
@@ -202,6 +202,24 @@ void Compiler::number()
     LOX_ASSERT(endpoint - (m_source_code->data() + m_parser.previous_token->start) == static_cast<int64_t>(m_parser.previous_token->length));
 
     addConstant(value);
+}
+
+void Compiler::literal()
+{
+    LOX_ASSERT(m_parser.previous_token.has_value());
+    switch (m_parser.previous_token.value().type) {
+    case FALSE:
+        emitByte(OP_FALSE);
+        break;
+    case NIL:
+        emitByte(OP_NIL);
+        break;
+    case TRUE:
+        emitByte(OP_TRUE);
+        break;
+    default:
+        LOX_ASSERT(false, "Internal error");
+    }
 }
 
 void Compiler::binary()

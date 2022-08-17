@@ -77,6 +77,15 @@ ErrorOr<VoidType> VirtualMachine::run()
             }
             break;
         }
+        case OP_NIL:
+            m_value_stack.emplace_back(NilType {});
+            break;
+        case OP_TRUE:
+            m_value_stack.emplace_back(true);
+            break;
+        case OP_FALSE:
+            m_value_stack.emplace_back(false);
+            break;
         }
     }
 }

@@ -20,7 +20,10 @@ enum OpCode : uint8_t {
     OP_ADD,
     OP_SUBTRACT,
     OP_MULTIPLY,
-    OP_DIVIDE
+    OP_DIVIDE,
+    OP_NIL,
+    OP_TRUE,
+    OP_FALSE
 };
 
 struct NilType { };

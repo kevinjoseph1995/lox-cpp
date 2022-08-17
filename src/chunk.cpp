@@ -42,6 +42,15 @@ uint64_t Disassemble_instruction(Chunk const& chunk, uint64_t offset)
     case OP_DIVIDE:
         fmt::print("{:#08x} OP_DIVIDE\n", offset);
         return ++offset;
+    case OP_NIL:
+        fmt::print("{:#08x} OP_NIL\n", offset);
+        return ++offset;
+    case OP_TRUE:
+        fmt::print("{:#08x} OP_TRUE\n", offset);
+        return ++offset;
+    case OP_FALSE:
+        fmt::print("{:#08x} OP_FALSE\n", offset);
+        return ++offset;
     }
     LOX_ASSERT(false);
 }

@@ -83,6 +83,7 @@ private:
     // Parse functions
     void parsePrecedence(Precedence level);
     void expression();
+    void literal();
     void number();
     void binary();
     void unary();
