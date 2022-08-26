@@ -129,7 +129,7 @@ void Scanner::consumeWhitespacesAndComments()
                     advance();
                 }
             }
-            break;
+            return;
         default:
             return;
         }

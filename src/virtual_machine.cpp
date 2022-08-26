@@ -33,7 +33,7 @@ ErrorOr<VoidType> VirtualMachine::run()
         auto const instruction = static_cast<OpCode>(readByte());
         switch (instruction) {
         case OP_RETURN:
-            fmt::print("{}", *(m_value_stack.end() - 1));
+            fmt::print("{}", *(m_value_stack.end() - 1)); // TODO Remove me
             return VoidType {};
         case OP_CONSTANT: {
             m_value_stack.push_back(readConstant());
@@ -112,42 +112,42 @@ Value VirtualMachine::popStack()
 
 ErrorOr<VoidType> VirtualMachine::binaryOperation(OpCode op)
 {
-    char operator_ch;
-    double (*binary_operation_function)(double const&, double const&);
+    Value rhs = popStack();
+    Value lhs = popStack();
+
+#define BINARY_OP_WRAPPER(op)                                                                                                                                                                             \
+    do {                                                                                                                                                                                                  \
+        double const* lhs_double_ptr = std::get_if<double>(&lhs);                                                                                                                                         \
+        if (lhs_double_ptr == nullptr) {                                                                                                                                                                  \
+            return Error { .type = ErrorType::RuntimeError, .error_message = fmt::format("LHS of \"op\" operator is not of number type, line number:{}", m_current_chunk.lines[m_instruction_pointer]) }; \
+        }                                                                                                                                                                                                 \
+        double const* rhs_double_ptr = std::get_if<double>(&rhs);                                                                                                                                         \
+        if (rhs_double_ptr == nullptr) {                                                                                                                                                                  \
+            return Error { .type = ErrorType::RuntimeError, .error_message = fmt::format("RHS of \"op\" operator is not of number type, line number:{}", m_current_chunk.lines[m_instruction_pointer]) }; \
+        }                                                                                                                                                                                                 \
+        m_value_stack.emplace_back((*lhs_double_ptr)op(*rhs_double_ptr));                                                                                                                                 \
+    } while (0)
+
     switch (op) {
-    case OP_ADD:
-        operator_ch = '+';
-        // Cool trick from Timur's cpp north video
-        // https://www.youtube.com/watch?v=iWKewYYKPHk
-        binary_operation_function = +[](double const& lhs, double const& rhs) -> double { return lhs + rhs; };
+    case OP_ADD: {
+        BINARY_OP_WRAPPER(+);
         break;
-    case OP_SUBTRACT:
-        binary_operation_function = +[](double const& lhs, double const& rhs) -> double { return lhs - rhs; };
-        operator_ch = '-';
+    }
+    case OP_SUBTRACT: {
+        BINARY_OP_WRAPPER(-);
         break;
-    case OP_MULTIPLY:
-        binary_operation_function = +[](double const& lhs, double const& rhs) -> double { return lhs * rhs; };
-        operator_ch = '*';
+    }
+    case OP_MULTIPLY: {
+        BINARY_OP_WRAPPER(*);
         break;
-    case OP_DIVIDE:
-        binary_operation_function = +[](double const& lhs, double const& rhs) -> double { return lhs / rhs; };
-        operator_ch = '/';
+    }
+    case OP_DIVIDE: {
+        BINARY_OP_WRAPPER(/);
         break;
+    }
     default:
         LOX_ASSERT(false, "Unreachable code, internal error");
     }
-
-    Value lhs = popStack();
-    Value rhs = popStack();
-
-    double const* lhs_double_ptr = std::get_if<double>(&lhs);
-    if (lhs_double_ptr == nullptr) {
-        return Error { .type = ErrorType::RuntimeError, .error_message = fmt::format("LHS of \"{}\" operator is not of number type, line number:{}", operator_ch, m_current_chunk.lines[m_instruction_pointer]) };
-    }
-    double const* rhs_double_ptr = std::get_if<double>(&rhs);
-    if (rhs_double_ptr == nullptr) {
-        return Error { .type = ErrorType::RuntimeError, .error_message = fmt::format("RHS of \"{}\" operator is not of number type, line number:{}", operator_ch, m_current_chunk.lines[m_instruction_pointer]) };
-    }
-    m_value_stack.emplace_back(binary_operation_function(*lhs_double_ptr, *rhs_double_ptr));
+#undef BINARY_OP_WRAPPER
     return VoidType {};
 }
