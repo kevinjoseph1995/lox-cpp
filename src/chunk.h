@@ -24,7 +24,13 @@ enum OpCode : uint8_t {
     OP_NIL,
     OP_TRUE,
     OP_FALSE,
-    OP_NOT
+    OP_NOT,
+    OP_EQUAL,
+    OP_GREATER,
+    OP_LESS,
+    OP_LESS_EQUAL,
+    OP_GREATER_EQUAL,
+    OP_NOT_EQUAL
 };
 
 struct NilType { };
@@ -35,17 +41,34 @@ struct Value : public std::variant<NilType, double, bool> {
         : std::variant<NilType, double, bool>(std::forward<T>(value))
     {
     }
-    bool IsNil() const
+    [[nodiscard]] bool IsNil() const
     {
         return std::holds_alternative<NilType>(*this);
     }
-    bool IsDouble() const
+    [[nodiscard]] bool IsDouble() const
     {
         return std::holds_alternative<double>(*this);
     }
-    bool IsBool() const
+    [[nodiscard]] bool IsBool() const
     {
         return std::holds_alternative<bool>(*this);
+    }
+    bool operator==(Value const& other) const
+    {
+        if (this->index() != other.index()) {
+            return false;
+        }
+        if (this->IsBool()) {
+            return std::get_if<bool>(this) == std::get_if<bool>(&other);
+        } else if (this->IsDouble()) {
+            return std::get_if<double>(this) == std::get_if<double>(&other);
+        } else {
+            return true;
+        }
+    }
+    bool operator!=(Value const& other) const
+    {
+        return !(*this == other);
     }
 };
 

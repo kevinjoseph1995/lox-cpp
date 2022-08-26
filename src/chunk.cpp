@@ -54,6 +54,24 @@ uint64_t Disassemble_instruction(Chunk const& chunk, uint64_t offset)
     case OP_NOT:
         fmt::print("{:#08x} OP_NOT\n", offset);
         return ++offset;
+    case OP_EQUAL:
+        fmt::print("{:#08x} OP_EQUAL\n", offset);
+        return ++offset;
+    case OP_GREATER:
+        fmt::print("{:#08x} OP_GREATER\n", offset);
+        return ++offset;
+    case OP_LESS:
+        fmt::print("{:#08x} OP_LESS\n", offset);
+        return ++offset;
+    case OP_LESS_EQUAL:
+        fmt::print("{:#08x} OP_LESS_EQUAL\n", offset);
+        return ++offset;
+    case OP_GREATER_EQUAL:
+        fmt::print("{:#08x} OP_GREATER_EQUAL\n", offset);
+        return ++offset;
+    case OP_NOT_EQUAL:
+        fmt::print("{:#08x} OP_NOT_EQUAL\n", offset);
+        return ++offset;
     }
     LOX_ASSERT(false);
 }

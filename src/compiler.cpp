@@ -22,13 +22,13 @@ consteval ParseTable GenerateParseTable()
     table[SLASH]         = { .prefix = nullptr,             .infix = &Compiler::binary, .precedence = PREC_FACTOR };
     table[STAR]          = { .prefix = nullptr,             .infix = &Compiler::binary, .precedence = PREC_FACTOR };
     table[BANG]          = { .prefix = &Compiler::unary,    .infix = nullptr,           .precedence = PREC_NONE };
-    table[BANG_EQUAL]    = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
     table[EQUAL]         = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
-    table[EQUAL_EQUAL]   = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
-    table[GREATER]       = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
-    table[GREATER_EQUAL] = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
-    table[LESS]          = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
-    table[LESS_EQUAL]    = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
+    table[BANG_EQUAL]    = { .prefix = nullptr,             .infix = &Compiler::binary, .precedence = PREC_EQUALITY };
+    table[EQUAL_EQUAL]   = { .prefix = nullptr,             .infix = &Compiler::binary, .precedence = PREC_EQUALITY };
+    table[GREATER]       = { .prefix = nullptr,             .infix = &Compiler::binary, .precedence = PREC_COMPARISON };
+    table[GREATER_EQUAL] = { .prefix = nullptr,             .infix = &Compiler::binary, .precedence = PREC_COMPARISON };
+    table[LESS]          = { .prefix = nullptr,             .infix = &Compiler::binary, .precedence = PREC_COMPARISON };
+    table[LESS_EQUAL]    = { .prefix = nullptr,             .infix = &Compiler::binary, .precedence = PREC_COMPARISON };
     table[IDENTIFIER]    = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
     table[STRING]        = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
     table[NUMBER]        = { .prefix = &Compiler::number,   .infix = nullptr,           .precedence = PREC_NONE };
@@ -240,6 +240,24 @@ void Compiler::binary()
         break;
     case SLASH:
         emitByte(OP_DIVIDE);
+        break;
+    case BANG_EQUAL:
+        emitByte(OP_NOT_EQUAL);
+        break;
+    case EQUAL_EQUAL:
+        emitByte(OP_EQUAL);
+        break;
+    case LESS:
+        emitByte(OP_LESS);
+        break;
+    case LESS_EQUAL:
+        emitByte(OP_LESS_EQUAL);
+        break;
+    case GREATER:
+        emitByte(OP_GREATER);
+        break;
+    case GREATER_EQUAL:
+        emitByte(OP_GREATER_EQUAL);
         break;
     default:
         LOX_ASSERT(false); // Unreachable.

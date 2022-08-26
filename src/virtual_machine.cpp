@@ -94,6 +94,46 @@ ErrorOr<VoidType> VirtualMachine::run()
         case OP_NOT:
             m_value_stack.emplace_back(IsFalsy(popStack()));
             break;
+        case OP_EQUAL: {
+            Value rhs = popStack();
+            Value lhs = popStack();
+            m_value_stack.emplace_back(rhs == lhs);
+            break;
+        }
+        case OP_NOT_EQUAL: {
+            Value rhs = popStack();
+            Value lhs = popStack();
+            m_value_stack.emplace_back(rhs != lhs);
+            break;
+        }
+        case OP_GREATER: {
+            auto result = binaryOperation(OP_GREATER);
+            if (result.IsError()) {
+                return result;
+            }
+            break;
+        }
+        case OP_LESS: {
+            auto result = binaryOperation(OP_LESS);
+            if (result.IsError()) {
+                return result;
+            }
+            break;
+        }
+        case OP_LESS_EQUAL: {
+            auto result = binaryOperation(OP_LESS_EQUAL);
+            if (result.IsError()) {
+                return result;
+            }
+            break;
+        }
+        case OP_GREATER_EQUAL: {
+            auto result = binaryOperation(OP_GREATER_EQUAL);
+            if (result.IsError()) {
+                return result;
+            }
+            break;
+        }
         }
     }
 }
@@ -151,6 +191,22 @@ ErrorOr<VoidType> VirtualMachine::binaryOperation(OpCode op)
     }
     case OP_DIVIDE: {
         BINARY_OP_WRAPPER(/);
+        break;
+    }
+    case OP_GREATER_EQUAL: {
+        BINARY_OP_WRAPPER(>=);
+        break;
+    }
+    case OP_GREATER: {
+        BINARY_OP_WRAPPER(>);
+        break;
+    }
+    case OP_LESS_EQUAL: {
+        BINARY_OP_WRAPPER(<=);
+        break;
+    }
+    case OP_LESS: {
+        BINARY_OP_WRAPPER(<);
         break;
     }
     default:
