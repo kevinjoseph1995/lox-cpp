@@ -21,7 +21,7 @@ consteval ParseTable GenerateParseTable()
     table[SEMICOLON]     = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
     table[SLASH]         = { .prefix = nullptr,             .infix = &Compiler::binary, .precedence = PREC_FACTOR };
     table[STAR]          = { .prefix = nullptr,             .infix = &Compiler::binary, .precedence = PREC_FACTOR };
-    table[BANG]          = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
+    table[BANG]          = { .prefix = &Compiler::unary,    .infix = nullptr,           .precedence = PREC_NONE };
     table[BANG_EQUAL]    = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
     table[EQUAL]         = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
     table[EQUAL_EQUAL]   = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
@@ -254,6 +254,8 @@ void Compiler::unary()
     parsePrecedence(PREC_UNARY);
     if (type == TokenType::MINUS) {
         emitByte(OP_NEGATE);
+    } else if (type == TokenType::BANG) {
+        emitByte(OP_NOT);
     } else {
         LOX_ASSERT(false);
     }

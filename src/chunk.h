@@ -23,7 +23,8 @@ enum OpCode : uint8_t {
     OP_DIVIDE,
     OP_NIL,
     OP_TRUE,
-    OP_FALSE
+    OP_FALSE,
+    OP_NOT
 };
 
 struct NilType { };
@@ -34,15 +35,15 @@ struct Value : public std::variant<NilType, double, bool> {
         : std::variant<NilType, double, bool>(std::forward<T>(value))
     {
     }
-    bool IsNil()
+    bool IsNil() const
     {
         return std::holds_alternative<NilType>(*this);
     }
-    bool IsDouble()
+    bool IsDouble() const
     {
         return std::holds_alternative<double>(*this);
     }
-    bool IsBool()
+    bool IsBool() const
     {
         return std::holds_alternative<bool>(*this);
     }

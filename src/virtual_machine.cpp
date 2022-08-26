@@ -8,6 +8,11 @@
 
 #define DEBUG_TRACE_EXECUTION
 
+static bool IsFalsy(Value const& value)
+{
+    return value.IsNil() || (value.IsBool() && !(*std::get_if<bool>(&value)));
+}
+
 ErrorOr<VoidType> VirtualMachine::Interpret(std::string const* source_code)
 {
     auto compilation_status = m_compiler.CompileSource(source_code, m_current_chunk);
@@ -86,6 +91,9 @@ ErrorOr<VoidType> VirtualMachine::run()
         case OP_FALSE:
             m_value_stack.emplace_back(false);
             break;
+        case OP_NOT:
+            m_value_stack.emplace_back(IsFalsy(popStack()));
+            break;
         }
     }
 }
@@ -105,9 +113,9 @@ Value VirtualMachine::readConstant()
 Value VirtualMachine::popStack()
 {
     LOX_ASSERT(!m_value_stack.empty());
-    double* value = std::get_if<double>(&m_value_stack.at(m_value_stack.size() - 1));
+    auto value = m_value_stack.at(m_value_stack.size() - 1);
     m_value_stack.pop_back();
-    return *value;
+    return value;
 }
 
 ErrorOr<VoidType> VirtualMachine::binaryOperation(OpCode op)
