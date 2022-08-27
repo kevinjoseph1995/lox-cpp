@@ -46,31 +46,33 @@ public:
      * @param chunk[out] Output bytecode chunk
      * @return Compilation status, returns VoidType on successful compilation
      */
-    ErrorOr<VoidType> CompileSource(std::string const* source, Chunk& chunk);
+    [[nodiscard]] ErrorOr<VoidType> CompileSource(std::string const& source, Chunk& chunk);
 
 private:
     // Compiler state
     Scanner m_scanner;
     std::string const* m_source_code = nullptr;
     Chunk* m_current_chunk = nullptr;
+
     struct ParserState {
         std::optional<Token> previous_token;
         std::optional<Token> current_token;
     } m_parser {};
 
-    //  Error state
-    bool m_panic = false;
-    bool m_encountered_error = false;
+    struct ErrorState {
+        bool panic = false;
+        bool encountered_error = false;
+    } m_error_state;
 
 private:
     friend consteval ParseTable GenerateParseTable();
 
     // Reset state
-    void reset(std::string const* source, Chunk& chunk);
+    void reset(std::string const& source, Chunk& chunk);
 
     // Token processing
     void advance();
-    bool consume(TokenType type);
+    [[nodiscard]] bool consume(TokenType type);
 
     // Error reporting
     void errorAt(Token const& token, std::string_view message);

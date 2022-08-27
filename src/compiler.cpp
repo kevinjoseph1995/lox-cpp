@@ -69,12 +69,12 @@ static constexpr ParseRule const* GetRule(TokenType type)
 
 void Compiler::reportError(std::string_view error_string)
 {
-    if (m_panic) {
+    if (m_error_state.panic) {
         return;
     }
-    m_panic = true;
+    m_error_state.panic = true;
     fmt::print(stderr, "{}\n", error_string);
-    m_encountered_error = true;
+    m_error_state.encountered_error = true;
 }
 
 void Compiler::errorAt(const Token& token, std::string_view message)
@@ -93,25 +93,24 @@ void Compiler::errorAt(const Token& token, std::string_view message)
     reportError(error_string);
 }
 
-void Compiler::reset(std::string const* source, Chunk& chunk)
+void Compiler::reset(std::string const& source, Chunk& chunk)
 {
-    m_source_code = source;
+    m_source_code = &source;
     chunk.Reset();
     m_current_chunk = &chunk;
     m_scanner.Reset(source);
     m_parser = ParserState {};
 }
 
-ErrorOr<VoidType> Compiler::CompileSource(std::string const* source, Chunk& chunk)
+ErrorOr<VoidType> Compiler::CompileSource(std::string const& source, Chunk& chunk)
 {
-    LOX_ASSERT(source != nullptr);
     this->reset(source, chunk);
 
     ////////////////////////////////////////Temporary//////////////////////////////////////////////////////////
     this->advance();
     this->expression();
     this->emitByte(OP_RETURN);
-    if (m_encountered_error) {
+    if (m_error_state.encountered_error) {
         return Error { .type = ErrorType::ParseError, .error_message = "Parse error" };
     }
     ///////////////////////////////////////////////////////////////////////////////////////////////////////////

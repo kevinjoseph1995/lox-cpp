@@ -24,14 +24,14 @@ public:
      *
      * @return
      */
-    ErrorOr<VoidType> Interpret(std::string const* source_code);
+    [[nodiscard]] ErrorOr<VoidType> Interpret(std::string const& source_code);
 
 private:
-    ErrorOr<VoidType> run();
-    uint8_t readByte();
-    Value readConstant();
-    Value popStack();
-    ErrorOr<VoidType> binaryOperation(OpCode op);
+    [[nodiscard]] ErrorOr<VoidType> run();
+    [[nodiscard]] uint8_t readByte();
+    [[nodiscard]] Value readConstant();
+    [[nodiscard]] Value popStack();
+    [[nodiscard]] ErrorOr<VoidType> binaryOperation(OpCode op);
 
 private:
     Chunk m_current_chunk {};

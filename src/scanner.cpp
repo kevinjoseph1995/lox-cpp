@@ -6,10 +6,9 @@
 #include "error.h"
 #include <fmt/format.h>
 
-void Scanner::Reset(const std::string* source_code)
+void Scanner::Reset(const std::string& source_code)
 {
-    LOX_ASSERT(source_code != nullptr);
-    m_source_code_ptr = source_code;
+    m_source_code_ptr = &source_code;
     m_current_index = 0;
     m_start = 0;
     m_line = 1;

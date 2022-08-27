@@ -21,8 +21,8 @@
 
 enum class ErrorType { ScanError,
     ParseError,
-    RuntimeError,
-    InternalError };
+    RuntimeError
+};
 
 struct Error {
     ErrorType type;
@@ -42,17 +42,19 @@ struct ErrorOr : public std::variant<Error, T> {
     {
     }
 
-    bool IsError() { return std::holds_alternative<Error>(*this); }
-    bool IsValue() { return std::holds_alternative<T>(*this); }
+    ~ErrorOr() = default;
 
-    Error& GetError()
+    [[nodiscard]] bool IsError() const { return std::holds_alternative<Error>(*this); }
+    [[nodiscard]] bool IsValue() const { return std::holds_alternative<T>(*this); }
+
+    [[nodiscard]] Error const& GetError() const
     {
         auto ptr = std::get_if<Error>(this);
         LOX_ASSERT(ptr != nullptr, "Invalid ErrorOr access");
         return *ptr;
     }
 
-    T& GetValue()
+    [[nodiscard]] T const& GetValue() const
     {
         auto ptr = std::get_if<T>(this);
         LOX_ASSERT(ptr != nullptr, "Invalid ErrorOr access");

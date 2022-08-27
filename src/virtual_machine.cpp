@@ -13,7 +13,7 @@ static bool IsFalsy(Value const& value)
     return value.IsNil() || (value.IsBool() && !(*std::get_if<bool>(&value)));
 }
 
-ErrorOr<VoidType> VirtualMachine::Interpret(std::string const* source_code)
+ErrorOr<VoidType> VirtualMachine::Interpret(std::string const& source_code)
 {
     auto compilation_status = m_compiler.CompileSource(source_code, m_current_chunk);
     if (compilation_status.IsError()) {
@@ -160,58 +160,74 @@ Value VirtualMachine::popStack()
 
 ErrorOr<VoidType> VirtualMachine::binaryOperation(OpCode op)
 {
-    Value rhs = popStack();
-    Value lhs = popStack();
+    auto getOperatorString = [](auto _op) {
+        using decayed_type = typename std::decay<decltype(_op)>::type;
+        if constexpr (std::is_same_v<decayed_type, std::plus<double>>) {
+            return "+";
+        } else if constexpr (std::is_same_v<decayed_type, std::minus<double>>) {
+            return "-";
+        } else if constexpr (std::is_same_v<decayed_type, std::multiplies<double>>) {
+            return "*";
+        } else if constexpr (std::is_same_v<decayed_type, std::divides<double>>) {
+            return "/";
+        } else if constexpr (std::is_same_v<decayed_type, std::less<double>>) {
+            return "<";
+        } else if constexpr (std::is_same_v<decayed_type, std::less_equal<double>>) {
+            return "<=";
+        } else if constexpr (std::is_same_v<decayed_type, std::greater<double>>) {
+            return ">";
+        } else if constexpr (std::is_same_v<decayed_type, std::greater_equal<double>>) {
+            return ">=";
+        } else {
+            return "UNKNOWN";
+        };
+    };
 
-#define BINARY_OP_WRAPPER(op)                                                                                                                                                                             \
-    do {                                                                                                                                                                                                  \
-        double const* lhs_double_ptr = std::get_if<double>(&lhs);                                                                                                                                         \
-        if (lhs_double_ptr == nullptr) {                                                                                                                                                                  \
-            return Error { .type = ErrorType::RuntimeError, .error_message = fmt::format("LHS of \"op\" operator is not of number type, line number:{}", m_current_chunk.lines[m_instruction_pointer]) }; \
-        }                                                                                                                                                                                                 \
-        double const* rhs_double_ptr = std::get_if<double>(&rhs);                                                                                                                                         \
-        if (rhs_double_ptr == nullptr) {                                                                                                                                                                  \
-            return Error { .type = ErrorType::RuntimeError, .error_message = fmt::format("RHS of \"op\" operator is not of number type, line number:{}", m_current_chunk.lines[m_instruction_pointer]) }; \
-        }                                                                                                                                                                                                 \
-        m_value_stack.emplace_back((*lhs_double_ptr)op(*rhs_double_ptr));                                                                                                                                 \
-    } while (0)
+    auto binaryOpWrapper = [&](auto _operator) -> ErrorOr<VoidType> {
+        Value rhs = popStack();
+        double const* rhs_double_ptr = std::get_if<double>(&rhs);
+        if (rhs_double_ptr == nullptr) {
+            return Error { .type = ErrorType::RuntimeError,
+                .error_message = fmt::format("RHS of \"{}\" is not a number type.", getOperatorString(_operator)) };
+        }
+
+        Value lhs = popStack();
+        double const* lhs_double_ptr = std::get_if<double>(&lhs);
+        if (lhs_double_ptr == nullptr) {
+            return Error { .type = ErrorType::RuntimeError,
+                .error_message = fmt::format("LHS of \"{}\" is not a number type.", getOperatorString(_operator)) };
+        }
+
+        m_value_stack.emplace_back(_operator(*lhs_double_ptr, *rhs_double_ptr));
+        return VoidType {};
+    };
 
     switch (op) {
-    case OP_ADD: {
-        BINARY_OP_WRAPPER(+);
-        break;
-    }
-    case OP_SUBTRACT: {
-        BINARY_OP_WRAPPER(-);
-        break;
-    }
-    case OP_MULTIPLY: {
-        BINARY_OP_WRAPPER(*);
-        break;
-    }
-    case OP_DIVIDE: {
-        BINARY_OP_WRAPPER(/);
-        break;
-    }
-    case OP_GREATER_EQUAL: {
-        BINARY_OP_WRAPPER(>=);
-        break;
-    }
-    case OP_GREATER: {
-        BINARY_OP_WRAPPER(>);
-        break;
-    }
-    case OP_LESS_EQUAL: {
-        BINARY_OP_WRAPPER(<=);
-        break;
-    }
-    case OP_LESS: {
-        BINARY_OP_WRAPPER(<);
-        break;
-    }
+    case OP_ADD:
+        return binaryOpWrapper(std::plus<double> {});
+
+    case OP_SUBTRACT:
+        return binaryOpWrapper(std::minus<double> {});
+
+    case OP_MULTIPLY:
+        return binaryOpWrapper(std::multiplies<double> {});
+
+    case OP_DIVIDE:
+        return binaryOpWrapper(std::divides<double> {});
+
+    case OP_GREATER_EQUAL:
+        return binaryOpWrapper(std::greater_equal<double> {});
+
+    case OP_GREATER:
+        return binaryOpWrapper(std::greater<double> {});
+
+    case OP_LESS_EQUAL:
+        return binaryOpWrapper(std::less_equal<double> {});
+
+    case OP_LESS:
+        return binaryOpWrapper(std::less<double> {});
+
     default:
-        LOX_ASSERT(false, "Unreachable code, internal error");
+        LOX_ASSERT(false, "Not a binary operation");
     }
-#undef BINARY_OP_WRAPPER
-    return VoidType {};
 }

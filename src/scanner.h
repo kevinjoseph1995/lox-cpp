@@ -73,13 +73,13 @@ public:
      * Resets scanner state with new source code to scan
      * @param source_code
      */
-    void Reset(std::string const* source_code);
+    void Reset(std::string const& source_code);
 
     /**
      *
      * @return Next token(can be in invalid state)
      */
-    ErrorOr<Token> GetNextToken();
+    [[nodiscard]] ErrorOr<Token> GetNextToken();
 
 private:
     [[nodiscard]] ErrorOr<Token> number();

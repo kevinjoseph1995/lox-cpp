@@ -13,24 +13,21 @@ usage: lox_cpp [file | - ]
 
 static int Run(VirtualMachine& vm, std::string const& source)
 {
-    auto result = vm.Interpret(&source);
+    auto result = vm.Interpret(source);
     if (result.IsError()) {
         auto& error = result.GetError();
         switch (error.type) {
         case ErrorType::ScanError:
-            fmt::print(stderr, "ScanError\n");
+            fmt::print(stderr, "ScanError: {}\n", error.error_message);
             return 1;
         case ErrorType::ParseError:
-            fmt::print(stderr, "ParseError\n");
+            fmt::print(stderr, "ParseError: {}\n", error.error_message);
             return 1;
         case ErrorType::RuntimeError:
-            fmt::print(stderr, "RuntimeError\n");
-            return 1;
-        case ErrorType::InternalError:
-            fmt::print(stderr, "InternalError\n");
+            fmt::print(stderr, "RuntimeError: {}\n", error.error_message);
             return 1;
         default:
-            fmt::print(stderr, "Unknown error\n");
+            fmt::print(stderr, "Unknown error: {}\n", error.error_message);
             return 1;
         }
     }
