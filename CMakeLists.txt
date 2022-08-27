@@ -17,5 +17,11 @@ find_program(CCACHE_FOUND ccache)
 # Treat all warnings as errors
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra")
 
+find_program(MOLD_FOUND "mold")
+IF (MOLD_FOUND)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -B/usr/local/libexec/mold")
+ENDIF ()
+
+
 add_subdirectory(src)
 add_subdirectory(third_party)
