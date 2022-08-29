@@ -7,6 +7,7 @@
 
 #include "chunk.h"
 #include "compiler.h"
+#include "heap.h"
 
 #include <cstdint>
 #include <stack>
@@ -15,15 +16,8 @@ static constexpr auto MAX_STACK_SIZE = 256;
 
 class VirtualMachine {
 public:
-    /**
-     * Reset virtual machine state
-     */
-    [[maybe_unused]] void Reset();
+    VirtualMachine();
 
-    /**
-     *
-     * @return
-     */
     [[nodiscard]] ErrorOr<VoidType> Interpret(std::string const& source_code);
 
 private:
@@ -36,10 +30,9 @@ private:
 private:
     Chunk m_current_chunk {};
     uint64_t m_instruction_pointer = 0;
-
     std::vector<Value> m_value_stack;
-
-    Compiler m_compiler;
+    std::unique_ptr<Compiler> m_compiler = nullptr;
+    Heap m_heap {};
 };
 
 #endif // LOX_CPP_VIRTUAL_MACHINE_H

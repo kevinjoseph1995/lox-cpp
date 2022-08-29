@@ -9,13 +9,14 @@
 
 #include "error.h"
 #include "fmt/format.h"
+#include "object.h"
 
 struct NilType { };
 
-struct Value : public std::variant<NilType, double, bool> {
+struct Value : public std::variant<NilType, double, bool, Object*> {
     template <typename T>
     Value(T&& value)
-        : std::variant<NilType, double, bool>(std::forward<T>(value))
+        : std::variant<NilType, double, bool, Object*>(std::forward<T>(value))
     {
     }
     [[nodiscard]] bool IsNil() const
@@ -26,9 +27,50 @@ struct Value : public std::variant<NilType, double, bool> {
     {
         return std::holds_alternative<double>(*this);
     }
+
+    [[nodiscard]] double& AsDouble()
+    {
+        LOX_ASSERT(IsDouble());
+        return *std::get_if<double>(this);
+    }
+
+    [[nodiscard]] bool& AsBool()
+    {
+        LOX_ASSERT(IsBool());
+        return *std::get_if<bool>(this);
+    }
+
+    [[nodiscard]] double const& AsDouble() const
+    {
+        LOX_ASSERT(IsDouble());
+        return *std::get_if<double>(this);
+    }
+
+    [[nodiscard]] Object const& AsObject() const
+    {
+        LOX_ASSERT(IsObject());
+        return *(*std::get_if<Object*>(this));
+    }
+
+    [[nodiscard]] Object& AsObject()
+    {
+        LOX_ASSERT(IsObject());
+        return *(*std::get_if<Object*>(this));
+    }
+
+    [[nodiscard]] bool const& AsBool() const
+    {
+        LOX_ASSERT(IsBool());
+        return *std::get_if<bool>(this);
+    }
+
     [[nodiscard]] bool IsBool() const
     {
         return std::holds_alternative<bool>(*this);
+    }
+    [[nodiscard]] bool IsObject() const
+    {
+        return std::holds_alternative<Object*>(*this);
     }
     bool operator==(Value const& other) const
     {
@@ -72,6 +114,11 @@ struct fmt::formatter<Value> {
             bool const* bool_pointer = std::get_if<bool>(&value);
             LOX_ASSERT(bool_pointer != nullptr);
             return fmt::format_to(ctx.out(), "{}", *bool_pointer);
+        }
+        case 3: {
+            Object const& object = value.AsObject();
+            auto string_object = *static_cast<StringObject const*>(&object); // Fix me
+            return fmt::format_to(ctx.out(), "{}", string_object.data);
         }
         default:
             LOX_ASSERT(false);

@@ -30,7 +30,7 @@ consteval ParseTable GenerateParseTable()
     table[LESS]          = { .prefix = nullptr,             .infix = &Compiler::binary, .precedence = PREC_COMPARISON };
     table[LESS_EQUAL]    = { .prefix = nullptr,             .infix = &Compiler::binary, .precedence = PREC_COMPARISON };
     table[IDENTIFIER]    = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
-    table[STRING]        = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
+    table[STRING]        = { .prefix = &Compiler::string,   .infix = nullptr,           .precedence = PREC_NONE };
     table[NUMBER]        = { .prefix = &Compiler::number,   .infix = nullptr,           .precedence = PREC_NONE };
     table[AND]           = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
     table[CLASS]         = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
@@ -276,4 +276,13 @@ void Compiler::unary()
     } else {
         LOX_ASSERT(false);
     }
+}
+
+void Compiler::string()
+{
+    LOX_ASSERT(m_parser.previous_token.has_value());
+    LOX_ASSERT(m_parser.previous_token->type == TokenType::STRING);
+    auto string_object = static_cast<StringObject*>(m_heap.Allocate(ObjectType::STRING));
+    string_object->data = m_source_code->substr(m_parser.previous_token->start + 1, m_parser.previous_token->length - 2);
+    this->addConstant(string_object);
 }

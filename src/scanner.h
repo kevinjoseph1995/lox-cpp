@@ -69,16 +69,8 @@ std::string FormatToken(Token const& token, std::string const* source_code);
 
 class Scanner {
 public:
-    /**
-     * Resets scanner state with new source code to scan
-     * @param source_code
-     */
     void Reset(std::string const& source_code);
 
-    /**
-     *
-     * @return Next token(can be in invalid state)
-     */
     [[nodiscard]] ErrorOr<Token> GetNextToken();
 
 private:

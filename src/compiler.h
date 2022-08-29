@@ -11,6 +11,7 @@
 #include <optional>
 
 #include "error.h"
+#include "heap.h"
 #include "scanner.h"
 
 // clang-format off
@@ -40,6 +41,11 @@ using ParseTable = std::array<ParseRule, static_cast<int>(TokenType::NUMBER_OF_T
 
 class Compiler {
 public:
+    Compiler() = delete;
+    Compiler(Heap& heap)
+        : m_heap(heap)
+    {
+    }
     /**
      *
      * @param source[in] Input source code
@@ -53,6 +59,7 @@ private:
     Scanner m_scanner;
     std::string const* m_source_code = nullptr;
     Chunk* m_current_chunk = nullptr;
+    Heap& m_heap;
 
     struct ParserState {
         std::optional<Token> previous_token;
@@ -90,6 +97,7 @@ private:
     void binary();
     void unary();
     void grouping();
+    void string();
 };
 
 #endif // LOX_CPP_COMPILER_H

@@ -10,23 +10,16 @@
 
 static bool IsFalsy(Value const& value)
 {
-    return value.IsNil() || (value.IsBool() && !(*std::get_if<bool>(&value)));
+    return value.IsNil() || (value.IsBool() && !value.AsBool());
 }
 
 ErrorOr<VoidType> VirtualMachine::Interpret(std::string const& source_code)
 {
-    auto compilation_status = m_compiler.CompileSource(source_code, m_current_chunk);
+    auto compilation_status = m_compiler->CompileSource(source_code, m_current_chunk);
     if (compilation_status.IsError()) {
         return compilation_status;
     }
     return this->run();
-}
-
-void VirtualMachine::Reset()
-{
-    m_current_chunk.Reset();
-    m_instruction_pointer = 0;
-    m_value_stack.clear();
 }
 
 ErrorOr<VoidType> VirtualMachine::run()
@@ -46,12 +39,11 @@ ErrorOr<VoidType> VirtualMachine::run()
         }
         case OP_NEGATE: {
             Value value = popStack();
-            double* double_value_ptr = std::get_if<double>(&value);
-            if (double_value_ptr == nullptr) {
+            if (!value.IsDouble()) {
                 return Error { .type = ErrorType::RuntimeError,
                     .error_message = fmt::format("Cannot negate non-number type, line number:{}", m_current_chunk.lines[m_instruction_pointer]) };
             }
-            m_value_stack.emplace_back(-(*double_value_ptr));
+            m_value_stack.emplace_back(-value.AsDouble());
             break;
         }
         case OP_ADD: {
@@ -185,20 +177,18 @@ ErrorOr<VoidType> VirtualMachine::binaryOperation(OpCode op)
 
     auto binaryOpWrapper = [&](auto _operator) -> ErrorOr<VoidType> {
         Value rhs = popStack();
-        double const* rhs_double_ptr = std::get_if<double>(&rhs);
-        if (rhs_double_ptr == nullptr) {
+        if (!rhs.IsDouble()) {
             return Error { .type = ErrorType::RuntimeError,
                 .error_message = fmt::format("RHS of \"{}\" is not a number type.", getOperatorString(_operator)) };
         }
 
         Value lhs = popStack();
-        double const* lhs_double_ptr = std::get_if<double>(&lhs);
-        if (lhs_double_ptr == nullptr) {
+        if (!lhs.IsDouble()) {
             return Error { .type = ErrorType::RuntimeError,
                 .error_message = fmt::format("LHS of \"{}\" is not a number type.", getOperatorString(_operator)) };
         }
 
-        m_value_stack.emplace_back(_operator(*lhs_double_ptr, *rhs_double_ptr));
+        m_value_stack.emplace_back(_operator(lhs.AsDouble(), rhs.AsDouble()));
         return VoidType {};
     };
 
@@ -230,4 +220,9 @@ ErrorOr<VoidType> VirtualMachine::binaryOperation(OpCode op)
     default:
         LOX_ASSERT(false, "Not a binary operation");
     }
+}
+
+VirtualMachine::VirtualMachine()
+{
+    m_compiler = std::make_unique<Compiler>(m_heap);
 }
