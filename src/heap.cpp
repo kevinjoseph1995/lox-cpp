@@ -10,7 +10,11 @@ void Heap::Reset()
     auto current = m_head;
     while (current != nullptr) {
         auto next = current->next;
-        delete current;
+        switch (current->type) {
+        case ObjectType::STRING:
+            delete static_cast<StringObject*>(current);
+            break;
+        }
         current = next;
     }
 }
@@ -25,6 +29,7 @@ Object* Heap::Allocate(ObjectType type)
     }
     }
     LOX_ASSERT(new_object != nullptr);
+    LOX_ASSERT(new_object->type == type);
     insertAtHead(new_object);
     return new_object;
 }

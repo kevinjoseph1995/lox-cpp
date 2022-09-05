@@ -150,6 +150,12 @@ Value VirtualMachine::popStack()
     return value;
 }
 
+Value const& VirtualMachine::peekStack(uint32_t index_from_top)
+{
+    LOX_ASSERT(m_value_stack.size() > index_from_top);
+    return m_value_stack.at(m_value_stack.size() - 1 - index_from_top);
+}
+
 ErrorOr<VoidType> VirtualMachine::binaryOperation(OpCode op)
 {
     auto getOperatorString = [](auto _op) {
@@ -192,10 +198,39 @@ ErrorOr<VoidType> VirtualMachine::binaryOperation(OpCode op)
         return VoidType {};
     };
 
-    switch (op) {
-    case OP_ADD:
-        return binaryOpWrapper(std::plus<double> {});
+    auto stringConcatenation = [&]() -> ErrorOr<VoidType> {
+        Value rhs = popStack();
 
+        auto const& rhs_object = rhs.AsObject();
+        LOX_ASSERT(rhs_object.type == ObjectType::STRING);
+
+        Value lhs = popStack();
+        if (!lhs.IsObject()) {
+            return Error { .type = ErrorType::RuntimeError,
+                .error_message = fmt::format("LHS of \"+\" is not a string type.") };
+        }
+        auto const& lhs_object = lhs.AsObject();
+        if (lhs_object.type != ObjectType::STRING) {
+            return Error { .type = ErrorType::RuntimeError,
+                .error_message = fmt::format("LHS of \"+\" is not a string type.") };
+        }
+        auto new_string_object = static_cast<StringObject*>(m_heap.Allocate(ObjectType::STRING));
+        LOX_ASSERT(new_string_object->type == ObjectType::STRING);
+        new_string_object->data.append(static_cast<StringObject const*>(&lhs_object)->data);
+        new_string_object->data.append(static_cast<StringObject const*>(&rhs_object)->data);
+        m_value_stack.emplace_back(static_cast<Object*>(new_string_object));
+        return VoidType {};
+    };
+
+    switch (op) {
+    case OP_ADD: {
+        auto const& rhs = peekStack(0);
+        if (rhs.IsObject() && (rhs.AsObject().type == ObjectType::STRING)) {
+            return stringConcatenation();
+        } else {
+            return binaryOpWrapper(std::plus<double> {});
+        }
+    }
     case OP_SUBTRACT:
         return binaryOpWrapper(std::minus<double> {});
 

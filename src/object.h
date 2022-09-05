@@ -18,6 +18,10 @@ struct Object {
 };
 
 struct StringObject : public Object {
+    StringObject()
+    {
+        type = ObjectType::STRING;
+    }
     std::string data;
 };
 
