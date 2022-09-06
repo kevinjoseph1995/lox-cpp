@@ -1,1 +1,2 @@
-"Hello World" + "Hehhe!"
+print 1 + 3 + 2 *1;
+print "Hello world";

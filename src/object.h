@@ -12,7 +12,16 @@ enum class ObjectType {
     STRING,
 };
 
-struct Object {
+class Object {
+public:
+    [[nodiscard]] ObjectType GetType() const
+    {
+        return type;
+    }
+
+protected:
+    Object() = default;
+    friend class Heap;
     ObjectType type;
     Object* next = nullptr;
 };

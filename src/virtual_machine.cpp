@@ -25,14 +25,19 @@ ErrorOr<VoidType> VirtualMachine::Interpret(std::string const& source_code)
 ErrorOr<VoidType> VirtualMachine::run()
 {
     while (true) {
+        if(isAtEnd()){
+            return  VoidType{};
+        }
 #ifdef DEBUG_TRACE_EXECUTION
         Disassemble_instruction(m_current_chunk, m_instruction_pointer);
 #endif
+
         auto const instruction = static_cast<OpCode>(readByte());
         switch (instruction) {
-        case OP_RETURN:
-            fmt::print("{}", *(m_value_stack.end() - 1)); // TODO Remove me
-            return VoidType {};
+        case OP_RETURN: {
+            LOX_ASSERT(false);
+            break;
+        }
         case OP_CONSTANT: {
             m_value_stack.push_back(readConstant());
             break;
@@ -126,6 +131,12 @@ ErrorOr<VoidType> VirtualMachine::run()
             }
             break;
         }
+        case OP_PRINT: {
+            LOX_ASSERT(!m_value_stack.empty());
+            auto value = popStack();
+            fmt::print("{}\n", value);
+            break;
+        }
         }
     }
 }
@@ -202,7 +213,7 @@ ErrorOr<VoidType> VirtualMachine::binaryOperation(OpCode op)
         Value rhs = popStack();
 
         auto const& rhs_object = rhs.AsObject();
-        LOX_ASSERT(rhs_object.type == ObjectType::STRING);
+        LOX_ASSERT(rhs_object.GetType() == ObjectType::STRING);
 
         Value lhs = popStack();
         if (!lhs.IsObject()) {
@@ -210,12 +221,12 @@ ErrorOr<VoidType> VirtualMachine::binaryOperation(OpCode op)
                 .error_message = fmt::format("LHS of \"+\" is not a string type.") };
         }
         auto const& lhs_object = lhs.AsObject();
-        if (lhs_object.type != ObjectType::STRING) {
+        if (lhs_object.GetType() != ObjectType::STRING) {
             return Error { .type = ErrorType::RuntimeError,
                 .error_message = fmt::format("LHS of \"+\" is not a string type.") };
         }
         auto new_string_object = static_cast<StringObject*>(m_heap.Allocate(ObjectType::STRING));
-        LOX_ASSERT(new_string_object->type == ObjectType::STRING);
+        LOX_ASSERT(new_string_object->GetType() == ObjectType::STRING);
         new_string_object->data.append(static_cast<StringObject const*>(&lhs_object)->data);
         new_string_object->data.append(static_cast<StringObject const*>(&rhs_object)->data);
         m_value_stack.emplace_back(static_cast<Object*>(new_string_object));
@@ -225,7 +236,7 @@ ErrorOr<VoidType> VirtualMachine::binaryOperation(OpCode op)
     switch (op) {
     case OP_ADD: {
         auto const& rhs = peekStack(0);
-        if (rhs.IsObject() && (rhs.AsObject().type == ObjectType::STRING)) {
+        if (rhs.IsObject() && (rhs.AsObject().GetType() == ObjectType::STRING)) {
             return stringConcatenation();
         } else {
             return binaryOpWrapper(std::plus<double> {});
@@ -260,4 +271,8 @@ ErrorOr<VoidType> VirtualMachine::binaryOperation(OpCode op)
 VirtualMachine::VirtualMachine()
 {
     m_compiler = std::make_unique<Compiler>(m_heap);
+}
+bool VirtualMachine::isAtEnd()
+{
+    return m_instruction_pointer == m_current_chunk.byte_code.size();
 }

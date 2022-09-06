@@ -106,14 +106,15 @@ ErrorOr<VoidType> Compiler::CompileSource(std::string const& source, Chunk& chun
 {
     this->reset(source, chunk);
 
-    ////////////////////////////////////////Temporary//////////////////////////////////////////////////////////
     this->advance();
-    this->expression();
-    this->emitByte(OP_RETURN);
+
+    while (!match(TokenType::TOKEN_EOF)) {
+        declaration();
+    }
+
     if (m_error_state.encountered_error) {
         return Error { .type = ErrorType::ParseError, .error_message = "Parse error" };
     }
-    ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     return VoidType {};
 }
@@ -123,23 +124,13 @@ void Compiler::advance()
     m_parser.previous_token = m_parser.current_token;
     while (true) {
         auto token_or_error = m_scanner.GetNextToken();
-        m_parser.current_token = token_or_error.GetValue();
         if (token_or_error.IsError()) {
             reportError(token_or_error.GetError().error_message);
         } else {
+            m_parser.current_token = token_or_error.GetValue();
             break;
         }
     }
-}
-
-bool Compiler::consume(TokenType type)
-{
-    LOX_ASSERT(m_parser.current_token.has_value());
-    if (m_parser.current_token->type == type) {
-        advance();
-        return true;
-    }
-    return false;
 }
 
 void Compiler::emitByte(uint8_t byte)
@@ -285,4 +276,46 @@ void Compiler::string()
     auto string_object = static_cast<StringObject*>(m_heap.Allocate(ObjectType::STRING));
     string_object->data = m_source_code->substr(m_parser.previous_token->start + 1, m_parser.previous_token->length - 2);
     this->addConstant(string_object);
+}
+
+void Compiler::declaration()
+{
+    statement();
+}
+
+void Compiler::statement()
+{
+    if (match(TokenType::PRINT)) {
+        printStatement();
+    }
+}
+
+bool Compiler::consume(TokenType type)
+{
+    LOX_ASSERT(m_parser.current_token.has_value());
+    if (m_parser.current_token->type == type) {
+        advance();
+        return true;
+    }
+    return false;
+}
+
+bool Compiler::match(TokenType type)
+{
+    LOX_ASSERT(m_parser.current_token.has_value());
+    if (m_parser.current_token->type == type) {
+        return true;
+    }
+    return false;
+}
+
+void Compiler::printStatement()
+{
+    LOX_ASSERT(consume(TokenType::PRINT));
+    expression();
+    if (!consume(TokenType::SEMICOLON)) {
+        reportError("Expected semi-colon at the end of print statement");
+    } else {
+        emitByte(OP_PRINT);
+    }
 }

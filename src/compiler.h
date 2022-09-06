@@ -80,6 +80,7 @@ private:
     // Token processing
     void advance();
     [[nodiscard]] bool consume(TokenType type);
+    [[nodiscard]] bool match(TokenType type);
 
     // Error reporting
     void errorAt(Token const& token, std::string_view message);
@@ -91,6 +92,9 @@ private:
 
     // Parse functions
     void parsePrecedence(Precedence level);
+    void declaration();
+    void statement();
+    void printStatement();
     void expression();
     void literal();
     void number();

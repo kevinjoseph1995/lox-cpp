@@ -21,6 +21,7 @@ public:
     [[nodiscard]] ErrorOr<VoidType> Interpret(std::string const& source_code);
 
 private:
+    [[nodiscard]] bool isAtEnd();
     [[nodiscard]] ErrorOr<VoidType> run();
     [[nodiscard]] uint8_t readByte();
     [[nodiscard]] Value readConstant();

@@ -29,7 +29,7 @@ Object* Heap::Allocate(ObjectType type)
     }
     }
     LOX_ASSERT(new_object != nullptr);
-    LOX_ASSERT(new_object->type == type);
+    LOX_ASSERT(new_object->GetType() == type);
     insertAtHead(new_object);
     return new_object;
 }
