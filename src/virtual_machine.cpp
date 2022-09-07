@@ -25,8 +25,8 @@ ErrorOr<VoidType> VirtualMachine::Interpret(std::string const& source_code)
 ErrorOr<VoidType> VirtualMachine::run()
 {
     while (true) {
-        if(isAtEnd()){
-            return  VoidType{};
+        if (isAtEnd()) {
+            return VoidType {};
         }
 #ifdef DEBUG_TRACE_EXECUTION
         Disassemble_instruction(m_current_chunk, m_instruction_pointer);
@@ -137,6 +137,10 @@ ErrorOr<VoidType> VirtualMachine::run()
             fmt::print("{}\n", value);
             break;
         }
+        case OP_POP:
+            auto _ = popStack();
+            static_cast<void>(_);
+            break;
         }
     }
 }

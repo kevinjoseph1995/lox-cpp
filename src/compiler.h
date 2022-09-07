@@ -85,6 +85,7 @@ private:
     // Error reporting
     void errorAt(Token const& token, std::string_view message);
     void reportError(std::string_view error_string);
+    void synchronizeError();
 
     // Chunk manipulation functions
     void emitByte(uint8_t byte);
@@ -95,6 +96,7 @@ private:
     void declaration();
     void statement();
     void printStatement();
+    void expressionStatement();
     void expression();
     void literal();
     void number();

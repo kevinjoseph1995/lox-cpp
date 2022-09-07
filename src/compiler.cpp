@@ -281,12 +281,17 @@ void Compiler::string()
 void Compiler::declaration()
 {
     statement();
+    if (m_error_state.panic) {
+        synchronizeError();
+    }
 }
 
 void Compiler::statement()
 {
     if (match(TokenType::PRINT)) {
         printStatement();
+    } else {
+        expressionStatement();
     }
 }
 
@@ -317,5 +322,38 @@ void Compiler::printStatement()
         reportError("Expected semi-colon at the end of print statement");
     } else {
         emitByte(OP_PRINT);
+    }
+}
+void Compiler::expressionStatement()
+{
+    expression();
+    if (!consume(TokenType::SEMICOLON)) {
+        reportError("Expected semi-colon at the end of expression-statement");
+    } else {
+        emitByte(OP_POP);
+    }
+}
+
+void Compiler::synchronizeError()
+{
+    while (m_parser.current_token->type != TokenType::TOKEN_EOF) {
+        if (m_parser.previous_token->type == TokenType::SEMICOLON) {
+            // Indicates the end of the previous statement
+            return;
+        }
+        switch (m_parser.current_token->type) {
+        // Advance until we hit one of the control flow or declaration keywords.
+        case ELSE:
+        case FOR:
+        case FUN:
+        case IF:
+        case PRINT:
+        case RETURN:
+        case VAR:
+        case WHILE:
+            return;
+        default:
+            advance();
+        }
     }
 }
