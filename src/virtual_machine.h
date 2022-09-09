@@ -8,6 +8,7 @@
 #include "chunk.h"
 #include "compiler.h"
 #include "heap.h"
+#include "source.h"
 
 #include <cstdint>
 #include <stack>
@@ -21,7 +22,7 @@ class VirtualMachine {
 public:
     VirtualMachine();
 
-    [[nodiscard]] ErrorOr<VoidType> Interpret(std::string const& source_code);
+    [[nodiscard]] ErrorOr<VoidType> Interpret(Source const& source_code);
 
 private:
     [[nodiscard]] bool isAtEnd();

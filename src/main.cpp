@@ -11,7 +11,7 @@ static constexpr auto USAGE =
 usage: lox_cpp [file | - ]
 )";
 
-static int Run(VirtualMachine& vm, std::string const& source)
+static int Run(VirtualMachine& vm, Source& source)
 {
     auto result = vm.Interpret(source);
     if (result.IsError()) {
@@ -38,9 +38,9 @@ static void RunInteractive()
 {
     VirtualMachine vm;
     std::string line;
-    std::string source;
+    Source source;
     while (true) {
-        source.clear();
+        source.CLear();
         line.clear();
         if (isatty(STDIN_FILENO)) {
             fmt::print("->> ");
@@ -56,12 +56,13 @@ static void RunInteractive()
         }
         if (!line.empty() && line[line.length() - 1] == '\\') {
             do {
-                source.append(line.begin(), line.end() - 1);
+                source.AppendFromConsole(std::string_view(line.begin(), line.end() - 1));
+                source.AppendFromConsole("\n");
                 std::getline(std::cin, line);
             } while (!line.empty() && line[line.length() - 1] == '\\');
         }
 
-        source.append(line.begin(), line.end());
+        source.AppendFromConsole(std::string_view(line.begin(), line.end()));
         Run(vm, source);
     }
 }
@@ -69,13 +70,10 @@ static void RunInteractive()
 static int RunFromFile(char const* const file_name)
 {
     VirtualMachine vm;
-    std::ifstream file;
-    file.open(file_name);
-    if (!file.good()) {
-        fmt::print(stderr, "Failed to read file:{}", file_name);
+    Source source;
+    if (!source.ReadFromFile(file_name)) {
+        return 1;
     }
-    std::string source((std::istreambuf_iterator<char>(file)),
-        std::istreambuf_iterator<char>());
     return Run(vm, source);
 }
 

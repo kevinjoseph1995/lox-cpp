@@ -6,9 +6,9 @@
 #include "error.h"
 #include <fmt/format.h>
 
-void Scanner::Reset(const std::string& source_code)
+void Scanner::Reset(Source const& source)
 {
-    m_source_code_ptr = &source_code;
+    m_source = &source;
     m_current_index = 0;
     m_start = 0;
     m_line = 1;
@@ -16,7 +16,7 @@ void Scanner::Reset(const std::string& source_code)
 
 ErrorOr<Token> Scanner::GetNextToken()
 {
-    LOX_ASSERT(m_source_code_ptr != nullptr);
+    LOX_ASSERT(m_source != nullptr);
 
     this->consumeWhitespacesAndComments();
 
@@ -82,14 +82,14 @@ ErrorOr<Token> Scanner::GetNextToken()
 
 char Scanner::advance()
 {
-    LOX_ASSERT(m_source_code_ptr != nullptr);
+    LOX_ASSERT(m_source != nullptr);
     // Update m_current_index and return previous
-    return m_source_code_ptr->at(m_current_index++);
+    return m_source->GetSource().at(m_current_index++);
 }
 
 Token Scanner::makeToken(TokenType type) const
 {
-    LOX_ASSERT(m_source_code_ptr != nullptr);
+    LOX_ASSERT(m_source != nullptr);
     return Token {
         .type = type,
         .length = m_current_index - m_start,
@@ -100,14 +100,14 @@ Token Scanner::makeToken(TokenType type) const
 
 char Scanner::peek() const
 {
-    LOX_ASSERT(m_source_code_ptr != nullptr);
+    LOX_ASSERT(m_source != nullptr);
     LOX_ASSERT(!isAtEnd());
-    return m_source_code_ptr->at(m_current_index);
+    return m_source->GetSource().at(m_current_index);
 }
 
 void Scanner::consumeWhitespacesAndComments()
 {
-    LOX_ASSERT(m_source_code_ptr != nullptr);
+    LOX_ASSERT(m_source != nullptr);
     while (!isAtEnd()) {
         char c = this->peek();
         switch (c) {
@@ -122,7 +122,7 @@ void Scanner::consumeWhitespacesAndComments()
             advance();
             break;
         case '/':
-            if (m_current_index + 1 < m_source_code_ptr->length() && m_source_code_ptr->at(m_current_index + 1) == '/') {
+            if (m_current_index + 1 < m_source->GetSource().length() && m_source->GetSource().at(m_current_index + 1) == '/') {
                 // Skip a comment line
                 while (!isAtEnd() && peek() != '\n') {
                     advance();
@@ -138,7 +138,7 @@ void Scanner::consumeWhitespacesAndComments()
 bool Scanner::matchEqual()
 {
     LOX_ASSERT(!isAtEnd());
-    if ('=' == m_source_code_ptr->at(m_current_index)) {
+    if ('=' == m_source->GetSource().at(m_current_index)) {
         ++m_current_index;
         return true;
     } else {
@@ -162,7 +162,7 @@ ErrorOr<Token> Scanner::string()
 
 bool Scanner::isAtEnd() const
 {
-    return m_current_index == m_source_code_ptr->length();
+    return m_current_index == m_source->GetSource().length();
 }
 
 ErrorOr<Token> Scanner::number()
@@ -181,7 +181,7 @@ ErrorOr<Token> Scanner::number()
 
 ErrorOr<Token> Scanner::identifierOrKeyword()
 {
-    while (!this->isAtEnd() && (std::isalnum(m_source_code_ptr->at(m_current_index)) || m_source_code_ptr->at(m_current_index) == '_')) {
+    while (!this->isAtEnd() && (std::isalnum(m_source->GetSource().at(m_current_index)) || m_source->GetSource().at(m_current_index) == '_')) {
         advance();
     }
     // The token lies between [m_start, m_current_index)
@@ -245,8 +245,8 @@ ErrorOr<Token> Scanner::identifierOrKeyword()
             return TokenType::IDENTIFIER;
         }
     };
-    LOX_ASSERT(m_current_index <= m_source_code_ptr->length());
-    return makeToken(getTokenType(m_source_code_ptr->data() + m_start, m_current_index - m_start));
+    LOX_ASSERT(m_current_index <= m_source->GetSource().length());
+    return makeToken(getTokenType(m_source->GetSource().data() + m_start, m_current_index - m_start));
 }
 
 [[maybe_unused]] char const* GetTokenTypeString(TokenType type)

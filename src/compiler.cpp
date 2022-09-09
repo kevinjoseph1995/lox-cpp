@@ -79,30 +79,29 @@ void Compiler::reportError(std::string_view error_string)
 
 void Compiler::errorAt(const Token& token, std::string_view message)
 {
-    LOX_ASSERT(token.start + token.length <= m_source_code->length());
+    LOX_ASSERT(token.start + token.length <= m_source->GetSource().length());
 
     auto error_string = fmt::format("[line {}] Error", token.line_number);
 
     if (token.type == TokenType::TOKEN_EOF) {
         error_string.append(" at end");
     } else {
-        auto token_source = std::string_view(m_source_code->data() + token.start, token.length);
+        auto token_source = std::string_view(m_source->GetSource().data() + token.start, token.length);
         error_string.append(fmt::format(" at {}", token_source));
     }
     error_string.append(fmt::format(": {}\n", message));
     reportError(error_string);
 }
 
-void Compiler::reset(std::string const& source, Chunk& chunk)
+void Compiler::reset(Source const& source, Chunk& chunk)
 {
-    m_source_code = &source;
-    chunk.Reset();
+    m_source = &source;
     m_current_chunk = &chunk;
     m_scanner.Reset(source);
     m_parser = ParserState {};
 }
 
-ErrorOr<VoidType> Compiler::CompileSource(std::string const& source, Chunk& chunk)
+ErrorOr<VoidType> Compiler::CompileSource(Source const& source, Chunk& chunk)
 {
     this->reset(source, chunk);
 
@@ -183,13 +182,13 @@ void Compiler::number()
 {
     LOX_ASSERT(m_parser.previous_token.has_value());
     LOX_ASSERT(m_parser.previous_token->type == TokenType::NUMBER);
-    LOX_ASSERT(m_parser.previous_token->start + m_parser.previous_token->length <= m_source_code->length());
+    LOX_ASSERT(m_parser.previous_token->start + m_parser.previous_token->length <= m_source->GetSource().length());
 
     char* endpoint = nullptr;
-    double value = std::strtod(m_source_code->data() + m_parser.previous_token->start, &endpoint);
+    double value = std::strtod(m_source->GetSource().data() + m_parser.previous_token->start, &endpoint);
 
-    LOX_ASSERT(endpoint != m_source_code->data() + m_parser.previous_token->start);
-    LOX_ASSERT(endpoint - (m_source_code->data() + m_parser.previous_token->start) == static_cast<int64_t>(m_parser.previous_token->length));
+    LOX_ASSERT(endpoint != m_source->GetSource().data() + m_parser.previous_token->start);
+    LOX_ASSERT(endpoint - (m_source->GetSource().data() + m_parser.previous_token->start) == static_cast<int64_t>(m_parser.previous_token->length));
 
     addConstant(value);
 }
@@ -274,7 +273,7 @@ void Compiler::string()
     LOX_ASSERT(m_parser.previous_token.has_value());
     LOX_ASSERT(m_parser.previous_token->type == TokenType::STRING);
     auto string_object = static_cast<StringObject*>(m_heap.Allocate(ObjectType::STRING));
-    string_object->data = m_source_code->substr(m_parser.previous_token->start + 1, m_parser.previous_token->length - 2);
+    string_object->data = m_source->GetSource().substr(m_parser.previous_token->start + 1, m_parser.previous_token->length - 2);
     this->addConstant(string_object);
 }
 
@@ -403,7 +402,7 @@ int32_t Compiler::identifierConstant(const Token& token)
 {
     LOX_ASSERT(token.type == TokenType::IDENTIFIER);
     auto string_object_ptr = static_cast<StringObject*>(m_heap.Allocate(ObjectType::STRING));
-    string_object_ptr->data = m_source_code->substr(token.start, token.length);
+    string_object_ptr->data = m_source->GetSource().substr(token.start, token.length);
     m_current_chunk->constant_pool.push_back(string_object_ptr);
     return m_current_chunk->constant_pool.size() - 1;
 }

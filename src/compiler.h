@@ -13,6 +13,7 @@
 #include "error.h"
 #include "heap.h"
 #include "scanner.h"
+#include "source.h"
 
 // clang-format off
 enum  Precedence {
@@ -52,12 +53,12 @@ public:
      * @param chunk[out] Output bytecode chunk
      * @return Compilation status, returns VoidType on successful compilation
      */
-    [[nodiscard]] ErrorOr<VoidType> CompileSource(std::string const& source, Chunk& chunk);
+    [[nodiscard]] ErrorOr<VoidType> CompileSource(Source const& source, Chunk& chunk);
 
 private:
     // Compiler state
     Scanner m_scanner;
-    std::string const* m_source_code = nullptr;
+    Source const* m_source = nullptr;
     Chunk* m_current_chunk = nullptr;
     Heap& m_heap;
 
@@ -75,7 +76,7 @@ private:
     friend consteval ParseTable GenerateParseTable();
 
     // Reset state
-    void reset(std::string const& source, Chunk& chunk);
+    void reset(Source const& source, Chunk& chunk);
 
     // Token processing
     void advance();

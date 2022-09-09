@@ -13,9 +13,9 @@ static bool IsFalsy(Value const& value)
     return value.IsNil() || (value.IsBool() && !value.AsBool());
 }
 
-ErrorOr<VoidType> VirtualMachine::Interpret(std::string const& source_code)
+ErrorOr<VoidType> VirtualMachine::Interpret(Source const& source)
 {
-    auto compilation_status = m_compiler->CompileSource(source_code, m_current_chunk);
+    auto compilation_status = m_compiler->CompileSource(source, m_current_chunk);
     if (compilation_status.IsError()) {
         return compilation_status;
     }
@@ -135,6 +135,7 @@ ErrorOr<VoidType> VirtualMachine::run()
             LOX_ASSERT(!m_value_stack.empty());
             auto value = popStack();
             fmt::print("{}\n", value);
+            fflush(stdout); // Force flush
             break;
         }
         case OP_POP: {

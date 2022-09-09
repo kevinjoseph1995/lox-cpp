@@ -9,6 +9,7 @@
 #include <string>
 
 #include "error.h"
+#include "source.h"
 enum TokenType {
     // Single-character tokens.
     LEFT_PAREN = 0,
@@ -69,7 +70,7 @@ std::string FormatToken(Token const& token, std::string const* source_code);
 
 class Scanner {
 public:
-    void Reset(std::string const& source_code);
+    void Reset(Source const& source_code);
 
     [[nodiscard]] ErrorOr<Token> GetNextToken();
 
@@ -93,7 +94,7 @@ private:
     [[nodiscard]] bool isAtEnd() const;
 
 private:
-    std::string const* m_source_code_ptr = nullptr;
+    Source const* m_source = nullptr;
     uint64_t m_current_index = 0; // Current scanner index
     uint64_t m_start = 0; // Start of the current token under consideration
     uint64_t m_line = 0; // Current line number
