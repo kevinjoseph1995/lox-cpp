@@ -67,13 +67,17 @@ static constexpr ParseRule const* GetRule(TokenType type)
     return &PARSE_TABLE[type];
 }
 
-void Compiler::reportError(std::string_view error_string)
+void Compiler::reportError(int32_t line_number, std::string_view error_string)
 {
     if (m_error_state.panic) {
         return;
     }
     m_error_state.panic = true;
-    fmt::print(stderr, "{}\n", error_string);
+    if (m_source->IsFromFile()) {
+        fmt::print(stderr, "Error:{} at {}:{}\n", error_string, m_source->GetFilename(), line_number);
+    } else {
+        fmt::print(stderr, "Error:{} at on line:{}\n", error_string, line_number);
+    }
     m_error_state.encountered_error = true;
 }
 
@@ -90,7 +94,7 @@ void Compiler::errorAt(const Token& token, std::string_view message)
         error_string.append(fmt::format(" at {}", token_source));
     }
     error_string.append(fmt::format(": {}\n", message));
-    reportError(error_string);
+    reportError(token.line_number, error_string);
 }
 
 void Compiler::reset(Source const& source, Chunk& chunk)
@@ -124,7 +128,7 @@ void Compiler::advance()
     while (true) {
         auto token_or_error = m_scanner.GetNextToken();
         if (token_or_error.IsError()) {
-            reportError(token_or_error.GetError().error_message);
+            reportError(m_parser.previous_token->line_number, token_or_error.GetError().error_message);
         } else {
             m_parser.current_token = token_or_error.GetValue();
             break;
@@ -153,7 +157,7 @@ void Compiler::parsePrecedence(Precedence level)
     advance();
     auto prefixRuleFunction = GetRule(m_parser.previous_token->type)->prefix;
     if (prefixRuleFunction == nullptr) {
-        reportError("Expected expression");
+        reportError(m_parser.previous_token->line_number, "Expected expression");
         return;
     }
     (this->*prefixRuleFunction)();
@@ -322,7 +326,7 @@ void Compiler::printStatement()
     LOX_ASSERT(consume(TokenType::PRINT));
     expression();
     if (!consume(TokenType::SEMICOLON)) {
-        reportError("Expected semi-colon at the end of print statement");
+        reportError(m_parser.previous_token->line_number, "Expected semi-colon at the end of print statement");
     } else {
         emitByte(OP_PRINT);
     }
@@ -331,7 +335,7 @@ void Compiler::expressionStatement()
 {
     expression();
     if (!consume(TokenType::SEMICOLON)) {
-        reportError("Expected semi-colon at the end of expression-statement");
+        reportError(m_parser.previous_token->line_number, "Expected semi-colon at the end of expression-statement");
     } else {
         emitByte(OP_POP);
     }
@@ -369,7 +373,7 @@ void Compiler::variableDeclaration()
         identifier_index_in_constant_pool = identifierConstant(m_parser.current_token.value());
         advance(); // Move past identifier token
     } else {
-        reportError("Expected semi-colon at the end of variable declaration");
+        reportError(m_parser.previous_token->line_number, "Expected semi-colon at the end of variable declaration");
         return;
     }
 
@@ -382,7 +386,7 @@ void Compiler::variableDeclaration()
         emitByte(OP_NIL);
     }
     if (!consume(SEMICOLON)) {
-        reportError("Expected semi-colon at the end of variable declaration");
+        reportError(m_parser.previous_token->line_number, "Expected semi-colon at the end of variable declaration");
     }
 
     LOX_ASSERT(identifier_index_in_constant_pool >= 0);

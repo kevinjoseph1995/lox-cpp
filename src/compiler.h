@@ -47,12 +47,6 @@ public:
         : m_heap(heap)
     {
     }
-    /**
-     *
-     * @param source[in] Input source code
-     * @param chunk[out] Output bytecode chunk
-     * @return Compilation status, returns VoidType on successful compilation
-     */
     [[nodiscard]] ErrorOr<VoidType> CompileSource(Source const& source, Chunk& chunk);
 
 private:
@@ -85,7 +79,7 @@ private:
 
     // Error reporting
     void errorAt(Token const& token, std::string_view message);
-    void reportError(std::string_view error_string);
+    void reportError(int32_t line_number, std::string_view error_string);
     void synchronizeError();
 
     // Chunk manipulation functions

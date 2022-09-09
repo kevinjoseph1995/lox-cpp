@@ -40,7 +40,7 @@ static void RunInteractive()
     std::string line;
     Source source;
     while (true) {
-        source.CLear();
+        source.Clear();
         line.clear();
         if (isatty(STDIN_FILENO)) {
             fmt::print("->> ");

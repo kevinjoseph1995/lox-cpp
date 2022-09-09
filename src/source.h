@@ -11,15 +11,15 @@ class Source {
 public:
     [[nodiscard]] bool ReadFromFile(std::string_view filename);
     void AppendFromConsole(std::string_view source_part);
-    [[nodiscard]] bool IsFromFile()
+    [[nodiscard]] bool IsFromFile() const
     {
         return !m_filename.empty();
     }
-    [[nodiscard]] bool IsFromConsole()
+    [[nodiscard]] bool IsFromConsole() const
     {
         return !IsFromFile();
     }
-    void CLear()
+    void Clear()
     {
         m_filename.clear();
         m_source.clear();
@@ -28,6 +28,10 @@ public:
     std::string const& GetSource() const
     {
         return m_source;
+    }
+    std::string const& GetFilename() const
+    {
+        return m_filename;
     }
 
     [[nodiscard]] const char* GetFilename() { return m_filename.c_str(); }
