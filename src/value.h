@@ -19,6 +19,10 @@ struct Value : public std::variant<NilType, double, bool, Object*> {
         : std::variant<NilType, double, bool, Object*>(std::forward<T>(value))
     {
     }
+    Value()
+        : std::variant<NilType, double, bool, Object*>(NilType {})
+    {
+    }
     [[nodiscard]] bool IsNil() const
     {
         return std::holds_alternative<NilType>(*this);
@@ -56,6 +60,12 @@ struct Value : public std::variant<NilType, double, bool, Object*> {
     {
         LOX_ASSERT(IsObject());
         return *(*std::get_if<Object*>(this));
+    }
+
+    [[nodiscard]] Object* AsObjectPtr()
+    {
+        LOX_ASSERT(IsObject());
+        return (*std::get_if<Object*>(this));
     }
 
     [[nodiscard]] bool const& AsBool() const

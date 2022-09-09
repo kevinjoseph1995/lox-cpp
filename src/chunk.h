@@ -32,6 +32,8 @@ enum OpCode : uint8_t {
     OP_NOT_EQUAL,
     OP_PRINT,
     OP_POP,
+    OP_DEFINE_GLOBAL,
+    OP_GET_GLOBAL
 };
 
 static constexpr auto MAX_NUMBER_CONSTANTS = 256; // Currently we can only store as many constants that can be addressed by 8 bits

@@ -137,10 +137,32 @@ ErrorOr<VoidType> VirtualMachine::run()
             fmt::print("{}\n", value);
             break;
         }
-        case OP_POP:
+        case OP_POP: {
             auto _ = popStack();
             static_cast<void>(_);
             break;
+        }
+        case OP_DEFINE_GLOBAL: {
+            auto initial_value = peekStack(0);
+            // Need to get the variable name from the constant pool
+            auto constant_pool_index = static_cast<uint64_t>(readByte());
+            auto identifier_name_value = m_current_chunk.constant_pool.at(constant_pool_index);
+            LOX_ASSERT(identifier_name_value.IsObject() && identifier_name_value.AsObjectPtr()->GetType() == ObjectType::STRING);
+            auto string_object = static_cast<StringObject*>(identifier_name_value.AsObjectPtr());
+            m_globals[string_object->data] = initial_value;
+            break;
+        }
+        case OP_GET_GLOBAL: {
+            auto constant_pool_index = static_cast<uint64_t>(readByte());
+            auto identifier_name_value = m_current_chunk.constant_pool.at(constant_pool_index);
+            LOX_ASSERT(identifier_name_value.IsObject() && identifier_name_value.AsObjectPtr()->GetType() == ObjectType::STRING);
+            auto string_object = static_cast<StringObject*>(identifier_name_value.AsObjectPtr());
+            if (m_globals.count(string_object->data) == 0) {
+                return Error { .type = ErrorType::RuntimeError, .error_message = fmt::format("Undefined variable:{}", string_object->data) };
+            }
+            m_value_stack.push_back(m_globals.at(string_object->data));
+            break;
+        }
         }
     }
 }

@@ -29,7 +29,7 @@ consteval ParseTable GenerateParseTable()
     table[GREATER_EQUAL] = { .prefix = nullptr,             .infix = &Compiler::binary, .precedence = PREC_COMPARISON };
     table[LESS]          = { .prefix = nullptr,             .infix = &Compiler::binary, .precedence = PREC_COMPARISON };
     table[LESS_EQUAL]    = { .prefix = nullptr,             .infix = &Compiler::binary, .precedence = PREC_COMPARISON };
-    table[IDENTIFIER]    = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
+    table[IDENTIFIER]    = { .prefix = &Compiler::variable, .infix = nullptr,           .precedence = PREC_NONE };
     table[STRING]        = { .prefix = &Compiler::string,   .infix = nullptr,           .precedence = PREC_NONE };
     table[NUMBER]        = { .prefix = &Compiler::number,   .infix = nullptr,           .precedence = PREC_NONE };
     table[AND]           = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
@@ -280,7 +280,11 @@ void Compiler::string()
 
 void Compiler::declaration()
 {
-    statement();
+    if (match(TokenType::VAR)) {
+        variableDeclaration();
+    } else {
+        statement();
+    }
     if (m_error_state.panic) {
         synchronizeError();
     }
@@ -356,4 +360,50 @@ void Compiler::synchronizeError()
             advance();
         }
     }
+}
+void Compiler::variableDeclaration()
+{
+    LOX_ASSERT(consume(TokenType::VAR));
+    int32_t identifier_index_in_constant_pool = -1;
+    // Need to extract the variable name out from the token
+    if (match(TokenType::IDENTIFIER)) {
+        identifier_index_in_constant_pool = identifierConstant(m_parser.current_token.value());
+        advance(); // Move past identifier token
+    } else {
+        reportError("Expected semi-colon at the end of variable declaration");
+        return;
+    }
+
+    // Parse the initial value, emit Nil if there is no initializer expression
+    if (match(TokenType::EQUAL)) {
+        auto _ = consume(TokenType::EQUAL);
+        static_cast<void>(_);
+        expression();
+    } else {
+        emitByte(OP_NIL);
+    }
+    if (!consume(SEMICOLON)) {
+        reportError("Expected semi-colon at the end of variable declaration");
+    }
+
+    LOX_ASSERT(identifier_index_in_constant_pool >= 0);
+    LOX_ASSERT(identifier_index_in_constant_pool <= 255);
+    emitByte(OP_DEFINE_GLOBAL);
+    emitByte(static_cast<uint8_t>(identifier_index_in_constant_pool));
+}
+
+void Compiler::variable()
+{
+    auto identifier_index_in_constant_pool = identifierConstant(m_parser.previous_token.value());
+    emitByte(OP_GET_GLOBAL);
+    emitByte(static_cast<uint8_t>(identifier_index_in_constant_pool));
+}
+
+int32_t Compiler::identifierConstant(const Token& token)
+{
+    LOX_ASSERT(token.type == TokenType::IDENTIFIER);
+    auto string_object_ptr = static_cast<StringObject*>(m_heap.Allocate(ObjectType::STRING));
+    string_object_ptr->data = m_source_code->substr(token.start, token.length);
+    m_current_chunk->constant_pool.push_back(string_object_ptr);
+    return m_current_chunk->constant_pool.size() - 1;
 }

@@ -90,15 +90,18 @@ private:
     // Chunk manipulation functions
     void emitByte(uint8_t byte);
     void addConstant(Value constant);
+    [[nodiscard]] int32_t identifierConstant(Token const& token);
 
     // Parse functions
     void parsePrecedence(Precedence level);
     void declaration();
     void statement();
+    void variableDeclaration();
     void printStatement();
     void expressionStatement();
     void expression();
     void literal();
+    void variable();
     void number();
     void binary();
     void unary();

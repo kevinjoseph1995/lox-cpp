@@ -11,8 +11,11 @@
 
 #include <cstdint>
 #include <stack>
+#include <unordered_map>
 
 static constexpr auto MAX_STACK_SIZE = 256;
+
+using GlobalTable = std::unordered_map<std::string, Value>;
 
 class VirtualMachine {
 public:
@@ -32,9 +35,11 @@ private:
 private:
     Chunk m_current_chunk {};
     uint64_t m_instruction_pointer = 0;
-    std::vector<Value> m_value_stack;
     std::unique_ptr<Compiler> m_compiler = nullptr;
+
     Heap m_heap {};
+    std::vector<Value> m_value_stack;
+    GlobalTable m_globals;
 };
 
 #endif // LOX_CPP_VIRTUAL_MACHINE_H

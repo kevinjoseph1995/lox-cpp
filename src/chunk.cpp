@@ -78,6 +78,14 @@ uint64_t Disassemble_instruction(Chunk const& chunk, uint64_t offset)
     case OP_POP:
         fmt::print("{:#08x} OP_POP\n", offset);
         return ++offset;
+    case OP_DEFINE_GLOBAL:
+        fmt::print("{:#08x} OP_DEFINE_GLOBAL {}\n", offset, chunk.byte_code[offset + 1]);
+        offset += 2;
+        return offset;
+    case OP_GET_GLOBAL:
+        fmt::print("{:#08x} OP_GET_GLOBAL {}\n", offset, chunk.byte_code[offset + 1]);
+        offset += 2;
+        return offset;
     }
     LOX_ASSERT(false);
 }
