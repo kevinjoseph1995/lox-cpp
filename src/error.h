@@ -9,7 +9,6 @@
 #include <variant>
 
 #define unlikely(x) __builtin_expect(!!(x), 0)
-// TODO: Kevin Don't use GCC intrinsic here
 #define LOX_ASSERT(expr, ...)                                                  \
     do {                                                                       \
         if (unlikely(!(expr))) {                                               \
