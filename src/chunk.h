@@ -33,7 +33,8 @@ enum OpCode : uint8_t {
     OP_PRINT,
     OP_POP,
     OP_DEFINE_GLOBAL,
-    OP_GET_GLOBAL
+    OP_GET_GLOBAL,
+    OP_SET_GLOBAL
 };
 
 static constexpr auto MAX_NUMBER_CONSTANTS = 256; // Currently we can only store as many constants that can be addressed by 8 bits
@@ -42,15 +43,10 @@ struct Chunk {
     std::vector<uint8_t> byte_code;
     std::vector<int32_t> lines;
     std::vector<Value> constant_pool;
-    void Reset()
-    {
-        byte_code.clear();
-        lines.clear();
-        constant_pool.clear();
-    }
+    void Clear();
 };
 
-void Disassemble_chunk(Chunk const& chunk);
+[[maybe_unused]] void Disassemble_chunk(Chunk const& chunk);
 
 uint64_t Disassemble_instruction(Chunk const& chunk, uint64_t offset);
 

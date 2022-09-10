@@ -276,7 +276,7 @@ void Compiler::string()
 {
     LOX_ASSERT(m_parser.previous_token.has_value());
     LOX_ASSERT(m_parser.previous_token->type == TokenType::STRING);
-    auto string_object = static_cast<StringObject*>(m_heap.Allocate(ObjectType::STRING));
+    auto string_object = m_heap.AllocateStringObject();
     string_object->data = m_source->GetSource().substr(m_parser.previous_token->start + 1, m_parser.previous_token->length - 2);
     this->addConstant(string_object);
 }
@@ -398,14 +398,22 @@ void Compiler::variableDeclaration()
 void Compiler::variable()
 {
     auto identifier_index_in_constant_pool = identifierConstant(m_parser.previous_token.value());
-    emitByte(OP_GET_GLOBAL);
-    emitByte(static_cast<uint8_t>(identifier_index_in_constant_pool));
+    if (match(TokenType::EQUAL)) {
+        // Look-ahead one token if we find an "=" then this is an assignment
+        advance(); // Move past the "="
+        expression(); // Emit the instructions for the expression that would be evaluated to the value that this identifier must be assigned with.
+        emitByte(OP_SET_GLOBAL);
+        emitByte(static_cast<uint8_t>(identifier_index_in_constant_pool));
+    } else {
+        emitByte(OP_GET_GLOBAL);
+        emitByte(static_cast<uint8_t>(identifier_index_in_constant_pool));
+    }
 }
 
 int32_t Compiler::identifierConstant(const Token& token)
 {
     LOX_ASSERT(token.type == TokenType::IDENTIFIER);
-    auto string_object_ptr = static_cast<StringObject*>(m_heap.Allocate(ObjectType::STRING));
+    auto string_object_ptr = m_heap.AllocateStringObject();
     string_object_ptr->data = m_source->GetSource().substr(token.start, token.length);
     m_current_chunk->constant_pool.push_back(string_object_ptr);
     return m_current_chunk->constant_pool.size() - 1;

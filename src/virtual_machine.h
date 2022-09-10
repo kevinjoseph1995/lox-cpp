@@ -32,6 +32,7 @@ private:
     [[nodiscard]] Value popStack();
     Value const& peekStack(uint32_t index_from_top);
     [[nodiscard]] ErrorOr<VoidType> binaryOperation(OpCode op);
+    Error runtimeError(std::string error_message);
 
 private:
     Chunk m_current_chunk {};

@@ -4,12 +4,9 @@
 
 #ifndef LOX_CPP_COMPILER_H
 #define LOX_CPP_COMPILER_H
-
-#include "chunk.h"
-
-#include <array>
 #include <optional>
 
+#include "chunk.h"
 #include "error.h"
 #include "heap.h"
 #include "scanner.h"
@@ -69,7 +66,7 @@ private:
 private:
     friend consteval ParseTable GenerateParseTable();
 
-    // Reset state
+    // Clear state
     void reset(Source const& source, Chunk& chunk);
 
     // Token processing

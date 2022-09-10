@@ -4,7 +4,6 @@
 
 #include "scanner.h"
 #include "error.h"
-#include <fmt/format.h>
 
 void Scanner::Reset(Source const& source)
 {

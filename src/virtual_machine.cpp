@@ -26,6 +26,7 @@ ErrorOr<VoidType> VirtualMachine::run()
 {
     while (true) {
         if (isAtEnd()) {
+            LOX_ASSERT(m_value_stack.empty()); // Remove me once we add statements that produce side - effects
             return VoidType {};
         }
 #ifdef DEBUG_TRACE_EXECUTION
@@ -45,8 +46,7 @@ ErrorOr<VoidType> VirtualMachine::run()
         case OP_NEGATE: {
             Value value = popStack();
             if (!value.IsDouble()) {
-                return Error { .type = ErrorType::RuntimeError,
-                    .error_message = fmt::format("Cannot negate non-number type, line number:{}", m_current_chunk.lines[m_instruction_pointer]) };
+                return runtimeError(fmt::format("Cannot negate non-number type, line number:{}", m_current_chunk.lines[m_instruction_pointer]));
             }
             m_value_stack.emplace_back(-value.AsDouble());
             break;
@@ -144,25 +144,38 @@ ErrorOr<VoidType> VirtualMachine::run()
             break;
         }
         case OP_DEFINE_GLOBAL: {
-            auto initial_value = peekStack(0);
             // Need to get the variable name from the constant pool
             auto constant_pool_index = static_cast<uint64_t>(readByte());
             auto identifier_name_value = m_current_chunk.constant_pool.at(constant_pool_index);
             LOX_ASSERT(identifier_name_value.IsObject() && identifier_name_value.AsObjectPtr()->GetType() == ObjectType::STRING);
             auto string_object = static_cast<StringObject*>(identifier_name_value.AsObjectPtr());
-            m_globals[string_object->data] = initial_value;
+            m_globals[string_object->data] = popStack();
             break;
         }
         case OP_GET_GLOBAL: {
             auto constant_pool_index = static_cast<uint64_t>(readByte());
             auto identifier_name_value = m_current_chunk.constant_pool.at(constant_pool_index);
             LOX_ASSERT(identifier_name_value.IsObject() && identifier_name_value.AsObjectPtr()->GetType() == ObjectType::STRING);
-            auto string_object = static_cast<StringObject*>(identifier_name_value.AsObjectPtr());
-            if (m_globals.count(string_object->data) == 0) {
-                return Error { .type = ErrorType::RuntimeError, .error_message = fmt::format("Undefined variable:{}", string_object->data) };
+            auto identifier_string_object = static_cast<StringObject*>(identifier_name_value.AsObjectPtr());
+            if (m_globals.count(identifier_string_object->data) == 0) {
+                return runtimeError(fmt::format("Undefined variable:{}", identifier_string_object->data));
             }
-            m_value_stack.push_back(m_globals.at(string_object->data));
+            m_value_stack.push_back(m_globals.at(identifier_string_object->data));
             break;
+        }
+        case OP_SET_GLOBAL: {
+            auto constant_pool_index = static_cast<uint64_t>(readByte());
+            auto identifier_name_value = m_current_chunk.constant_pool.at(constant_pool_index);
+            LOX_ASSERT(identifier_name_value.IsObject() && identifier_name_value.AsObjectPtr()->GetType() == ObjectType::STRING);
+            auto identifier_string_object = static_cast<StringObject*>(identifier_name_value.AsObjectPtr());
+            if (m_globals.count(identifier_string_object->data) == 0) {
+                return runtimeError(fmt::format("Undefined variable:{}", identifier_string_object->data));
+            }
+            m_globals[identifier_string_object->data] = peekStack(0); // Over-write existing value
+            break;
+        }
+        default: {
+            LOX_ASSERT(false, "Unhandled op-code");
         }
         }
     }
@@ -222,14 +235,12 @@ ErrorOr<VoidType> VirtualMachine::binaryOperation(OpCode op)
     auto binaryOpWrapper = [&](auto _operator) -> ErrorOr<VoidType> {
         Value rhs = popStack();
         if (!rhs.IsDouble()) {
-            return Error { .type = ErrorType::RuntimeError,
-                .error_message = fmt::format("RHS of \"{}\" is not a number type.", getOperatorString(_operator)) };
+            return runtimeError(fmt::format("RHS of \"{}\" is not a number type.", getOperatorString(_operator)));
         }
 
         Value lhs = popStack();
         if (!lhs.IsDouble()) {
-            return Error { .type = ErrorType::RuntimeError,
-                .error_message = fmt::format("LHS of \"{}\" is not a number type.", getOperatorString(_operator)) };
+            return runtimeError(fmt::format("LHS of \"{}\" is not a number type.", getOperatorString(_operator)));
         }
 
         m_value_stack.emplace_back(_operator(lhs.AsDouble(), rhs.AsDouble()));
@@ -244,15 +255,13 @@ ErrorOr<VoidType> VirtualMachine::binaryOperation(OpCode op)
 
         Value lhs = popStack();
         if (!lhs.IsObject()) {
-            return Error { .type = ErrorType::RuntimeError,
-                .error_message = fmt::format("LHS of \"+\" is not a string type.") };
+            return runtimeError(fmt::format("LHS of \"+\" is not a string type."));
         }
         auto const& lhs_object = lhs.AsObject();
         if (lhs_object.GetType() != ObjectType::STRING) {
-            return Error { .type = ErrorType::RuntimeError,
-                .error_message = fmt::format("LHS of \"+\" is not a string type.") };
+            return runtimeError(fmt::format("LHS of \"+\" is not a string type."));
         }
-        auto new_string_object = static_cast<StringObject*>(m_heap.Allocate(ObjectType::STRING));
+        auto new_string_object = m_heap.AllocateStringObject();
         LOX_ASSERT(new_string_object->GetType() == ObjectType::STRING);
         new_string_object->data.append(static_cast<StringObject const*>(&lhs_object)->data);
         new_string_object->data.append(static_cast<StringObject const*>(&rhs_object)->data);
@@ -302,4 +311,11 @@ VirtualMachine::VirtualMachine()
 bool VirtualMachine::isAtEnd()
 {
     return m_instruction_pointer == m_current_chunk.byte_code.size();
+}
+
+Error VirtualMachine::runtimeError(std::string error_message)
+{
+    m_instruction_pointer = m_current_chunk.byte_code.size();
+    return Error { .type = ErrorType::RuntimeError,
+        .error_message = std::move(error_message) };
 }

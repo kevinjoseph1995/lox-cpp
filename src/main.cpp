@@ -1,6 +1,5 @@
 #include "virtual_machine.h"
 
-#include <fstream>
 #include <iostream>
 #include <unistd.h>
 
@@ -30,6 +29,7 @@ static int Run(VirtualMachine& vm, Source& source)
             fmt::print(stderr, "Unknown error: {}\n", error.error_message);
             return 1;
         }
+        source.Clear();
     }
     return 0;
 }
@@ -51,8 +51,10 @@ static void RunInteractive()
             break;
         }
         if (line == "clear") {
+            source.Clear();
             fmt::print("{}[2J{esc}[2J{esc}[1;1H", static_cast<char>(27),
                 fmt::arg("esc", static_cast<char>(27)));
+            continue;
         }
         if (!line.empty() && line[line.length() - 1] == '\\') {
             do {

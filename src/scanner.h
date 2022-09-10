@@ -5,11 +5,9 @@
 #ifndef LOX_CPP_SCANNER_H
 #define LOX_CPP_SCANNER_H
 
-#include <cassert>
-#include <string>
-
 #include "error.h"
 #include "source.h"
+
 enum TokenType {
     // Single-character tokens.
     LEFT_PAREN = 0,

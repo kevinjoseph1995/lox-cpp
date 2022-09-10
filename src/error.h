@@ -5,20 +5,33 @@
 #ifndef LOX_CPP_ERROR_H
 #define LOX_CPP_ERROR_H
 
+#include "fmt/core.h"
+#include <stdio.h>
 #include <string>
 #include <variant>
 
+inline void PrintAssertionMessage(const char* file, int line, const char* function_name, const char* message = nullptr)
+{
+    if (message == nullptr) {
+        fmt::print(stderr, "Assertion failed at {}:{} in {}", file, line, function_name);
+    } else {
+        fmt::print(stderr, "Assertion failed at {}:{} in FUNC:\"{}\" with MESSAGE:\"{}\"", file, line, function_name, message);
+    }
+}
+
+// TODO: Print stack-trace here, research available solutions
+// Look into: https://github.com/bombela/backward-cpp/blob/master/backward.hpp
 #define unlikely(x) __builtin_expect(!!(x), 0)
-#define LOX_ASSERT(expr, ...)                                                  \
-    do {                                                                       \
-        if (unlikely(!(expr))) {                                               \
-            printf("FILE: %s, LINE %d, FUNC: %s, ASSERT_FAILED:  " #expr "\n", \
-                __FILE__, __LINE__, __func__);                                 \
-            __builtin_trap();                                                  \
-        }                                                                      \
+#define LOX_ASSERT(expr, ...)                                                               \
+    do {                                                                                    \
+        if (unlikely(!(expr))) {                                                            \
+            PrintAssertionMessage(__FILE__, __LINE__, __func__ __VA_OPT__(, ) __VA_ARGS__); \
+            __builtin_trap();                                                               \
+        }                                                                                   \
     } while (0)
 
-enum class ErrorType { ScanError,
+enum class ErrorType {
+    ScanError,
     ParseError,
     RuntimeError
 };
@@ -60,8 +73,5 @@ struct ErrorOr : public std::variant<Error, T> {
         return *ptr;
     }
 };
-
-template <typename T>
-Error& GetError(ErrorOr<T>& e) { return std::get<0>(e); }
 
 #endif // LOX_CPP_ERROR_H

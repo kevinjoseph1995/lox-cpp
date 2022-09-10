@@ -5,7 +5,6 @@
 #ifndef LOX_CPP_OBJECT_H
 #define LOX_CPP_OBJECT_H
 
-#include <cstdint>
 #include <string>
 
 enum class ObjectType {

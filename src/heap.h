@@ -12,8 +12,10 @@ public:
     ~Heap();
     void Reset();
     [[nodiscard]] Object* Allocate(ObjectType);
+    [[nodiscard]] StringObject* AllocateStringObject();
 
 private:
+    [[nodiscard]] Object* allocate(ObjectType);
     void insertAtHead(Object* new_node);
 
 private:

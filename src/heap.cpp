@@ -21,6 +21,11 @@ void Heap::Reset()
 
 Object* Heap::Allocate(ObjectType type)
 {
+    return allocate(type);
+}
+
+Object* Heap::allocate(ObjectType type)
+{
     Object* new_object = nullptr;
     switch (type) {
     case ObjectType::STRING: {
@@ -48,4 +53,11 @@ void Heap::insertAtHead(Object* new_node)
         new_node->next = m_head;
         m_head = new_node;
     }
+}
+
+StringObject* Heap::AllocateStringObject()
+{
+    auto* object_ptr = allocate(ObjectType::STRING);
+    LOX_ASSERT(object_ptr->type == ObjectType::STRING);
+    return static_cast<StringObject*>(object_ptr);
 }
