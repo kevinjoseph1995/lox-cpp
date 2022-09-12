@@ -4,17 +4,14 @@
 
 #ifndef LOX_CPP_VIRTUAL_MACHINE_H
 #define LOX_CPP_VIRTUAL_MACHINE_H
+#include <cstdint>
+#include <stack>
+#include <unordered_map>
 
 #include "chunk.h"
 #include "compiler.h"
 #include "heap.h"
 #include "source.h"
-
-#include <cstdint>
-#include <stack>
-#include <unordered_map>
-
-static constexpr auto MAX_STACK_SIZE = 256;
 
 using GlobalTable = std::unordered_map<std::string, Value>;
 

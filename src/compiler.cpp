@@ -2,9 +2,10 @@
 // Created by kevin on 8/12/22.
 //
 
+#include <functional>
+
 #include "compiler.h"
 #include "fmt/core.h"
-#include <functional>
 
 consteval ParseTable GenerateParseTable()
 {
@@ -154,6 +155,24 @@ void Compiler::addConstant(Value constant)
 
 void Compiler::parsePrecedence(Precedence level)
 {
+    /*
+     * Explanation for future me on how Pratt Parsing works
+     * Example 1: Parsing the expression -1 == 1
+     * The "-" token will be mapped to the "unary" member-function which will generate the op-code for the negation and also number-literal "1"
+     * On returning from  (this->*prefixRuleFunction)(); the current token will be EQUAL_EQUAL.
+     * Since EQUAL_EQUAL has a higher precedence than PREC_ASSIGNMENT which is the default precedence with which "expression" is called, we parse the infix expression
+     *
+     * Example 2: Parsing the expression 2 + -1 * 3
+     *  We enter parsePrecedence with a precedence of PREC_ASSIGNMENT
+     *  The first token is a number literal "number" is called. Since it's a terminal it's guaranteed that  prefixRuleFunction() will not call parsePrecedence internally.
+     *
+     *  At the end of (this->*prefixRuleFunction)(); in this level the current token will be PLUS.
+     *  Since PREC_TERM > PREC_ASSIGNMENT we will try to parse the infix expression next.
+     *      On calling advance previous=PLUS and current=MINUS
+     *      We then call Compiler::binary. Inside binary, we need to parse the right-hand side of the binary operator. We call parsePrecedence with a precedence one higher
+     *      than the current level("because the binary operators are left-associative"). In this special case the RHS parsing will end up consuming all the remaining tokens.
+     *      It does not stop at (MINUS, NUMBER) because STAR has a precedence == (current_precedence_level + 1).
+     */
     advance();
     auto prefixRuleFunction = GetRule(m_parser.previous_token->type)->prefix;
     if (prefixRuleFunction == nullptr) {
@@ -312,7 +331,7 @@ bool Compiler::consume(TokenType type)
     return false;
 }
 
-bool Compiler::match(TokenType type)
+bool Compiler::match(TokenType type) const
 {
     LOX_ASSERT(m_parser.current_token.has_value());
     if (m_parser.current_token->type == type) {

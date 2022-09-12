@@ -72,7 +72,7 @@ private:
     // Token processing
     void advance();
     [[nodiscard]] bool consume(TokenType type);
-    [[nodiscard]] bool match(TokenType type);
+    [[nodiscard]] bool match(TokenType type)const;
 
     // Error reporting
     void errorAt(Token const& token, std::string_view message);
@@ -85,19 +85,21 @@ private:
     [[nodiscard]] int32_t identifierConstant(Token const& token);
 
     // Parse functions
-    void parsePrecedence(Precedence level);
     void declaration();
     void statement();
     void variableDeclaration();
     void printStatement();
     void expressionStatement();
+    // Non-terminals
+    void parsePrecedence(Precedence level);
     void expression();
-    void literal();
-    void variable();
-    void number();
     void binary();
-    void unary();
     void grouping();
+    void unary();
+    // Terminals
+    void literal();
+    void number();
+    void variable();
     void string();
 };
 
