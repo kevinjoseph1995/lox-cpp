@@ -179,12 +179,17 @@ void Compiler::parsePrecedence(Precedence level)
         reportError(m_parser.previous_token->line_number, "Expected expression");
         return;
     }
-    (this->*prefixRuleFunction)();
+    bool can_assign = level <= PREC_ASSIGNMENT;
+    (this->*prefixRuleFunction)(can_assign);
 
     while (level <= GetRule(m_parser.current_token->type)->precedence) {
         advance();
         auto infixRuleFunction = GetRule(m_parser.previous_token->type)->infix;
-        (this->*infixRuleFunction)();
+        (this->*infixRuleFunction)(can_assign);
+    }
+    if(can_assign and match(TokenType::EQUAL)) {
+        advance(); // Move past the "="
+        reportError(m_parser.previous_token->line_number, "Invalid assignment target");
     }
 }
 
@@ -193,7 +198,7 @@ void Compiler::expression()
     parsePrecedence(PREC_ASSIGNMENT);
 }
 
-void Compiler::grouping()
+void Compiler::grouping(bool)
 {
     expression();
     if (!consume(TokenType::RIGHT_PAREN)) {
@@ -201,7 +206,7 @@ void Compiler::grouping()
     }
 }
 
-void Compiler::number()
+void Compiler::number(bool)
 {
     LOX_ASSERT(m_parser.previous_token.has_value());
     LOX_ASSERT(m_parser.previous_token->type == TokenType::NUMBER);
@@ -216,7 +221,7 @@ void Compiler::number()
     addConstant(value);
 }
 
-void Compiler::literal()
+void Compiler::literal(bool)
 {
     LOX_ASSERT(m_parser.previous_token.has_value());
     switch (m_parser.previous_token.value().type) {
@@ -234,7 +239,7 @@ void Compiler::literal()
     }
 }
 
-void Compiler::binary()
+void Compiler::binary(bool)
 {
     LOX_ASSERT(m_parser.previous_token.has_value());
 
@@ -276,7 +281,7 @@ void Compiler::binary()
     }
 }
 
-void Compiler::unary()
+void Compiler::unary(bool)
 {
     LOX_ASSERT(m_parser.previous_token.has_value());
 
@@ -291,7 +296,7 @@ void Compiler::unary()
     }
 }
 
-void Compiler::string()
+void Compiler::string(bool)
 {
     LOX_ASSERT(m_parser.previous_token.has_value());
     LOX_ASSERT(m_parser.previous_token->type == TokenType::STRING);
@@ -414,10 +419,10 @@ void Compiler::variableDeclaration()
     emitByte(static_cast<uint8_t>(identifier_index_in_constant_pool));
 }
 
-void Compiler::variable()
+void Compiler::variable(bool can_assign)
 {
     auto identifier_index_in_constant_pool = identifierConstant(m_parser.previous_token.value());
-    if (match(TokenType::EQUAL)) {
+    if (can_assign and match(TokenType::EQUAL)) {
         // Look-ahead one token if we find an "=" then this is an assignment
         advance(); // Move past the "="
         expression(); // Emit the instructions for the expression that would be evaluated to the value that this identifier must be assigned with.

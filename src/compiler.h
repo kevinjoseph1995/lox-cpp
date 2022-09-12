@@ -29,7 +29,7 @@ enum  Precedence {
 // clang-format on
 
 class Compiler;
-using ParseFunc = void (Compiler::*)();
+using ParseFunc = void (Compiler::*)(bool);
 struct ParseRule {
     ParseFunc prefix;
     ParseFunc infix;
@@ -72,7 +72,7 @@ private:
     // Token processing
     void advance();
     [[nodiscard]] bool consume(TokenType type);
-    [[nodiscard]] bool match(TokenType type)const;
+    [[nodiscard]] bool match(TokenType type) const;
 
     // Error reporting
     void errorAt(Token const& token, std::string_view message);
@@ -93,14 +93,14 @@ private:
     // Non-terminals
     void parsePrecedence(Precedence level);
     void expression();
-    void binary();
-    void grouping();
-    void unary();
+    void binary(bool can_assign);
+    void grouping(bool can_assign);
+    void unary(bool can_assign);
     // Terminals
-    void literal();
-    void number();
-    void variable();
-    void string();
+    void literal(bool can_assign);
+    void number(bool can_assign);
+    void variable(bool can_assign);
+    void string(bool can_assign);
 };
 
 #endif // LOX_CPP_COMPILER_H
