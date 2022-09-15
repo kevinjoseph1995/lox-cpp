@@ -23,82 +23,23 @@ struct Value : public std::variant<NilType, double, bool, Object*> {
         : std::variant<NilType, double, bool, Object*>(NilType {})
     {
     }
-    [[nodiscard]] bool IsNil() const
-    {
-        return std::holds_alternative<NilType>(*this);
-    }
-    [[nodiscard]] bool IsDouble() const
-    {
-        return std::holds_alternative<double>(*this);
-    }
+    [[nodiscard]] bool IsNil() const;
+    [[nodiscard]] bool IsBool() const;
+    [[nodiscard]] bool IsDouble() const;
+    [[nodiscard]] bool IsObject() const;
 
-    [[nodiscard]] double& AsDouble()
-    {
-        LOX_ASSERT(IsDouble());
-        return *std::get_if<double>(this);
-    }
+    [[nodiscard]] bool& AsBool();
+    [[nodiscard]] double& AsDouble();
+    [[nodiscard]] double const& AsDouble() const;
+    [[nodiscard]] Object const& AsObject() const;
+    [[nodiscard]] Object& AsObject();
+    [[nodiscard]] Object* AsObjectPtr();
+    [[nodiscard]] Object const * AsObjectPtr()const;
+    [[nodiscard]] bool const& AsBool() const;
 
-    [[nodiscard]] bool& AsBool()
-    {
-        LOX_ASSERT(IsBool());
-        return *std::get_if<bool>(this);
-    }
 
-    [[nodiscard]] double const& AsDouble() const
-    {
-        LOX_ASSERT(IsDouble());
-        return *std::get_if<double>(this);
-    }
-
-    [[nodiscard]] Object const& AsObject() const
-    {
-        LOX_ASSERT(IsObject());
-        return *(*std::get_if<Object*>(this));
-    }
-
-    [[nodiscard]] Object& AsObject()
-    {
-        LOX_ASSERT(IsObject());
-        return *(*std::get_if<Object*>(this));
-    }
-
-    [[nodiscard]] Object* AsObjectPtr()
-    {
-        LOX_ASSERT(IsObject());
-        return (*std::get_if<Object*>(this));
-    }
-
-    [[nodiscard]] bool const& AsBool() const
-    {
-        LOX_ASSERT(IsBool());
-        return *std::get_if<bool>(this);
-    }
-
-    [[nodiscard]] bool IsBool() const
-    {
-        return std::holds_alternative<bool>(*this);
-    }
-    [[nodiscard]] bool IsObject() const
-    {
-        return std::holds_alternative<Object*>(*this);
-    }
-    bool operator==(Value const& other) const
-    {
-        if (this->index() != other.index()) {
-            return false;
-        }
-        if (this->IsBool()) {
-            return std::get_if<bool>(this) == std::get_if<bool>(&other);
-        } else if (this->IsDouble()) {
-            return std::get_if<double>(this) == std::get_if<double>(&other);
-        } else {
-            return true;
-        }
-    }
-    bool operator!=(Value const& other) const
-    {
-        return !(*this == other);
-    }
+    [[nodiscard]] bool operator==(Value const& other) const;
+    [[nodiscard]] bool operator!=(Value const& other) const;
 };
 
 template <>
@@ -127,6 +68,7 @@ struct fmt::formatter<Value> {
         }
         case 3: {
             Object const& object = value.AsObject();
+            LOX_ASSERT(object.GetType() == ObjectType::STRING, "Unsupported type, cannot format");
             auto string_object = *static_cast<StringObject const*>(&object); // Fix me
             return fmt::format_to(ctx.out(), "{}", string_object.data);
         }

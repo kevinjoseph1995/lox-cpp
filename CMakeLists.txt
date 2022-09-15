@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.23)
+cmake_minimum_required(VERSION 3.22)
 project(lox_cpp)
 
 # Compile commands json generation
@@ -22,3 +22,4 @@ ENDIF ()
 
 add_subdirectory(src)
 add_subdirectory(third_party)
+add_subdirectory(tests)

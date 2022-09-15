@@ -6,7 +6,9 @@
 #include "error.h"
 #include <fmt/core.h>
 
+#ifndef NDEBUG
 #define DEBUG_TRACE_EXECUTION
+#endif
 
 static bool IsFalsy(Value const& value)
 {

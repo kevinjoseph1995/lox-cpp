@@ -75,7 +75,7 @@ ErrorOr<Token> Scanner::GetNextToken()
     case '"':
         return string();
     default:
-        return Error { .type = ErrorType::ParseError, .error_message = fmt::format("Unidentified character on line:{}, index:{}", m_line, m_start) };
+        return Error { .type = ErrorType::ParseError, .error_message = fmt::format("Unidentified character: \"{}\"(index:{})", m_source->GetSource().at(m_start), m_start) };
     }
 }
 

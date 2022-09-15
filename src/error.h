@@ -10,14 +10,7 @@
 #include <string>
 #include <variant>
 
-inline void PrintAssertionMessage(const char* file, int line, const char* function_name, const char* message = nullptr)
-{
-    if (message == nullptr) {
-        fmt::print(stderr, "Assertion failed at {}:{} in {}", file, line, function_name);
-    } else {
-        fmt::print(stderr, "Assertion failed at {}:{} in FUNC:\"{}\" with MESSAGE:\"{}\"", file, line, function_name, message);
-    }
-}
+void PrintAssertionMessage(const char* file, int line, const char* function_name, const char* message = nullptr);
 
 // TODO: Print stack-trace here, research available solutions
 // Look into: https://github.com/bombela/backward-cpp/blob/master/backward.hpp

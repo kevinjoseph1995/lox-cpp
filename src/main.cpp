@@ -7,7 +7,7 @@
 
 static constexpr auto USAGE =
     R"(
-usage: lox_cpp [file | - ]
+usage: lox_cpp [LOX_SOURCE_FILE]
 )";
 
 static int Run(VirtualMachine& vm, Source& source)
@@ -34,42 +34,7 @@ static int Run(VirtualMachine& vm, Source& source)
     return 0;
 }
 
-static void RunInteractive()
-{
-    VirtualMachine vm;
-    std::string line;
-    Source source;
-    while (true) {
-        source.Clear();
-        line.clear();
-        if (isatty(STDIN_FILENO)) {
-            fmt::print("->> ");
-        }
-
-        std::getline(std::cin, line);
-        if (line == "quit" || line == "q") {
-            break;
-        }
-        if (line == "clear") {
-            source.Clear();
-            fmt::print("{}[2J{esc}[2J{esc}[1;1H", static_cast<char>(27),
-                fmt::arg("esc", static_cast<char>(27)));
-            continue;
-        }
-        if (!line.empty() && line[line.length() - 1] == '\\') {
-            do {
-                source.AppendFromConsole(std::string_view(line.begin(), line.end() - 1));
-                source.AppendFromConsole("\n");
-                std::getline(std::cin, line);
-            } while (!line.empty() && line[line.length() - 1] == '\\');
-        }
-
-        source.AppendFromConsole(std::string_view(line.begin(), line.end()));
-        Run(vm, source);
-    }
-}
-
-static int RunFromFile(char const* const file_name)
+static int RunFromFile(std::string_view file_name)
 {
     VirtualMachine vm;
     Source source;
@@ -82,9 +47,6 @@ static int RunFromFile(char const* const file_name)
 int main(int argc, char** argv)
 {
     switch (argc) {
-    case 1:
-        RunInteractive();
-        return 0;
     case 2:
         return RunFromFile(argv[1]);
     default: {

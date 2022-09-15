@@ -17,6 +17,7 @@ void Heap::Reset()
         }
         current = next;
     }
+    m_head = nullptr;
 }
 
 Object* Heap::Allocate(ObjectType type)

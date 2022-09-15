@@ -77,7 +77,7 @@ void Compiler::reportError(int32_t line_number, std::string_view error_string)
     if (m_source->IsFromFile()) {
         fmt::print(stderr, "Error:{} at {}:{}\n", error_string, m_source->GetFilename(), line_number);
     } else {
-        fmt::print(stderr, "Error:{} at on line:{}\n", error_string, line_number);
+        fmt::print(stderr, "Error:{} on line:{}\n", error_string, line_number);
     }
     m_error_state.encountered_error = true;
 }
