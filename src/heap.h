@@ -15,7 +15,6 @@ public:
     [[nodiscard]] StringObject* AllocateStringObject(std::string_view);
 
 private:
-    [[nodiscard]] Object* allocate(ObjectType);
     void insertAtHead(Object* new_node);
 
 private:
