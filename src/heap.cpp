@@ -56,9 +56,11 @@ void Heap::insertAtHead(Object* new_node)
     }
 }
 
-StringObject* Heap::AllocateStringObject()
+StringObject* Heap::AllocateStringObject(std::string_view string_data)
 {
     auto* object_ptr = allocate(ObjectType::STRING);
     LOX_ASSERT(object_ptr->type == ObjectType::STRING);
-    return static_cast<StringObject*>(object_ptr);
+    auto string_object_ptr = static_cast<StringObject*>(object_ptr);
+    string_object_ptr->data = string_data;
+    return string_object_ptr;
 }

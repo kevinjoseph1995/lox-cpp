@@ -12,7 +12,7 @@ public:
     ~Heap();
     void Reset();
     [[nodiscard]] Object* Allocate(ObjectType);
-    [[nodiscard]] StringObject* AllocateStringObject();
+    [[nodiscard]] StringObject* AllocateStringObject(std::string_view);
 
 private:
     [[nodiscard]] Object* allocate(ObjectType);

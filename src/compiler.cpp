@@ -187,7 +187,7 @@ void Compiler::parsePrecedence(Precedence level)
         auto infixRuleFunction = GetRule(m_parser.previous_token->type)->infix;
         (this->*infixRuleFunction)(can_assign);
     }
-    if(can_assign and match(TokenType::EQUAL)) {
+    if (can_assign and match(TokenType::EQUAL)) {
         advance(); // Move past the "="
         reportError(m_parser.previous_token->line_number, "Invalid assignment target");
     }
@@ -300,8 +300,7 @@ void Compiler::string(bool)
 {
     LOX_ASSERT(m_parser.previous_token.has_value());
     LOX_ASSERT(m_parser.previous_token->type == TokenType::STRING);
-    auto string_object = m_heap.AllocateStringObject();
-    string_object->data = m_source->GetSource().substr(m_parser.previous_token->start + 1, m_parser.previous_token->length - 2);
+    auto string_object = m_heap.AllocateStringObject(m_source->GetSource().substr(m_parser.previous_token->start + 1, m_parser.previous_token->length - 2));
     this->addConstant(string_object);
 }
 
@@ -437,8 +436,7 @@ void Compiler::variable(bool can_assign)
 int32_t Compiler::identifierConstant(const Token& token)
 {
     LOX_ASSERT(token.type == TokenType::IDENTIFIER);
-    auto string_object_ptr = m_heap.AllocateStringObject();
-    string_object_ptr->data = m_source->GetSource().substr(token.start, token.length);
+    auto string_object_ptr = m_heap.AllocateStringObject(m_source->GetSource().substr(token.start, token.length));
     m_current_chunk->constant_pool.push_back(string_object_ptr);
     return m_current_chunk->constant_pool.size() - 1;
 }

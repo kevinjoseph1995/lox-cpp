@@ -263,7 +263,7 @@ ErrorOr<VoidType> VirtualMachine::binaryOperation(OpCode op)
         if (lhs_object.GetType() != ObjectType::STRING) {
             return runtimeError(fmt::format("LHS of \"+\" is not a string type."));
         }
-        auto new_string_object = m_heap.AllocateStringObject();
+        auto new_string_object = m_heap.AllocateStringObject("");
         LOX_ASSERT(new_string_object->GetType() == ObjectType::STRING);
         new_string_object->data.append(static_cast<StringObject const*>(&lhs_object)->data);
         new_string_object->data.append(static_cast<StringObject const*>(&rhs_object)->data);

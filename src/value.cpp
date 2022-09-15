@@ -78,9 +78,9 @@ bool Value::operator==(Value const& other) const
         return false;
     }
     if (this->IsBool()) {
-        return std::get_if<bool>(this) == std::get_if<bool>(&other);
+        return *std::get_if<bool>(this) == *std::get_if<bool>(&other);
     } else if (this->IsDouble()) {
-        return std::get_if<double>(this) == std::get_if<double>(&other);
+        return std::abs(*std::get_if<double>(this) - *std::get_if<double>(&other)) < std::numeric_limits<double>::epsilon();
     } else if(this->IsObject()){
         LOX_ASSERT(this->AsObject().GetType() == ObjectType::STRING);
         LOX_ASSERT(other.AsObject().GetType() == ObjectType::STRING);
