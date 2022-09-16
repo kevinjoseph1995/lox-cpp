@@ -13,12 +13,6 @@ protected:
     {
         m_compiler = std::make_unique<Compiler>(m_heap);
     }
-    void TearDown() override
-    {
-        m_compiler.reset();
-        m_heap.Reset();
-        m_source.Clear();
-    }
     std::unique_ptr<Compiler> m_compiler;
     Heap m_heap;
     Source m_source;

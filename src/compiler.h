@@ -91,6 +91,7 @@ private:
     void variableDeclaration();
     void printStatement();
     void expressionStatement();
+    void block();
     // Non-terminals
     void parsePrecedence(Precedence level);
     void expression();

@@ -447,3 +447,7 @@ void Compiler::emitConstantIndex(uint16_t index)
     emitByte(static_cast<uint8_t>(0x00FFU & index));
     emitByte(static_cast<uint8_t>((0xFF00U & index) >> 8));
 }
+
+void Compiler::block()
+{
+}

@@ -136,8 +136,12 @@ ErrorOr<VoidType> VirtualMachine::run()
         case OP_PRINT: {
             LOX_ASSERT(!m_value_stack.empty());
             auto value = popStack();
-            fmt::print("{}\n", value);
-            fflush(stdout); // Force flush
+            if (m_external_stream) {
+                fmt::format_to(std::back_inserter(*m_external_stream), "{}\n", value);
+            } else {
+                fmt::print("{}\n", value);
+                fflush(stdout); // Force flush
+            }
             break;
         }
         case OP_POP: {
@@ -323,4 +327,9 @@ uint16_t VirtualMachine::readConstantPoolIndex()
     auto lsb = readByte();
     auto hsb = static_cast<uint16_t>(readByte() << 8);
     return static_cast<uint16_t>(hsb + lsb);
+}
+
+void VirtualMachine::SetExternalOutputStringStream(std::string* external_stream)
+{
+    m_external_stream = external_stream;
 }
