@@ -18,15 +18,20 @@ void Disassemble_chunk(Chunk const& chunk)
 
 uint64_t Disassemble_instruction(Chunk const& chunk, uint64_t offset)
 {
+    auto getConstantPoolIndex = [](uint8_t lsb, uint8_t hsb) -> uint16_t {
+        return static_cast<uint16_t>(hsb << 8) + lsb;
+    };
+
     auto const opcode = static_cast<OpCode>(chunk.byte_code[offset]);
     switch (opcode) {
     case OP_RETURN:
         fmt::print("{:#08x} OP_RETURN\n", offset);
         return ++offset;
-    case OP_CONSTANT:
-        fmt::print("{:#08x} OP_CONSTANT {}\n", offset, chunk.byte_code[offset + 1]);
-        offset += 2;
+    case OP_CONSTANT: {
+        fmt::print("{:#08x} OP_CONSTANT {}\n", offset, getConstantPoolIndex(chunk.byte_code[offset + 1], chunk.byte_code[offset + 2]));
+        offset += 3;
         return offset;
+    }
     case OP_NEGATE:
         fmt::print("{:#08x} OP_NEGATE\n", offset);
         return ++offset;
@@ -78,18 +83,21 @@ uint64_t Disassemble_instruction(Chunk const& chunk, uint64_t offset)
     case OP_POP:
         fmt::print("{:#08x} OP_POP\n", offset);
         return ++offset;
-    case OP_DEFINE_GLOBAL:
-        fmt::print("{:#08x} OP_DEFINE_GLOBAL {}\n", offset, chunk.byte_code[offset + 1]);
-        offset += 2;
+    case OP_DEFINE_GLOBAL: {
+        fmt::print("{:#08x} OP_DEFINE_GLOBAL {}\n", offset, getConstantPoolIndex(chunk.byte_code[offset + 1], chunk.byte_code[offset + 2]));
+        offset += 3;
         return offset;
-    case OP_GET_GLOBAL:
-        fmt::print("{:#08x} OP_GET_GLOBAL {}\n", offset, chunk.byte_code[offset + 1]);
-        offset += 2;
+    }
+    case OP_GET_GLOBAL: {
+        fmt::print("{:#08x} OP_GET_GLOBAL {}\n", offset, getConstantPoolIndex(chunk.byte_code[offset + 1], chunk.byte_code[offset + 2]));
+        offset += 3;
         return offset;
-    case OP_SET_GLOBAL:
-        fmt::print("{:#08x} OP_SET_GLOBAL {}\n", offset, chunk.byte_code[offset + 1]);
-        offset += 2;
+    }
+    case OP_SET_GLOBAL: {
+        fmt::print("{:#08x} OP_SET_GLOBAL {}\n", offset, getConstantPoolIndex(chunk.byte_code[offset + 1], chunk.byte_code[offset + 2]));
+        offset += 3;
         return offset;
+    }
     }
     LOX_ASSERT(false);
 }

@@ -147,16 +147,14 @@ ErrorOr<VoidType> VirtualMachine::run()
         }
         case OP_DEFINE_GLOBAL: {
             // Need to get the variable name from the constant pool
-            auto constant_pool_index = static_cast<uint64_t>(readByte());
-            auto identifier_name_value = m_current_chunk.constant_pool.at(constant_pool_index);
+            auto identifier_name_value = m_current_chunk.constant_pool.at(readConstantPoolIndex());
             LOX_ASSERT(identifier_name_value.IsObject() && identifier_name_value.AsObjectPtr()->GetType() == ObjectType::STRING);
             auto string_object = static_cast<StringObject*>(identifier_name_value.AsObjectPtr());
             m_globals[string_object->data] = popStack();
             break;
         }
         case OP_GET_GLOBAL: {
-            auto constant_pool_index = static_cast<uint64_t>(readByte());
-            auto identifier_name_value = m_current_chunk.constant_pool.at(constant_pool_index);
+            auto identifier_name_value = m_current_chunk.constant_pool.at(readConstantPoolIndex());
             LOX_ASSERT(identifier_name_value.IsObject() && identifier_name_value.AsObjectPtr()->GetType() == ObjectType::STRING);
             auto identifier_string_object = static_cast<StringObject*>(identifier_name_value.AsObjectPtr());
             if (m_globals.count(identifier_string_object->data) == 0) {
@@ -166,8 +164,7 @@ ErrorOr<VoidType> VirtualMachine::run()
             break;
         }
         case OP_SET_GLOBAL: {
-            auto constant_pool_index = static_cast<uint64_t>(readByte());
-            auto identifier_name_value = m_current_chunk.constant_pool.at(constant_pool_index);
+            auto identifier_name_value = m_current_chunk.constant_pool.at(readConstantPoolIndex());
             LOX_ASSERT(identifier_name_value.IsObject() && identifier_name_value.AsObjectPtr()->GetType() == ObjectType::STRING);
             auto identifier_string_object = static_cast<StringObject*>(identifier_name_value.AsObjectPtr());
             if (m_globals.count(identifier_string_object->data) == 0) {
@@ -191,8 +188,7 @@ uint8_t VirtualMachine::readByte()
 
 Value VirtualMachine::readConstant()
 {
-    auto constant_pool_index = static_cast<uint64_t>(readByte());
-    return m_current_chunk.constant_pool.at(constant_pool_index);
+    return m_current_chunk.constant_pool.at(readConstantPoolIndex());
 }
 
 Value VirtualMachine::popStack()
@@ -320,4 +316,11 @@ Error VirtualMachine::runtimeError(std::string error_message)
     m_instruction_pointer = m_current_chunk.byte_code.size();
     return Error { .type = ErrorType::RuntimeError,
         .error_message = std::move(error_message) };
+}
+
+uint16_t VirtualMachine::readConstantPoolIndex()
+{
+    auto lsb = readByte();
+    auto hsb = static_cast<uint16_t>(readByte() << 8);
+    return static_cast<uint16_t>(hsb + lsb);
 }

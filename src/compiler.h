@@ -82,6 +82,7 @@ private:
     // Chunk manipulation functions
     void emitByte(uint8_t byte);
     void addConstant(Value constant);
+    void emitConstantIndex(uint16_t index);
     [[nodiscard]] int32_t identifierConstant(Token const& token);
 
     // Parse functions

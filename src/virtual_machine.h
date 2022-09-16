@@ -26,6 +26,7 @@ private:
     [[nodiscard]] ErrorOr<VoidType> run();
     [[nodiscard]] uint8_t readByte();
     [[nodiscard]] Value readConstant();
+    [[nodiscard]] uint16_t readConstantPoolIndex();
     [[nodiscard]] Value popStack();
     Value const& peekStack(uint32_t index_from_top);
     [[nodiscard]] ErrorOr<VoidType> binaryOperation(OpCode op);

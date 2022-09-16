@@ -150,7 +150,7 @@ void Compiler::addConstant(Value constant)
 
     m_current_chunk->constant_pool.push_back(constant);
     emitByte(OP_CONSTANT);
-    emitByte(static_cast<uint8_t>(m_current_chunk->constant_pool.size() - 1));
+    emitConstantIndex(static_cast<uint16_t>(m_current_chunk->constant_pool.size() - 1));
 }
 
 void Compiler::parsePrecedence(Precedence level)
@@ -413,9 +413,9 @@ void Compiler::variableDeclaration()
     }
 
     LOX_ASSERT(identifier_index_in_constant_pool >= 0);
-    LOX_ASSERT(identifier_index_in_constant_pool <= 255);
+    LOX_ASSERT(identifier_index_in_constant_pool < MAX_NUMBER_CONSTANTS);
     emitByte(OP_DEFINE_GLOBAL);
-    emitByte(static_cast<uint8_t>(identifier_index_in_constant_pool));
+    emitConstantIndex(static_cast<uint16_t>(identifier_index_in_constant_pool));
 }
 
 void Compiler::variable(bool can_assign)
@@ -426,10 +426,10 @@ void Compiler::variable(bool can_assign)
         advance(); // Move past the "="
         expression(); // Emit the instructions for the expression that would be evaluated to the value that this identifier must be assigned with.
         emitByte(OP_SET_GLOBAL);
-        emitByte(static_cast<uint8_t>(identifier_index_in_constant_pool));
+        emitConstantIndex(static_cast<uint16_t>(identifier_index_in_constant_pool));
     } else {
         emitByte(OP_GET_GLOBAL);
-        emitByte(static_cast<uint8_t>(identifier_index_in_constant_pool));
+        emitConstantIndex(static_cast<uint16_t>(identifier_index_in_constant_pool));
     }
 }
 
@@ -439,4 +439,11 @@ int32_t Compiler::identifierConstant(const Token& token)
     auto string_object_ptr = m_heap.AllocateStringObject(m_source->GetSource().substr(token.start, token.length));
     m_current_chunk->constant_pool.push_back(string_object_ptr);
     return m_current_chunk->constant_pool.size() - 1;
+}
+
+void Compiler::emitConstantIndex(uint16_t index)
+{
+    // Extract the 8 LSB's
+    emitByte(static_cast<uint8_t>(0x00FFU & index));
+    emitByte(static_cast<uint8_t>((0xFF00U & index) >> 8));
 }

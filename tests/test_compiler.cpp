@@ -61,7 +61,7 @@ TEST_F(CompilerTest, BasicBinaryExpression1)
 {
     m_source.AppendFromConsole("1 + 2;");
     ASSERT_TRUE(m_compiler->CompileSource(m_source, m_chunk).IsValue());
-    ASSERT_TRUE(ValidateByteCode(std::vector<uint8_t> { OP_CONSTANT, 0, OP_CONSTANT, 1, OP_ADD, OP_POP }, m_chunk.byte_code));
+    ASSERT_TRUE(ValidateByteCode(std::vector<uint8_t> { OP_CONSTANT, 0, 0, OP_CONSTANT, 1, 0, OP_ADD, OP_POP }, m_chunk.byte_code));
     ASSERT_TRUE(ValidateConstants(std::vector<Value> { 1.0, 2.0 }, m_chunk.constant_pool));
 }
 
@@ -70,13 +70,13 @@ TEST_F(CompilerTest, BasicBinaryExpression2)
     m_source.AppendFromConsole("(1 + 2) + 3 + 3 * (20);");
     ASSERT_TRUE(m_compiler->CompileSource(m_source, m_chunk).IsValue());
     ASSERT_TRUE(ValidateByteCode(std::vector<uint8_t> {
-                                     OP_CONSTANT, 0,
-                                     OP_CONSTANT, 1,
+                                     OP_CONSTANT, 0, 0,
+                                     OP_CONSTANT, 1, 0,
                                      OP_ADD,
-                                     OP_CONSTANT, 2,
+                                     OP_CONSTANT, 2, 0,
                                      OP_ADD,
-                                     OP_CONSTANT, 3,
-                                     OP_CONSTANT, 4,
+                                     OP_CONSTANT, 3, 0,
+                                     OP_CONSTANT, 4, 0,
                                      OP_MULTIPLY,
                                      OP_ADD,
                                      OP_POP },
@@ -89,16 +89,16 @@ TEST_F(CompilerTest, VaraibleDeclaration)
     m_source.AppendFromConsole("var a = (1 + 2) + 3 + 3 * (20);");
     ASSERT_TRUE(m_compiler->CompileSource(m_source, m_chunk).IsValue());
     ASSERT_TRUE(ValidateByteCode(std::vector<uint8_t> {
-                                     OP_CONSTANT, 1,
-                                     OP_CONSTANT, 2,
+                                     OP_CONSTANT, 1, 0,
+                                     OP_CONSTANT, 2, 0,
                                      OP_ADD,
-                                     OP_CONSTANT, 3,
+                                     OP_CONSTANT, 3, 0,
                                      OP_ADD,
-                                     OP_CONSTANT, 4,
-                                     OP_CONSTANT, 5,
+                                     OP_CONSTANT, 4, 0,
+                                     OP_CONSTANT, 5, 0,
                                      OP_MULTIPLY,
                                      OP_ADD,
-                                     OP_DEFINE_GLOBAL, 0 },
+                                     OP_DEFINE_GLOBAL, 0, 0 },
         m_chunk.byte_code));
     ASSERT_TRUE(ValidateConstants(std::vector<Value> { m_heap.AllocateStringObject("a"), 1.0, 2.0, 3.0, 3.0, 20.0 }, m_chunk.constant_pool));
 }
@@ -111,12 +111,12 @@ var b = a + "FooBar";
 )");
     ASSERT_TRUE(m_compiler->CompileSource(m_source, m_chunk).IsValue());
     ASSERT_TRUE(ValidateByteCode(std::vector<uint8_t> {
-                                     OP_CONSTANT, 1,
-                                     OP_DEFINE_GLOBAL, 0,
-                                     OP_GET_GLOBAL, 3,
-                                     OP_CONSTANT, 4,
+                                     OP_CONSTANT, 1, 0,
+                                     OP_DEFINE_GLOBAL, 0, 0,
+                                     OP_GET_GLOBAL, 3, 0,
+                                     OP_CONSTANT, 4, 0,
                                      OP_ADD,
-                                     OP_DEFINE_GLOBAL, 2 },
+                                     OP_DEFINE_GLOBAL, 2, 0 },
         m_chunk.byte_code));
     ASSERT_TRUE(ValidateConstants(std::vector<Value> {
                                       m_heap.AllocateStringObject("a"),
@@ -134,8 +134,8 @@ print (((((((1))))))) + 2;
 )");
     ASSERT_TRUE(m_compiler->CompileSource(m_source, m_chunk).IsValue());
     ASSERT_TRUE(ValidateByteCode(std::vector<uint8_t> {
-                                     OP_CONSTANT, 0,
-                                     OP_CONSTANT, 1,
+                                     OP_CONSTANT, 0, 0,
+                                     OP_CONSTANT, 1, 0,
                                      OP_ADD,
                                      OP_PRINT },
         m_chunk.byte_code));
@@ -152,12 +152,12 @@ a = "Hello World";
 )");
     ASSERT_TRUE(m_compiler->CompileSource(m_source, m_chunk).IsValue());
     ASSERT_TRUE(ValidateByteCode(std::vector<uint8_t> {
-                                     OP_CONSTANT, 1,
-                                     OP_DEFINE_GLOBAL, 0,
-                                     OP_GET_GLOBAL, 2,
+                                     OP_CONSTANT, 1, 0,
+                                     OP_DEFINE_GLOBAL, 0, 0,
+                                     OP_GET_GLOBAL, 2, 0,
                                      OP_PRINT,
-                                     OP_CONSTANT, 4,
-                                     OP_SET_GLOBAL, 3,
+                                     OP_CONSTANT, 4, 0,
+                                     OP_SET_GLOBAL, 3, 0,
                                      OP_POP },
         m_chunk.byte_code));
     ASSERT_TRUE(ValidateConstants(std::vector<Value> {
