@@ -306,7 +306,8 @@ ErrorOr<VoidType> VirtualMachine::binaryOperation(OpCode op)
     }
 }
 
-VirtualMachine::VirtualMachine()
+VirtualMachine::VirtualMachine(std::string* external_stream)
+    : m_external_stream(external_stream)
 {
     m_compiler = std::make_unique<Compiler>(m_heap);
 }
@@ -327,9 +328,4 @@ uint16_t VirtualMachine::readConstantPoolIndex()
     auto lsb = readByte();
     auto hsb = static_cast<uint16_t>(readByte() << 8);
     return static_cast<uint16_t>(hsb + lsb);
-}
-
-void VirtualMachine::SetExternalOutputStringStream(std::string* external_stream)
-{
-    m_external_stream = external_stream;
 }

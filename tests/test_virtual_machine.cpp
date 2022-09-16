@@ -11,9 +11,9 @@ class VMTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        m_vm.SetExternalOutputStringStream(&m_vm_output_stream);
+        m_vm = std::make_unique<VirtualMachine>(&m_vm_output_stream);
     }
-    VirtualMachine m_vm;
+    std::unique_ptr<VirtualMachine> m_vm;
     Source m_source;
     std::string m_vm_output_stream;
 };
@@ -28,7 +28,7 @@ print "Hello" + "World";
     static constexpr auto OUTPUT = "29\n"
                                    "0.5\n"
                                    "HelloWorld\n";
-    ASSERT_TRUE(m_vm.Interpret(m_source).IsValue());
+    ASSERT_TRUE(m_vm->Interpret(m_source).IsValue());
     ASSERT_EQ(m_vm_output_stream, OUTPUT);
 }
 
@@ -39,7 +39,7 @@ var a =  8 * 1 + 2 + 3 + 3 * 4 + (2 + 2);
 print a;
 )");
     static constexpr auto EXPECTED_OUTPUT = "29\n";
-    ASSERT_TRUE(m_vm.Interpret(m_source).IsValue());
+    ASSERT_TRUE(m_vm->Interpret(m_source).IsValue());
     ASSERT_EQ(m_vm_output_stream, EXPECTED_OUTPUT);
 }
 
@@ -53,7 +53,7 @@ print a;
 )");
     static constexpr auto EXPECTED_OUTPUT = "29\n"
                                             "HelloWorld\n";
-    ASSERT_TRUE(m_vm.Interpret(m_source).IsValue());
+    ASSERT_TRUE(m_vm->Interpret(m_source).IsValue());
     ASSERT_EQ(m_vm_output_stream, EXPECTED_OUTPUT);
 }
 
@@ -62,7 +62,7 @@ TEST_F(VMTest, TestMixedConcatenation)
     m_source.AppendFromConsole(R"(
 var a =  1 + "Hello World";
 )");
-    ASSERT_FALSE(m_vm.Interpret(m_source).IsValue());
+    ASSERT_FALSE(m_vm->Interpret(m_source).IsValue());
 }
 
 TEST_F(VMTest, TestStringComparison)
@@ -73,7 +73,7 @@ var b = "HelloWorld";
 print a == b;
 print "FooBar" == a;
 )");
-    ASSERT_TRUE(m_vm.Interpret(m_source).IsValue());
+    ASSERT_TRUE(m_vm->Interpret(m_source).IsValue());
     static constexpr auto EXPECTED_OUTPUT = "true\n"
                                             "false\n";
     ASSERT_EQ(m_vm_output_stream, EXPECTED_OUTPUT);
@@ -86,7 +86,7 @@ print 1 < 2;
 print 1 == 1;
 print 1.0 == 1.1;
 )");
-    ASSERT_TRUE(m_vm.Interpret(m_source).IsValue());
+    ASSERT_TRUE(m_vm->Interpret(m_source).IsValue());
     static constexpr auto EXPECTED_OUTPUT = "true\n"
                                             "true\n"
                                             "false\n";
@@ -99,7 +99,7 @@ TEST_F(VMTest, TestDefaultValue)
 var a;
 print a;
 )");
-    ASSERT_TRUE(m_vm.Interpret(m_source).IsValue());
+    ASSERT_TRUE(m_vm->Interpret(m_source).IsValue());
     static constexpr auto EXPECTED_OUTPUT = "Nil\n";
     ASSERT_EQ(m_vm_output_stream, EXPECTED_OUTPUT);
 }

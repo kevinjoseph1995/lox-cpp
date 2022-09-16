@@ -17,10 +17,9 @@ using GlobalTable = std::unordered_map<std::string, Value>;
 
 class VirtualMachine {
 public:
-    VirtualMachine();
+    VirtualMachine(std::string* external_stream = nullptr);
 
     [[nodiscard]] ErrorOr<VoidType> Interpret(Source const& source_code);
-    void SetExternalOutputStringStream(std::string* external_stream);
 
 private:
     [[nodiscard]] bool isAtEnd();
@@ -37,7 +36,7 @@ private:
     Chunk m_current_chunk {};
     uint64_t m_instruction_pointer = 0;
     std::unique_ptr<Compiler> m_compiler = nullptr;
-    std::string* m_external_stream = nullptr;
+    std::string* const m_external_stream = nullptr;
 
     Heap m_heap {};
     std::vector<Value> m_value_stack;

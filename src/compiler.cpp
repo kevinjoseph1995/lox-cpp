@@ -396,7 +396,7 @@ void Compiler::variableDeclaration()
         identifier_index_in_constant_pool = identifierConstant(m_parser.current_token.value());
         advance(); // Move past identifier token
     } else {
-        reportError(m_parser.previous_token->line_number, "Expected semi-colon at the end of variable declaration");
+        reportError(m_parser.previous_token->line_number, "Expected identifier after \"var\" keyword");
         return;
     }
 
