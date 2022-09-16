@@ -3,5 +3,10 @@ add_subdirectory(fmt)
 option(BUILD_GMOCK "Builds the googlemock subproject" OFF)
 option(INSTALL_GTEST "Disable installing gtest" OFF)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-restrict")
+if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    # using GCC
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-restrict")
+endif ()
+
+
 add_subdirectory(googletest)
