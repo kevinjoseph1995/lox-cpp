@@ -80,7 +80,8 @@ TEST_F(CompilerTest, BasicBinaryExpression2)
 
 TEST_F(CompilerTest, VaraibleDeclaration)
 {
-    m_source.AppendFromConsole("var a = (1 + 2) + 3 + 3 * (20);");
+    m_source.AppendFromConsole(R"(
+var a = (1 + 2) + 3 + 3 * (20);)");
     ASSERT_TRUE(m_compiler->CompileSource(m_source, m_chunk).IsValue());
     ASSERT_TRUE(ValidateByteCode(std::vector<uint8_t> {
                                      OP_CONSTANT, 1, 0,
@@ -142,8 +143,7 @@ TEST_F(CompilerTest, AssignmentStatements)
     m_source.AppendFromConsole(R"(
 var a = 10;
 print a;
-a = "Hello World";
-)");
+a = "Hello World";)");
     ASSERT_TRUE(m_compiler->CompileSource(m_source, m_chunk).IsValue());
     ASSERT_TRUE(ValidateByteCode(std::vector<uint8_t> {
                                      OP_CONSTANT, 1, 0,
@@ -165,20 +165,19 @@ a = "Hello World";
 
 TEST_F(CompilerTest, InvalidAssignmentTarget)
 {
-    m_source.AppendFromConsole(
-        R"(var a = 10;
-                      var b = 20;
-                      a + b = 50; // Syntax error
-    )");
+    m_source.AppendFromConsole(R"(
+var a = 10;
+var b = 20;
+a + b = 50; // Syntax error)");
     ASSERT_TRUE(m_compiler->CompileSource(m_source, m_chunk).IsError());
 }
 
 TEST_F(CompilerTest, InvalidBinaryOp)
 {
-    m_source.AppendFromConsole(
-        R"(  var a = 10;
-                        var b = "String";
-                        a + b; // Runtime error but still valid syntax)");
+    m_source.AppendFromConsole(R"(
+var a = 10;
+var b = "String";
+a + b; // Runtime error but still valid syntax)");
     ASSERT_TRUE(m_compiler->CompileSource(m_source, m_chunk).IsValue());
     ASSERT_TRUE(ValidateConstants(std::vector<Value> {
                                       m_heap.AllocateStringObject("a"),
