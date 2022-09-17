@@ -103,3 +103,33 @@ print a;
     static constexpr auto EXPECTED_OUTPUT = "Nil\n";
     ASSERT_EQ(m_vm_output_stream, EXPECTED_OUTPUT);
 }
+
+TEST_F(VMTest, TestLocalVaraibles1)
+{
+    m_source.AppendFromConsole(R"(
+{
+    var abcd = 10;
+    {
+        var abcd;
+        print abcd;
+    }
+    print abcd;
+}
+)");
+    ASSERT_TRUE(m_vm->Interpret(m_source).IsValue());
+    static constexpr auto EXPECTED_OUTPUT = "Nil\n10\n";
+    ASSERT_EQ(m_vm_output_stream, EXPECTED_OUTPUT);
+}
+
+TEST_F(VMTest, TestLocalVaraibles2)
+{
+    m_source.AppendFromConsole(R"(
+{
+    var abcd = 10;
+    {
+        var abcd = abcd; // Cannot refer to same variable in the initializer
+    }
+}
+)");
+    ASSERT_TRUE(m_vm->Interpret(m_source).IsError());
+}

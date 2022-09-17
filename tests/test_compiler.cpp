@@ -188,3 +188,46 @@ a + b; // Runtime error but still valid syntax)");
                                       m_heap.AllocateStringObject("b") },
         m_chunk.constant_pool));
 }
+
+TEST_F(CompilerTest, LocalVariables1)
+{
+    m_source.AppendFromConsole(R"(
+{
+    var abcd = 10;
+}
+)");
+    ASSERT_TRUE(m_compiler->CompileSource(m_source, m_chunk).IsValue());
+    ASSERT_TRUE(ValidateByteCode(std::vector<uint8_t> {
+                                     OP_CONSTANT, 0, 0,
+                                     OP_POP },
+        m_chunk.byte_code));
+    ASSERT_TRUE(ValidateConstants(std::vector<Value> {
+                                      10.0,
+                                  },
+        m_chunk.constant_pool));
+}
+
+TEST_F(CompilerTest, LocalVariablesShadowing)
+{
+    m_source.AppendFromConsole(R"(
+{
+    var abcd = 10;
+    {
+        var abcd = "Hello World";
+    }
+}
+)");
+    ASSERT_TRUE(m_compiler->CompileSource(m_source, m_chunk).IsValue());
+    Disassemble_chunk(m_chunk);
+    ASSERT_TRUE(ValidateByteCode(std::vector<uint8_t> {
+                                     OP_CONSTANT, 0, 0,
+                                     OP_CONSTANT, 1, 0,
+                                     OP_POP,
+                                     OP_POP },
+        m_chunk.byte_code));
+    ASSERT_TRUE(ValidateConstants(std::vector<Value> {
+                                      10.0,
+                                      m_heap.AllocateStringObject("Hello World"),
+                                  },
+        m_chunk.constant_pool));
+}

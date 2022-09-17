@@ -18,7 +18,7 @@ void Disassemble_chunk(Chunk const& chunk)
 
 uint64_t Disassemble_instruction(Chunk const& chunk, uint64_t offset)
 {
-    auto getConstantPoolIndex = [](uint8_t lsb, uint8_t hsb) -> uint16_t {
+    auto getIndex = [](uint8_t lsb, uint8_t hsb) -> uint16_t {
         return static_cast<uint16_t>(hsb << 8) + lsb;
     };
 
@@ -28,7 +28,7 @@ uint64_t Disassemble_instruction(Chunk const& chunk, uint64_t offset)
         fmt::print("{:#08x} OP_RETURN\n", offset);
         return ++offset;
     case OP_CONSTANT: {
-        fmt::print("{:#08x} OP_CONSTANT {}\n", offset, getConstantPoolIndex(chunk.byte_code[offset + 1], chunk.byte_code[offset + 2]));
+        fmt::print("{:#08x} OP_CONSTANT {}\n", offset, getIndex(chunk.byte_code[offset + 1], chunk.byte_code[offset + 2]));
         offset += 3;
         return offset;
     }
@@ -84,22 +84,37 @@ uint64_t Disassemble_instruction(Chunk const& chunk, uint64_t offset)
         fmt::print("{:#08x} OP_POP\n", offset);
         return ++offset;
     case OP_DEFINE_GLOBAL: {
-        fmt::print("{:#08x} OP_DEFINE_GLOBAL {}\n", offset, getConstantPoolIndex(chunk.byte_code[offset + 1], chunk.byte_code[offset + 2]));
+        fmt::print("{:#08x} OP_DEFINE_GLOBAL {}\n", offset, getIndex(chunk.byte_code[offset + 1], chunk.byte_code[offset + 2]));
         offset += 3;
         return offset;
     }
     case OP_GET_GLOBAL: {
-        fmt::print("{:#08x} OP_GET_GLOBAL {}\n", offset, getConstantPoolIndex(chunk.byte_code[offset + 1], chunk.byte_code[offset + 2]));
+        fmt::print("{:#08x} OP_GET_GLOBAL {}\n", offset, getIndex(chunk.byte_code[offset + 1], chunk.byte_code[offset + 2]));
         offset += 3;
         return offset;
     }
     case OP_SET_GLOBAL: {
-        fmt::print("{:#08x} OP_SET_GLOBAL {}\n", offset, getConstantPoolIndex(chunk.byte_code[offset + 1], chunk.byte_code[offset + 2]));
+        fmt::print("{:#08x} OP_SET_GLOBAL {}\n", offset, getIndex(chunk.byte_code[offset + 1], chunk.byte_code[offset + 2]));
         offset += 3;
         return offset;
     }
+    case OP_GET_LOCAL:
+        fmt::print("{:#08x} OP_GET_LOCAL {}\n", offset, getIndex(chunk.byte_code[offset + 1], chunk.byte_code[offset + 2]));
+        offset += 3;
+        return offset;
+    case OP_SET_LOCAL:
+        fmt::print("{:#08x} OP_SET_LOCAL {}\n", offset, getIndex(chunk.byte_code[offset + 1], chunk.byte_code[offset + 2]));
+        offset += 3;
+        return offset;
     }
     LOX_ASSERT(false);
+}
+
+void DumpConstants(Chunk const& chunk)
+{
+    for (auto const& constant : chunk.constant_pool) {
+        fmt::print("{}\n", constant);
+    }
 }
 
 void Chunk::Clear()

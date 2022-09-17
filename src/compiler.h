@@ -63,6 +63,21 @@ private:
         bool encountered_error = false;
     } m_error_state;
 
+    struct LocalsState {
+        struct Local {
+            std::string_view identifier_name; // Underlying string is owned by the source
+            int32_t local_scope_depth = 0; // Set to -1 after declaring a local and gets set to the actual scope when defining the variable
+            Local() = default;
+            Local(std::string_view identifier_name, int32_t local_scope_depth)
+                : identifier_name(identifier_name)
+                , local_scope_depth(local_scope_depth)
+            {
+            }
+        };
+        int32_t current_scope_depth = 0;
+        std::vector<Local> locals;
+    } m_locals_state;
+
 private:
     friend consteval ParseTable GenerateParseTable();
 
@@ -82,18 +97,27 @@ private:
     // Chunk manipulation functions
     void emitByte(uint8_t byte);
     void addConstant(Value constant);
-    void emitConstantIndex(uint16_t index);
-    [[nodiscard]] int32_t identifierConstant(Token const& token);
+    void emitIndex(uint16_t index);
+    [[nodiscard]] uint16_t identifierConstant(Token const& token);
 
-    // Parse functions
+    // Statement parsing functions and associated helpers
     void declaration();
     void statement();
-    void variableDeclaration();
     void printStatement();
     void expressionStatement();
     void block();
-    // Non-terminals
+    void beginScope();
+    void endScope();
+    void variableDeclaration();
+    ErrorOr<uint16_t> parseVariable(std::string_view error_message);
+    void declareVariable();
+    void defineVariable(uint16_t constant_pool_index);
+    ErrorOr<uint32_t> resolveVariable(std::string_view identifier_name);
+    void markInitialized();
+
+    // Expressions
     void parsePrecedence(Precedence level);
+    // Non-terminals
     void expression();
     void binary(bool can_assign);
     void grouping(bool can_assign);

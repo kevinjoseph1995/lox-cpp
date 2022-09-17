@@ -150,7 +150,7 @@ void Compiler::addConstant(Value constant)
 
     m_current_chunk->constant_pool.push_back(constant);
     emitByte(OP_CONSTANT);
-    emitConstantIndex(static_cast<uint16_t>(m_current_chunk->constant_pool.size() - 1));
+    emitIndex(static_cast<uint16_t>(m_current_chunk->constant_pool.size() - 1));
 }
 
 void Compiler::parsePrecedence(Precedence level)
@@ -308,6 +308,8 @@ void Compiler::declaration()
 {
     if (match(TokenType::VAR)) {
         variableDeclaration();
+    } else if (match(TokenType::LEFT_BRACE)) {
+        block();
     } else {
         statement();
     }
@@ -390,13 +392,8 @@ void Compiler::synchronizeError()
 void Compiler::variableDeclaration()
 {
     LOX_ASSERT(consume(TokenType::VAR));
-    int32_t identifier_index_in_constant_pool = -1;
-    // Need to extract the variable name out from the token
-    if (match(TokenType::IDENTIFIER)) {
-        identifier_index_in_constant_pool = identifierConstant(m_parser.current_token.value());
-        advance(); // Move past identifier token
-    } else {
-        reportError(m_parser.previous_token->line_number, "Expected identifier after \"var\" keyword");
+    auto identifier_index_in_constant_pool = parseVariable("Expected identifier after \"var\" keyword");
+    if (identifier_index_in_constant_pool.IsError()) {
         return;
     }
 
@@ -412,36 +409,54 @@ void Compiler::variableDeclaration()
         reportError(m_parser.previous_token->line_number, "Expected semi-colon at the end of variable declaration");
     }
 
-    LOX_ASSERT(identifier_index_in_constant_pool >= 0);
-    LOX_ASSERT(identifier_index_in_constant_pool < MAX_NUMBER_CONSTANTS);
-    emitByte(OP_DEFINE_GLOBAL);
-    emitConstantIndex(static_cast<uint16_t>(identifier_index_in_constant_pool));
+    defineVariable(identifier_index_in_constant_pool.GetValue());
 }
 
 void Compiler::variable(bool can_assign)
 {
-    auto identifier_index_in_constant_pool = identifierConstant(m_parser.previous_token.value());
+    std::string_view new_local_identifier_name { m_source->GetSource().begin() + m_parser.previous_token.value().start,
+        m_source->GetSource().begin() + m_parser.previous_token.value().start + m_parser.previous_token.value().length };
+
+    OpCode set_op;
+    OpCode get_op;
+    uint16_t index;
+    auto variable_resolution_result = resolveVariable(new_local_identifier_name);
+
+    if (variable_resolution_result.IsValue()) {
+        // Was able to successfully resolve variable which means that it's a local variable
+        index = variable_resolution_result.GetValue();
+        set_op = OP_SET_LOCAL;
+        get_op = OP_GET_LOCAL;
+
+    } else {
+        // Global variable
+        index = identifierConstant(m_parser.previous_token.value());
+        set_op = OP_SET_GLOBAL;
+        get_op = OP_GET_GLOBAL;
+    }
+
     if (can_assign and match(TokenType::EQUAL)) {
         // Look-ahead one token if we find an "=" then this is an assignment
         advance(); // Move past the "="
         expression(); // Emit the instructions for the expression that would be evaluated to the value that this identifier must be assigned with.
-        emitByte(OP_SET_GLOBAL);
-        emitConstantIndex(static_cast<uint16_t>(identifier_index_in_constant_pool));
+        emitByte(set_op);
+        emitIndex(index);
     } else {
-        emitByte(OP_GET_GLOBAL);
-        emitConstantIndex(static_cast<uint16_t>(identifier_index_in_constant_pool));
+        emitByte(get_op);
+        emitIndex(index);
     }
 }
 
-int32_t Compiler::identifierConstant(const Token& token)
+uint16_t Compiler::identifierConstant(const Token& token)
 {
     LOX_ASSERT(token.type == TokenType::IDENTIFIER);
     auto string_object_ptr = m_heap.AllocateStringObject(m_source->GetSource().substr(token.start, token.length));
     m_current_chunk->constant_pool.push_back(string_object_ptr);
+    LOX_ASSERT(m_current_chunk->constant_pool.size() <= MAX_NUMBER_CONSTANTS);
     return m_current_chunk->constant_pool.size() - 1;
 }
 
-void Compiler::emitConstantIndex(uint16_t index)
+void Compiler::emitIndex(uint16_t index)
 {
     // Extract the 8 LSB's
     emitByte(static_cast<uint8_t>(0x00FFU & index));
@@ -450,4 +465,137 @@ void Compiler::emitConstantIndex(uint16_t index)
 
 void Compiler::block()
 {
+    beginScope();
+    LOX_ASSERT(consume(TokenType::LEFT_BRACE));
+    while (m_parser.current_token->type != TokenType::TOKEN_EOF && m_parser.current_token->type != RIGHT_BRACE) {
+        declaration();
+    }
+    if (!consume(TokenType::RIGHT_BRACE)) {
+        return;
+    }
+    endScope();
+}
+
+ErrorOr<uint16_t> Compiler::parseVariable(std::string_view error_message)
+{
+    // Need to extract the variable name out from the token
+    if (!consume(TokenType::IDENTIFIER)) {
+        reportError(m_parser.previous_token->line_number, error_message);
+        return Error { .type = ErrorType::ParseError, .error_message = "" };
+    }
+    declareVariable();
+    if (m_locals_state.current_scope_depth > 0) {
+        // Local variable
+        return 0;
+    }
+    auto index = identifierConstant(m_parser.previous_token.value());
+    LOX_ASSERT(index < MAX_NUMBER_CONSTANTS);
+    return index;
+}
+
+void Compiler::defineVariable(uint16_t constant_pool_index)
+{
+    if (m_locals_state.current_scope_depth > 0) {
+        // Local variable
+        markInitialized();
+        return;
+    }
+    emitByte(OP_DEFINE_GLOBAL);
+    emitIndex(static_cast<uint16_t>(constant_pool_index));
+}
+
+void Compiler::declareVariable()
+{
+    if (m_locals_state.current_scope_depth == 0) {
+        // Global variable
+        return;
+    }
+
+    std::string_view new_local_identifier_name { m_source->GetSource().begin() + m_parser.previous_token.value().start,
+        m_source->GetSource().begin() + m_parser.previous_token.value().start + m_parser.previous_token.value().length };
+
+    /*
+     * The following check ensures that the following is not permitted:
+     * {
+     *      var a = 10; // Scope depth = 1
+     *      var a = 10; // Also scope depth = 1
+     * }
+     * However the following is valid:
+     * {
+     *     {
+     *          {
+     *              var a = 20; // Scope depth =3
+     *          }
+     *     }
+     *     var a = 10; // When parsing this scope-depth is 1
+     * }
+     * ___________________________________________________
+     * {
+     *      var a = 1;
+     *      {
+     *          var a = 1; // Valid shadowing
+     *      {
+     * }
+     *
+     */
+    for (auto it = m_locals_state.locals.rbegin(); it != m_locals_state.locals.rend(); ++it) {
+        auto const& local = *it;
+        if (local.local_scope_depth != -1 && local.local_scope_depth < m_locals_state.current_scope_depth) {
+            break;
+        }
+        if (new_local_identifier_name == local.identifier_name) {
+            reportError(m_parser.previous_token->line_number, "Already a variable with this name in this scope.");
+            return;
+        }
+    }
+    if (m_locals_state.locals.size() >= MAX_NUMBER_LOCAL_VARIABLES) {
+        reportError(m_parser.previous_token->line_number, fmt::format("Exceeded maximum number of local variables:{}", MAX_NUMBER_LOCAL_VARIABLES));
+        return;
+    }
+    m_locals_state.locals.emplace_back(new_local_identifier_name, -1); // The -1 here indicates that the local is still uninitialized
+}
+void Compiler::beginScope()
+{
+    ++m_locals_state.current_scope_depth;
+}
+
+void Compiler::endScope()
+{
+    LOX_ASSERT(m_locals_state.current_scope_depth >= 1);
+    --m_locals_state.current_scope_depth;
+
+    int32_t i = m_locals_state.locals.size() - 1;
+    for (; i >= 0; --i) {
+        if (m_locals_state.locals[i].local_scope_depth > m_locals_state.current_scope_depth) {
+            emitByte(OP_POP);
+            continue;
+        } else {
+            break;
+        }
+    }
+    LOX_ASSERT(i >= -1);
+    m_locals_state.locals.resize(i + 1);
+}
+
+ErrorOr<uint32_t> Compiler::resolveVariable(std::string_view identifier_name)
+{
+    auto it = std::find_if(m_locals_state.locals.rbegin(), m_locals_state.locals.rend(), [&](LocalsState::Local const& local) {
+        return local.identifier_name == identifier_name;
+    });
+    if (it == m_locals_state.locals.rend()) {
+        // We don't actually report an error as the identifier could be referring to a global variable
+        return Error { .type = ErrorType::ParseError, .error_message = fmt::format("Could not resolve identifier \"{}\"", identifier_name) };
+    }
+    if (it->local_scope_depth == -1) {
+        reportError(m_parser.previous_token->line_number, "Can't read local variable in its own initializer.");
+    }
+    auto index = std::distance(it, m_locals_state.locals.rend()) - 1;
+    LOX_ASSERT(index >= 0);
+    return index;
+}
+
+void Compiler::markInitialized()
+{
+    LOX_ASSERT(!m_locals_state.locals.empty());
+    (m_locals_state.locals.end() - 1)->local_scope_depth = m_locals_state.current_scope_depth;
 }

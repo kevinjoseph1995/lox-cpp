@@ -6,9 +6,7 @@
 #include "error.h"
 #include <fmt/core.h>
 
-#ifndef NDEBUG
-#define DEBUG_TRACE_EXECUTION
-#endif
+// #define DEBUG_TRACE_EXECUTION
 
 static bool IsFalsy(Value const& value)
 {
@@ -151,14 +149,14 @@ ErrorOr<VoidType> VirtualMachine::run()
         }
         case OP_DEFINE_GLOBAL: {
             // Need to get the variable name from the constant pool
-            auto identifier_name_value = m_current_chunk.constant_pool.at(readConstantPoolIndex());
+            auto identifier_name_value = m_current_chunk.constant_pool.at(readIndex());
             LOX_ASSERT(identifier_name_value.IsObject() && identifier_name_value.AsObjectPtr()->GetType() == ObjectType::STRING);
             auto string_object = static_cast<StringObject*>(identifier_name_value.AsObjectPtr());
             m_globals[string_object->data] = popStack();
             break;
         }
         case OP_GET_GLOBAL: {
-            auto identifier_name_value = m_current_chunk.constant_pool.at(readConstantPoolIndex());
+            auto identifier_name_value = m_current_chunk.constant_pool.at(readIndex());
             LOX_ASSERT(identifier_name_value.IsObject() && identifier_name_value.AsObjectPtr()->GetType() == ObjectType::STRING);
             auto identifier_string_object = static_cast<StringObject*>(identifier_name_value.AsObjectPtr());
             if (m_globals.count(identifier_string_object->data) == 0) {
@@ -168,7 +166,7 @@ ErrorOr<VoidType> VirtualMachine::run()
             break;
         }
         case OP_SET_GLOBAL: {
-            auto identifier_name_value = m_current_chunk.constant_pool.at(readConstantPoolIndex());
+            auto identifier_name_value = m_current_chunk.constant_pool.at(readIndex());
             LOX_ASSERT(identifier_name_value.IsObject() && identifier_name_value.AsObjectPtr()->GetType() == ObjectType::STRING);
             auto identifier_string_object = static_cast<StringObject*>(identifier_name_value.AsObjectPtr());
             if (m_globals.count(identifier_string_object->data) == 0) {
@@ -177,9 +175,13 @@ ErrorOr<VoidType> VirtualMachine::run()
             m_globals[identifier_string_object->data] = peekStack(0); // Over-write existing value
             break;
         }
-        default: {
-            LOX_ASSERT(false, "Unhandled op-code");
+        case OP_GET_LOCAL: {
+            m_value_stack.push_back(m_value_stack.at(readIndex()));
+            break;
         }
+        case OP_SET_LOCAL:
+            m_value_stack[readIndex()] = peekStack(0);
+            break;
         }
     }
 }
@@ -192,7 +194,7 @@ uint8_t VirtualMachine::readByte()
 
 Value VirtualMachine::readConstant()
 {
-    return m_current_chunk.constant_pool.at(readConstantPoolIndex());
+    return m_current_chunk.constant_pool.at(readIndex());
 }
 
 Value VirtualMachine::popStack()
@@ -323,7 +325,7 @@ Error VirtualMachine::runtimeError(std::string error_message)
         .error_message = std::move(error_message) };
 }
 
-uint16_t VirtualMachine::readConstantPoolIndex()
+uint16_t VirtualMachine::readIndex()
 {
     auto lsb = readByte();
     auto hsb = static_cast<uint16_t>(readByte() << 8);
