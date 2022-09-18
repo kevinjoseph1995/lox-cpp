@@ -83,7 +83,7 @@ private:
 
     char advance();
 
-    [[nodiscard]] bool matchEqual();
+    [[nodiscard]] ErrorOr<bool> matchEqual();
 
     [[nodiscard]] Token makeToken(TokenType) const;
 

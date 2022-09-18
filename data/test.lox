@@ -1,6 +1,1 @@
-{
-    var abcd = 10;
-    {
-        var abcd = abcd;
-    }
-}
+"H";

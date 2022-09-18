@@ -15,8 +15,15 @@ static bool IsFalsy(Value const& value)
 
 ErrorOr<VoidType> VirtualMachine::Interpret(Source const& source)
 {
+    auto previous_pool_size = m_current_chunk.constant_pool.size();
+    auto previous_lines_size = m_current_chunk.lines.size();
+    auto byte_code__chunk_size = m_current_chunk.byte_code.size();
     auto compilation_status = m_compiler->CompileSource(source, m_current_chunk);
     if (compilation_status.IsError()) {
+        // Restore chunk to the state it was before we started to process the new source as we encountered an error.
+        m_current_chunk.constant_pool.resize(previous_pool_size);
+        m_current_chunk.lines.resize(previous_lines_size);
+        m_current_chunk.byte_code.resize(byte_code__chunk_size);
         return compilation_status;
     }
     return this->run();
@@ -37,7 +44,6 @@ ErrorOr<VoidType> VirtualMachine::run()
         switch (instruction) {
         case OP_RETURN: {
             LOX_ASSERT(false);
-            break;
         }
         case OP_CONSTANT: {
             m_value_stack.push_back(readConstant());

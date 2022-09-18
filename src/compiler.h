@@ -112,7 +112,7 @@ private:
     ErrorOr<uint16_t> parseVariable(std::string_view error_message);
     void declareVariable();
     void defineVariable(uint16_t constant_pool_index);
-    ErrorOr<uint32_t> resolveVariable(std::string_view identifier_name);
+    std::optional<uint32_t> resolveVariable(std::string_view identifier_name);
     void markInitialized();
 
     // Expressions

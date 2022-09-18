@@ -60,18 +60,34 @@ ErrorOr<Token> Scanner::GetNextToken()
     case '*':
         return makeToken(TokenType::STAR);
     // One or two character tokens.
-    case '!':
-        return matchEqual() ? makeToken(TokenType::BANG_EQUAL)
-                            : makeToken(TokenType::BANG);
-    case '=':
-        return matchEqual() ? makeToken(TokenType::EQUAL_EQUAL)
-                            : makeToken(TokenType::EQUAL);
-    case '>':
-        return matchEqual() ? makeToken(TokenType::GREATER_EQUAL)
-                            : makeToken(TokenType::GREATER);
-    case '<':
-        return matchEqual() ? makeToken(TokenType::LESS_EQUAL)
-                            : makeToken(TokenType::LESS);
+    case '!': {
+        auto result = matchEqual();
+        if (result.IsError())
+            return Error{result.GetError()};
+        return result.GetValue() ? makeToken(TokenType::BANG_EQUAL)
+                                 : makeToken(TokenType::BANG);
+    }
+    case '=': {
+        auto result = matchEqual();
+        if (result.IsError())
+            return Error{result.GetError()};
+        return result.GetValue() ? makeToken(TokenType::EQUAL_EQUAL)
+                                 : makeToken(TokenType::EQUAL);
+    }
+    case '>': {
+        auto result = matchEqual();
+        if (result.IsError())
+            return Error{result.GetError()};
+        return result.GetValue() ? makeToken(TokenType::GREATER_EQUAL)
+                                 : makeToken(TokenType::GREATER);
+    }
+    case '<': {
+        auto result = matchEqual();
+        if (result.IsError())
+            return Error{result.GetError()};
+        return result.GetValue() ? makeToken(TokenType::LESS_EQUAL)
+                                 : makeToken(TokenType::LESS);
+    }
     case '"':
         return string();
     default:
@@ -134,9 +150,13 @@ void Scanner::consumeWhitespacesAndComments()
     }
 }
 
-bool Scanner::matchEqual()
+ErrorOr<bool> Scanner::matchEqual()
 {
-    LOX_ASSERT(!isAtEnd());
+    if (isAtEnd()) {
+        return Error {
+            .type = ErrorType::ScanError, .error_message = "Expected tokens after \"=\""
+        };
+    }
     if ('=' == m_source->GetSource().at(m_current_index)) {
         ++m_current_index;
         return true;
@@ -147,13 +167,12 @@ bool Scanner::matchEqual()
 
 ErrorOr<Token> Scanner::string()
 {
-    LOX_ASSERT(!isAtEnd());
-    while (peek() != '"' && !isAtEnd()) {
-        advance();
-    }
     if (isAtEnd()) {
         return Error { .type = ErrorType::ScanError,
             .error_message = "Unterminated string literal" };
+    }
+    while (peek() != '"' && !isAtEnd()) {
+        advance();
     }
     advance(); // Move past the closing quotes
     return makeToken(TokenType::STRING);

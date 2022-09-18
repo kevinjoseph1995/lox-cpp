@@ -104,6 +104,8 @@ void Compiler::reset(Source const& source, Chunk& chunk)
     m_current_chunk = &chunk;
     m_scanner.Reset(source);
     m_parser = ParserState {};
+    m_error_state.panic = false;
+    m_error_state.encountered_error = false;
 }
 
 ErrorOr<VoidType> Compiler::CompileSource(Source const& source, Chunk& chunk)
@@ -422,9 +424,9 @@ void Compiler::variable(bool can_assign)
     uint16_t index;
     auto variable_resolution_result = resolveVariable(new_local_identifier_name);
 
-    if (variable_resolution_result.IsValue()) {
+    if (variable_resolution_result.has_value()) {
         // Was able to successfully resolve variable which means that it's a local variable
-        index = variable_resolution_result.GetValue();
+        index = variable_resolution_result.value();
         set_op = OP_SET_LOCAL;
         get_op = OP_GET_LOCAL;
 
@@ -460,7 +462,7 @@ void Compiler::emitIndex(uint16_t index)
 {
     // Extract the 8 LSB's
     emitByte(static_cast<uint8_t>(0x00FFU & index));
-    emitByte(static_cast<uint8_t>((0xFF00U & index) >> 8));
+    emitByte(static_cast<uint8_t>((0xFF00U & index) >> 8U));
 }
 
 void Compiler::block()
@@ -577,14 +579,14 @@ void Compiler::endScope()
     m_locals_state.locals.resize(i + 1);
 }
 
-ErrorOr<uint32_t> Compiler::resolveVariable(std::string_view identifier_name)
+std::optional<uint32_t> Compiler::resolveVariable(std::string_view identifier_name)
 {
     auto it = std::find_if(m_locals_state.locals.rbegin(), m_locals_state.locals.rend(), [&](LocalsState::Local const& local) {
         return local.identifier_name == identifier_name;
     });
     if (it == m_locals_state.locals.rend()) {
         // We don't actually report an error as the identifier could be referring to a global variable
-        return Error { .type = ErrorType::ParseError, .error_message = fmt::format("Could not resolve identifier \"{}\"", identifier_name) };
+        return {};
     }
     if (it->local_scope_depth == -1) {
         reportError(m_parser.previous_token->line_number, "Can't read local variable in its own initializer.");
