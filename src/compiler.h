@@ -86,7 +86,7 @@ private:
 
     // Token processing
     void advance();
-    [[nodiscard]] bool consume(TokenType type);
+    bool consume(TokenType type);
     [[nodiscard]] bool match(TokenType type) const;
 
     // Error reporting
@@ -98,12 +98,15 @@ private:
     void emitByte(uint8_t byte);
     void addConstant(Value constant);
     void emitIndex(uint16_t index);
+    [[nodiscard]] uint64_t emitJump(OpCode op_code);
     [[nodiscard]] uint16_t identifierConstant(Token const& token);
+    void patchJump(uint64_t offset);
 
     // Statement parsing functions and associated helpers
     void declaration();
     void statement();
     void printStatement();
+    void ifStatement();
     void expressionStatement();
     void block();
     void beginScope();

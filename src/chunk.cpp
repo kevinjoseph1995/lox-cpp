@@ -32,57 +32,74 @@ uint64_t Disassemble_instruction(Chunk const& chunk, uint64_t offset)
         offset += 3;
         return offset;
     }
-    case OP_NEGATE:
+    case OP_NEGATE: {
         fmt::print("{:#08x} OP_NEGATE\n", offset);
         return ++offset;
-    case OP_ADD:
+    }
+    case OP_ADD: {
         fmt::print("{:#08x} OP_ADD\n", offset);
         return ++offset;
-    case OP_SUBTRACT:
+    }
+    case OP_SUBTRACT: {
         fmt::print("{:#08x} OP_SUBTRACT\n", offset);
         return ++offset;
-    case OP_MULTIPLY:
+    }
+    case OP_MULTIPLY: {
         fmt::print("{:#08x} OP_MULTIPLY\n", offset);
         return ++offset;
-    case OP_DIVIDE:
+    }
+    case OP_DIVIDE: {
         fmt::print("{:#08x} OP_DIVIDE\n", offset);
         return ++offset;
-    case OP_NIL:
+    }
+    case OP_NIL: {
         fmt::print("{:#08x} OP_NIL\n", offset);
         return ++offset;
-    case OP_TRUE:
+    }
+    case OP_TRUE: {
         fmt::print("{:#08x} OP_TRUE\n", offset);
         return ++offset;
-    case OP_FALSE:
+    }
+    case OP_FALSE: {
         fmt::print("{:#08x} OP_FALSE\n", offset);
         return ++offset;
-    case OP_NOT:
+    }
+    case OP_NOT: {
         fmt::print("{:#08x} OP_NOT\n", offset);
         return ++offset;
-    case OP_EQUAL:
+    }
+    case OP_EQUAL: {
         fmt::print("{:#08x} OP_EQUAL\n", offset);
         return ++offset;
-    case OP_GREATER:
+    }
+    case OP_GREATER: {
         fmt::print("{:#08x} OP_GREATER\n", offset);
         return ++offset;
-    case OP_LESS:
+    }
+    case OP_LESS: {
         fmt::print("{:#08x} OP_LESS\n", offset);
         return ++offset;
-    case OP_LESS_EQUAL:
+    }
+    case OP_LESS_EQUAL: {
         fmt::print("{:#08x} OP_LESS_EQUAL\n", offset);
         return ++offset;
-    case OP_GREATER_EQUAL:
+    }
+    case OP_GREATER_EQUAL: {
         fmt::print("{:#08x} OP_GREATER_EQUAL\n", offset);
         return ++offset;
-    case OP_NOT_EQUAL:
+    }
+    case OP_NOT_EQUAL: {
         fmt::print("{:#08x} OP_NOT_EQUAL\n", offset);
         return ++offset;
-    case OP_PRINT:
+    }
+    case OP_PRINT: {
         fmt::print("{:#08x} OP_PRINT\n", offset);
         return ++offset;
-    case OP_POP:
+    }
+    case OP_POP: {
         fmt::print("{:#08x} OP_POP\n", offset);
         return ++offset;
+    }
     case OP_DEFINE_GLOBAL: {
         fmt::print("{:#08x} OP_DEFINE_GLOBAL {}\n", offset, getIndex(chunk.byte_code[offset + 1], chunk.byte_code[offset + 2]));
         offset += 3;
@@ -98,14 +115,26 @@ uint64_t Disassemble_instruction(Chunk const& chunk, uint64_t offset)
         offset += 3;
         return offset;
     }
-    case OP_GET_LOCAL:
+    case OP_GET_LOCAL: {
         fmt::print("{:#08x} OP_GET_LOCAL {}\n", offset, getIndex(chunk.byte_code[offset + 1], chunk.byte_code[offset + 2]));
         offset += 3;
         return offset;
-    case OP_SET_LOCAL:
+    }
+    case OP_SET_LOCAL: {
         fmt::print("{:#08x} OP_SET_LOCAL {}\n", offset, getIndex(chunk.byte_code[offset + 1], chunk.byte_code[offset + 2]));
         offset += 3;
         return offset;
+    }
+    case OP_JUMP_IF_FALSE: {
+        fmt::print("{:#08x} OP_JUMP_IF_FALSE {}\n", offset, getIndex(chunk.byte_code[offset + 1], chunk.byte_code[offset + 2]));
+        offset += 3;
+        return offset;
+    }
+    case OP_JUMP: {
+        fmt::print("{:#08x} OP_JUMP {}\n", offset, getIndex(chunk.byte_code[offset + 1], chunk.byte_code[offset + 2]));
+        offset += 3;
+        return offset;
+    }
     }
     LOX_ASSERT(false);
 }

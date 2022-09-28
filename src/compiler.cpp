@@ -310,8 +310,6 @@ void Compiler::declaration()
 {
     if (match(TokenType::VAR)) {
         variableDeclaration();
-    } else if (match(TokenType::LEFT_BRACE)) {
-        block();
     } else {
         statement();
     }
@@ -324,6 +322,10 @@ void Compiler::statement()
 {
     if (match(TokenType::PRINT)) {
         printStatement();
+    } else if (match(TokenType::LEFT_BRACE)) {
+        block();
+    } else if (match(TokenType::IF)) {
+        ifStatement();
     } else {
         expressionStatement();
     }
@@ -350,7 +352,8 @@ bool Compiler::match(TokenType type) const
 
 void Compiler::printStatement()
 {
-    LOX_ASSERT(consume(TokenType::PRINT));
+    auto _ = consume(TokenType::PRINT);
+    static_cast<void>(_);
     expression();
     if (!consume(TokenType::SEMICOLON)) {
         reportError(m_parser.previous_token->line_number, "Expected semi-colon at the end of print statement");
@@ -393,7 +396,7 @@ void Compiler::synchronizeError()
 }
 void Compiler::variableDeclaration()
 {
-    LOX_ASSERT(consume(TokenType::VAR));
+    consume(TokenType::VAR);
     auto identifier_index_in_constant_pool = parseVariable("Expected identifier after \"var\" keyword");
     if (identifier_index_in_constant_pool.IsError()) {
         return;
@@ -468,7 +471,7 @@ void Compiler::emitIndex(uint16_t index)
 void Compiler::block()
 {
     beginScope();
-    LOX_ASSERT(consume(TokenType::LEFT_BRACE));
+    consume(TokenType::LEFT_BRACE);
     while (m_parser.current_token->type != TokenType::TOKEN_EOF && m_parser.current_token->type != RIGHT_BRACE) {
         declaration();
     }
@@ -600,4 +603,50 @@ void Compiler::markInitialized()
 {
     LOX_ASSERT(!m_locals_state.locals.empty());
     (m_locals_state.locals.end() - 1)->local_scope_depth = m_locals_state.current_scope_depth;
+}
+
+void Compiler::ifStatement()
+{
+    consume(TokenType::IF);
+    if (!consume(TokenType::LEFT_PAREN)) {
+        reportError(m_parser.previous_token->line_number, "Expected \"(\" after the if statement");
+    }
+    expression();
+    if (!consume(TokenType::RIGHT_PAREN)) {
+        reportError(m_parser.previous_token->line_number, "Expected \")\" after the if-condition");
+    }
+
+    auto jump_destination = emitJump(OP_JUMP_IF_FALSE);
+    emitByte(OP_POP);
+    statement();
+
+    auto else_destination = emitJump(OP_JUMP);
+    patchJump(jump_destination);
+    emitByte(OP_POP);
+
+    if(match(TokenType::ELSE)) {
+        consume(TokenType::ELSE);
+        statement();
+    }
+    patchJump(else_destination);
+}
+
+uint64_t Compiler::emitJump(OpCode op_code)
+{
+    LOX_ASSERT(op_code == OP_JUMP_IF_FALSE || op_code == OP_JUMP);
+    emitByte(op_code);
+    emitIndex(0xFFFF);
+    return m_current_chunk->byte_code.size() - 2;
+}
+
+void Compiler::patchJump(uint64_t offset)
+{
+    LOX_ASSERT(offset + 2 <= m_current_chunk->byte_code.size());
+    auto jump = m_current_chunk->byte_code.size() - offset - 2;
+    if (jump > MAX_JUMP_OFFSET) {
+        reportError(m_parser.previous_token->line_number, fmt::format("Jump offset:{} is larger than supported limit: {}", jump, MAX_JUMP_OFFSET));
+        return;
+    }
+    m_current_chunk->byte_code[offset] = static_cast<uint8_t>(0x00FFU & jump);
+    m_current_chunk->byte_code[offset + 1] = static_cast<uint8_t>((0xFF00U & jump) >> 8U);
 }

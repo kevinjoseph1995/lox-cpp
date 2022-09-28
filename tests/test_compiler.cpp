@@ -218,7 +218,6 @@ TEST_F(CompilerTest, LocalVariablesShadowing)
 }
 )");
     ASSERT_TRUE(m_compiler->CompileSource(m_source, m_chunk).IsValue());
-    Disassemble_chunk(m_chunk);
     ASSERT_TRUE(ValidateByteCode(std::vector<uint8_t> {
                                      OP_CONSTANT, 0, 0,
                                      OP_CONSTANT, 1, 0,
@@ -228,6 +227,35 @@ TEST_F(CompilerTest, LocalVariablesShadowing)
     ASSERT_TRUE(ValidateConstants(std::vector<Value> {
                                       10.0,
                                       m_heap.AllocateStringObject("Hello World"),
+                                  },
+        m_chunk.constant_pool));
+}
+
+TEST_F(CompilerTest, IfStatement)
+{
+    m_source.AppendFromConsole(R"(
+{
+    if(false) {
+        print "If-branch";
+    }
+    print "Jumped here";
+}
+)");
+    ASSERT_TRUE(m_compiler->CompileSource(m_source, m_chunk).IsValue());
+    ASSERT_TRUE(ValidateByteCode(std::vector<uint8_t> {
+                                     OP_FALSE,
+                                     OP_JUMP_IF_FALSE, 8, 0,
+                                     OP_POP,
+                                     OP_CONSTANT, 0, 0,
+                                     OP_PRINT,
+                                     OP_JUMP, 1, 0,
+                                     OP_POP,
+                                     OP_CONSTANT, 1, 0,
+                                     OP_PRINT },
+        m_chunk.byte_code));
+    ASSERT_TRUE(ValidateConstants(std::vector<Value> {
+                                      m_heap.AllocateStringObject("If-branch"),
+                                      m_heap.AllocateStringObject("Jumped here"),
                                   },
         m_chunk.constant_pool));
 }

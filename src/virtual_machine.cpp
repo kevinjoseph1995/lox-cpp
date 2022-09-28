@@ -6,7 +6,7 @@
 #include "error.h"
 #include <fmt/core.h>
 
-// #define DEBUG_TRACE_EXECUTION
+//#define DEBUG_TRACE_EXECUTION
 
 static bool IsFalsy(Value const& value)
 {
@@ -185,9 +185,22 @@ ErrorOr<VoidType> VirtualMachine::run()
             m_value_stack.push_back(m_value_stack.at(readIndex()));
             break;
         }
-        case OP_SET_LOCAL:
+        case OP_SET_LOCAL: {
             m_value_stack[readIndex()] = peekStack(0);
             break;
+        }
+        case OP_JUMP_IF_FALSE: {
+            auto condition_value = peekStack(0); // Not popping it off yet
+            auto offset = readIndex();
+            if (IsFalsy(condition_value)) {
+                m_instruction_pointer += offset;
+            }
+            break;
+        }
+        case OP_JUMP: {
+            m_instruction_pointer += readIndex();
+            break;
+        }
         }
     }
 }

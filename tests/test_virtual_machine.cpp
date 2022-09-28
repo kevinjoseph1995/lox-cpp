@@ -133,3 +133,35 @@ TEST_F(VMTest, TestLocalVaraibles2)
 )");
     ASSERT_TRUE(m_vm->Interpret(m_source).IsError());
 }
+
+TEST_F(VMTest, IfStatement)
+{
+    m_source.AppendFromConsole(R"(
+{
+    if(false) {
+        print "If-branch";
+    }
+    print "Jumped here";
+}
+)");
+    ASSERT_TRUE(m_vm->Interpret(m_source).IsValue());
+    static constexpr auto EXPECTED_OUTPUT = "Jumped here\n";
+    ASSERT_EQ(m_vm_output_stream, EXPECTED_OUTPUT);
+}
+
+TEST_F(VMTest, IfStatement2)
+{
+    m_source.AppendFromConsole(R"(
+{
+    if(false) {
+        print "If-branch";
+    } else{
+        print "Else-branch";
+    }
+    print "Jumped here";
+}
+)");
+    ASSERT_TRUE(m_vm->Interpret(m_source).IsValue());
+    static constexpr auto EXPECTED_OUTPUT = "Else-branch\nJumped here\n";
+    ASSERT_EQ(m_vm_output_stream, EXPECTED_OUTPUT);
+}
