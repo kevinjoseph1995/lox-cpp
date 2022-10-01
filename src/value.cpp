@@ -3,7 +3,6 @@
 //
 #include "value.h"
 
-
 bool Value::IsNil() const
 {
     return std::holds_alternative<NilType>(*this);
@@ -81,11 +80,11 @@ bool Value::operator==(Value const& other) const
         return *std::get_if<bool>(this) == *std::get_if<bool>(&other);
     } else if (this->IsDouble()) {
         return std::abs(*std::get_if<double>(this) - *std::get_if<double>(&other)) < std::numeric_limits<double>::epsilon();
-    } else if(this->IsObject()){
+    } else if (this->IsObject()) {
         LOX_ASSERT(this->AsObject().GetType() == ObjectType::STRING);
         LOX_ASSERT(other.AsObject().GetType() == ObjectType::STRING);
         return static_cast<StringObject const*>(this->AsObjectPtr())->data == static_cast<StringObject const*>(other.AsObjectPtr())->data;
-    }else{
+    } else {
         LOX_ASSERT(false, "Unsupported comparison");
     }
 }

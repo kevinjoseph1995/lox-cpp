@@ -125,6 +125,8 @@ private:
     void binary(bool can_assign);
     void grouping(bool can_assign);
     void unary(bool can_assign);
+    void and_(bool can_assign);
+    void or_(bool can_assign);
     // Terminals
     void literal(bool can_assign);
     void number(bool can_assign);

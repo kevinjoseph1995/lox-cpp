@@ -5,7 +5,9 @@
 #include <functional>
 
 #include "compiler.h"
+#include "error.h"
 #include "fmt/core.h"
+#include "scanner.h"
 
 consteval ParseTable GenerateParseTable()
 {
@@ -33,7 +35,7 @@ consteval ParseTable GenerateParseTable()
     table[IDENTIFIER]    = { .prefix = &Compiler::variable, .infix = nullptr,           .precedence = PREC_NONE };
     table[STRING]        = { .prefix = &Compiler::string,   .infix = nullptr,           .precedence = PREC_NONE };
     table[NUMBER]        = { .prefix = &Compiler::number,   .infix = nullptr,           .precedence = PREC_NONE };
-    table[AND]           = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
+    table[AND]           = { .prefix = nullptr,             .infix = &Compiler::and_,   .precedence = PREC_AND };
     table[CLASS]         = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
     table[ELSE]          = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
     table[FALSE]         = { .prefix = &Compiler::literal,  .infix = nullptr,           .precedence = PREC_NONE };
@@ -41,7 +43,7 @@ consteval ParseTable GenerateParseTable()
     table[FUN]           = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
     table[IF]            = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
     table[NIL]           = { .prefix = &Compiler::literal,  .infix = nullptr,           .precedence = PREC_NONE };
-    table[OR]            = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
+    table[OR]            = { .prefix = nullptr,             .infix = &Compiler::or_,    .precedence = PREC_OR };
     table[PRINT]         = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
     table[RETURN]        = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
     table[SUPER]         = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
@@ -624,7 +626,7 @@ void Compiler::ifStatement()
     patchJump(jump_destination);
     emitByte(OP_POP);
 
-    if(match(TokenType::ELSE)) {
+    if (match(TokenType::ELSE)) {
         consume(TokenType::ELSE);
         statement();
     }
@@ -649,4 +651,29 @@ void Compiler::patchJump(uint64_t offset)
     }
     m_current_chunk->byte_code[offset] = static_cast<uint8_t>(0x00FFU & jump);
     m_current_chunk->byte_code[offset + 1] = static_cast<uint8_t>((0xFF00U & jump) >> 8U);
+}
+
+void Compiler::and_(bool can_assign)
+{
+    static_cast<void>(can_assign);
+    LOX_ASSERT(m_parser.previous_token.has_value());
+    LOX_ASSERT(m_parser.previous_token->type == TokenType::AND);
+    // We've already parsed the LHS expression
+    auto jump_destination = emitJump(OP_JUMP_IF_FALSE);
+    emitByte(OP_POP); // To pop the LHS value of the stack as we know it's "true"ish
+    parsePrecedence(Precedence::PREC_AND); // Consume all the tokens according to the current precedence level emitting op-codes for the RHS expression
+    patchJump(jump_destination);
+}
+
+void Compiler::or_(bool can_assign)
+{
+    static_cast<void>(can_assign);
+    LOX_ASSERT(m_parser.previous_token.has_value());
+    LOX_ASSERT(m_parser.previous_token->type == TokenType::OR);
+    // We've already parsed the LHS expression
+    auto false_destination = emitJump(OP_JUMP_IF_FALSE);
+    auto true_destination = emitJump(OP_JUMP);
+    patchJump(false_destination);
+    parsePrecedence(Precedence::PREC_OR); // Consume all the tokens according to the current precedence level emitting op-codes for the RHS expression
+    patchJump(true_destination);
 }

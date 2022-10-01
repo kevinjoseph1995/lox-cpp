@@ -34,9 +34,8 @@ struct Value : public std::variant<NilType, double, bool, Object*> {
     [[nodiscard]] Object const& AsObject() const;
     [[nodiscard]] Object& AsObject();
     [[nodiscard]] Object* AsObjectPtr();
-    [[nodiscard]] Object const * AsObjectPtr()const;
+    [[nodiscard]] Object const* AsObjectPtr() const;
     [[nodiscard]] bool const& AsBool() const;
-
 
     [[nodiscard]] bool operator==(Value const& other) const;
     [[nodiscard]] bool operator!=(Value const& other) const;

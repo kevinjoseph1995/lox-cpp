@@ -165,3 +165,27 @@ TEST_F(VMTest, IfStatement2)
     static constexpr auto EXPECTED_OUTPUT = "Else-branch\nJumped here\n";
     ASSERT_EQ(m_vm_output_stream, EXPECTED_OUTPUT);
 }
+
+TEST_F(VMTest, LogicalOperatorsAnd)
+{
+    m_source.AppendFromConsole(R"(
+{
+    print false and true;
+}
+)");
+    ASSERT_TRUE(m_vm->Interpret(m_source).IsValue());
+    static constexpr auto EXPECTED_OUTPUT = "false\n";
+    ASSERT_EQ(m_vm_output_stream, EXPECTED_OUTPUT);
+}
+
+TEST_F(VMTest, LogicalOperatorsOr)
+{
+    m_source.AppendFromConsole(R"(
+{
+    print false or true or false;
+}
+)");
+    ASSERT_TRUE(m_vm->Interpret(m_source).IsValue());
+    static constexpr auto EXPECTED_OUTPUT = "true\n";
+    ASSERT_EQ(m_vm_output_stream, EXPECTED_OUTPUT);
+}

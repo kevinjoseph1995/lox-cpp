@@ -4,6 +4,7 @@
 
 #include "gtest/gtest.h"
 
+#include "chunk.h"
 #include "compiler.h"
 #include "fmt/core.h"
 
@@ -258,4 +259,41 @@ TEST_F(CompilerTest, IfStatement)
                                       m_heap.AllocateStringObject("Jumped here"),
                                   },
         m_chunk.constant_pool));
+}
+
+TEST_F(CompilerTest, LogicalOperatorsAnd)
+{
+    m_source.AppendFromConsole(R"(
+{
+    print false and true;
+}
+)");
+    ASSERT_TRUE(m_compiler->CompileSource(m_source, m_chunk).IsValue());
+    ASSERT_TRUE(ValidateByteCode(std::vector<uint8_t> {
+                                     OP_FALSE,
+                                     OP_JUMP_IF_FALSE, 2, 0,
+                                     OP_POP,
+                                     OP_TRUE,
+                                     OP_PRINT },
+        m_chunk.byte_code));
+}
+
+TEST_F(CompilerTest, LogicalOperatorsOr)
+{
+    m_source.AppendFromConsole(R"(
+{
+    print false or true or false;
+}
+)");
+    ASSERT_TRUE(m_compiler->CompileSource(m_source, m_chunk).IsValue());
+    ASSERT_TRUE(ValidateByteCode(std::vector<uint8_t> {
+                                     OP_FALSE,
+                                     OP_JUMP_IF_FALSE, 3, 0,
+                                     OP_JUMP, 8, 0,
+                                     OP_TRUE,
+                                     OP_JUMP_IF_FALSE, 3, 0,
+                                     OP_JUMP, 1, 0,
+                                     OP_FALSE,
+                                     OP_PRINT },
+        m_chunk.byte_code));
 }
