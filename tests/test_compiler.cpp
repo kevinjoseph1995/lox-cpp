@@ -289,10 +289,12 @@ TEST_F(CompilerTest, LogicalOperatorsOr)
     ASSERT_TRUE(ValidateByteCode(std::vector<uint8_t> {
                                      OP_FALSE,
                                      OP_JUMP_IF_FALSE, 3, 0,
-                                     OP_JUMP, 8, 0,
+                                     OP_JUMP, 10, 0,
+                                     OP_POP,
                                      OP_TRUE,
                                      OP_JUMP_IF_FALSE, 3, 0,
-                                     OP_JUMP, 1, 0,
+                                     OP_JUMP, 2, 0,
+                                     OP_POP,
                                      OP_FALSE,
                                      OP_PRINT },
         m_chunk.byte_code));

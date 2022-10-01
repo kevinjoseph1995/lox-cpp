@@ -674,6 +674,7 @@ void Compiler::or_(bool can_assign)
     auto false_destination = emitJump(OP_JUMP_IF_FALSE);
     auto true_destination = emitJump(OP_JUMP);
     patchJump(false_destination);
+    emitByte(OP_POP); // To pop the LHS value of the stack as we know it's "false"ish
     parsePrecedence(Precedence::PREC_OR); // Consume all the tokens according to the current precedence level emitting op-codes for the RHS expression
     patchJump(true_destination);
 }

@@ -189,3 +189,20 @@ TEST_F(VMTest, LogicalOperatorsOr)
     static constexpr auto EXPECTED_OUTPUT = "true\n";
     ASSERT_EQ(m_vm_output_stream, EXPECTED_OUTPUT);
 }
+
+TEST_F(VMTest, LogicalOperatorsOr2)
+{
+    m_source.AppendFromConsole(R"(
+{
+    if((1 + 2 * 4) < 0 or true or false) {
+        print "True branch";
+    } else {
+        print "False branch";
+    }
+
+}
+)");
+    ASSERT_TRUE(m_vm->Interpret(m_source).IsValue());
+    static constexpr auto EXPECTED_OUTPUT = "True branch\n";
+    ASSERT_EQ(m_vm_output_stream, EXPECTED_OUTPUT);
+}
