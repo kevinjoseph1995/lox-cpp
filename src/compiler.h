@@ -4,6 +4,7 @@
 
 #ifndef LOX_CPP_COMPILER_H
 #define LOX_CPP_COMPILER_H
+#include <cstdint>
 #include <optional>
 
 #include "chunk.h"
@@ -101,12 +102,14 @@ private:
     [[nodiscard]] uint64_t emitJump(OpCode op_code);
     [[nodiscard]] uint16_t identifierConstant(Token const& token);
     void patchJump(uint64_t offset);
+    void emitLoop(uint64_t loop_start);
 
     // Statement parsing functions and associated helpers
     void declaration();
     void statement();
     void printStatement();
     void ifStatement();
+    void whileStatement();
     void expressionStatement();
     void block();
     void beginScope();

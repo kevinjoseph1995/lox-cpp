@@ -206,3 +206,23 @@ TEST_F(VMTest, LogicalOperatorsOr2)
     static constexpr auto EXPECTED_OUTPUT = "True branch\n";
     ASSERT_EQ(m_vm_output_stream, EXPECTED_OUTPUT);
 }
+
+TEST_F(VMTest, WhileStatement)
+{
+    m_source.AppendFromConsole(R"(
+{
+    var a  = 0;
+    while(a < 3) {
+        print a;
+        a = a + 1;
+    }
+    while(a >= 0) {
+        print a;
+        a = a - 1;
+    }
+}
+)");
+    ASSERT_TRUE(m_vm->Interpret(m_source).IsValue());
+    static constexpr auto EXPECTED_OUTPUT = "0\n1\n2\n3\n2\n1\n0\n";
+    ASSERT_EQ(m_vm_output_stream, EXPECTED_OUTPUT);
+}

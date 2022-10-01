@@ -201,6 +201,10 @@ ErrorOr<VoidType> VirtualMachine::run()
             m_instruction_pointer += readIndex();
             break;
         }
+        case OP_LOOP: {
+            m_instruction_pointer -= readIndex();
+            break;
+        }
         }
     }
 }

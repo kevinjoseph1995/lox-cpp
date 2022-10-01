@@ -39,7 +39,7 @@ bool ValidateByteCode(std::vector<uint8_t> expected, std::vector<uint8_t> const&
 bool ValidateConstants(std::vector<Value> expected, std::vector<Value> const& generated_constants)
 {
     if (expected.size() != generated_constants.size()) {
-        fmt::print(stderr, "Size mismatch\n");
+        fmt::print(stderr, "Size mismatch, expected:{} got:{}\n", expected.size(), generated_constants.size());
         return false;
     }
     bool success = true;
@@ -298,4 +298,42 @@ TEST_F(CompilerTest, LogicalOperatorsOr)
                                      OP_FALSE,
                                      OP_PRINT },
         m_chunk.byte_code));
+}
+
+TEST_F(CompilerTest, WhileStatement)
+{
+    m_source.AppendFromConsole(R"(
+{
+    var a  = 0;
+    while(a < 10) {
+        print a;
+        a = a - 1;
+    }
+}
+)");
+    ASSERT_TRUE(m_compiler->CompileSource(m_source, m_chunk).IsValue());
+    ASSERT_TRUE(ValidateByteCode(std::vector<uint8_t> {
+                                     OP_CONSTANT, 0, 0,
+                                     OP_GET_LOCAL, 0, 0,
+                                     OP_CONSTANT, 1, 0,
+                                     OP_LESS,
+                                     OP_JUMP_IF_FALSE, 19, 0,
+                                     OP_POP,
+                                     OP_GET_LOCAL, 0, 0,
+                                     OP_PRINT,
+                                     OP_GET_LOCAL, 0, 0,
+                                     OP_CONSTANT, 2, 0,
+                                     OP_SUBTRACT,
+                                     OP_SET_LOCAL, 0, 0,
+                                     OP_POP,
+                                     OP_LOOP, 29, 0,
+                                     OP_POP,
+                                     OP_POP },
+        m_chunk.byte_code));
+    ASSERT_TRUE(ValidateConstants(std::vector<Value> {
+                                      0.0,
+                                      10.0,
+                                      1.0,
+                                  },
+        m_chunk.constant_pool));
 }

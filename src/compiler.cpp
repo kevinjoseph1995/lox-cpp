@@ -4,6 +4,7 @@
 
 #include <functional>
 
+#include "chunk.h"
 #include "compiler.h"
 #include "error.h"
 #include "fmt/core.h"
@@ -150,7 +151,7 @@ void Compiler::emitByte(uint8_t byte)
 void Compiler::addConstant(Value constant)
 {
     LOX_ASSERT(m_current_chunk != nullptr);
-    LOX_ASSERT(m_current_chunk->constant_pool.size() < MAX_NUMBER_CONSTANTS);
+    LOX_ASSERT(m_current_chunk->constant_pool.size() < MAX_NUMBER_CONSTANTS, "Exceeded the maximum number of supported constants");
 
     m_current_chunk->constant_pool.push_back(constant);
     emitByte(OP_CONSTANT);
@@ -328,6 +329,8 @@ void Compiler::statement()
         block();
     } else if (match(TokenType::IF)) {
         ifStatement();
+    } else if (match(TokenType::WHILE)) {
+        whileStatement();
     } else {
         expressionStatement();
     }
@@ -555,10 +558,8 @@ void Compiler::declareVariable()
             return;
         }
     }
-    if (m_locals_state.locals.size() >= MAX_NUMBER_LOCAL_VARIABLES) {
-        reportError(m_parser.previous_token->line_number, fmt::format("Exceeded maximum number of local variables:{}", MAX_NUMBER_LOCAL_VARIABLES));
-        return;
-    }
+    LOX_ASSERT(m_locals_state.locals.size() < MAX_NUMBER_LOCAL_VARIABLES, fmt::format("Exceeded maximum number of local variables:{}", MAX_NUMBER_LOCAL_VARIABLES).c_str());
+
     m_locals_state.locals.emplace_back(new_local_identifier_name, -1); // The -1 here indicates that the local is still uninitialized
 }
 void Compiler::beginScope()
@@ -605,6 +606,33 @@ void Compiler::markInitialized()
 {
     LOX_ASSERT(!m_locals_state.locals.empty());
     (m_locals_state.locals.end() - 1)->local_scope_depth = m_locals_state.current_scope_depth;
+}
+
+void Compiler::whileStatement()
+{
+    auto loop_start = m_current_chunk->byte_code.size();
+    consume(TokenType::WHILE);
+    if (!consume(TokenType::LEFT_PAREN)) {
+        reportError(m_parser.previous_token->line_number, "Expected \"(\" after the while statement");
+    }
+    expression();
+    if (!consume(TokenType::RIGHT_PAREN)) {
+        reportError(m_parser.previous_token->line_number, "Expected \")\" after the while-condition");
+    }
+    auto break_destination = emitJump(OP_JUMP_IF_FALSE);
+    emitByte(OP_POP);
+    statement();
+    emitLoop(loop_start);
+    patchJump(break_destination);
+    emitByte(OP_POP);
+}
+
+void Compiler::emitLoop(uint64_t loop_start)
+{
+    emitByte(OP_LOOP);
+    auto offset = m_current_chunk->byte_code.size() - loop_start + 2;
+    LOX_ASSERT(offset < MAX_JUMP_OFFSET, "Loop body too large");
+    emitIndex(offset);
 }
 
 void Compiler::ifStatement()
