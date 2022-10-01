@@ -226,3 +226,17 @@ TEST_F(VMTest, WhileStatement)
     static constexpr auto EXPECTED_OUTPUT = "0\n1\n2\n3\n2\n1\n0\n";
     ASSERT_EQ(m_vm_output_stream, EXPECTED_OUTPUT);
 }
+
+TEST_F(VMTest, ForStatement)
+{
+    m_source.AppendFromConsole(R"(
+{
+    for(var i = 0; i < 3; i = i + 1){
+        print i;
+    }
+}
+)");
+    ASSERT_TRUE(m_vm->Interpret(m_source).IsValue());
+    static constexpr auto EXPECTED_OUTPUT = "0\n1\n2\n";
+    ASSERT_EQ(m_vm_output_stream, EXPECTED_OUTPUT);
+}

@@ -2,7 +2,9 @@
 // Created by kevin on 8/12/22.
 //
 
+#include <cstdint>
 #include <functional>
+#include <optional>
 
 #include "chunk.h"
 #include "compiler.h"
@@ -331,6 +333,8 @@ void Compiler::statement()
         ifStatement();
     } else if (match(TokenType::WHILE)) {
         whileStatement();
+    } else if (match(TokenType::FOR)) {
+        forStatement();
     } else {
         expressionStatement();
     }
@@ -608,12 +612,68 @@ void Compiler::markInitialized()
     (m_locals_state.locals.end() - 1)->local_scope_depth = m_locals_state.current_scope_depth;
 }
 
+void Compiler::forStatement()
+{
+    beginScope(); // Add a scope to restrict variables declared in the initializer clause to within the for-body
+    auto _ = consume(TokenType::FOR);
+    LOX_ASSERT(_);
+    if (!consume(TokenType::LEFT_PAREN)) {
+        reportError(m_parser.previous_token->line_number, "Expected \"(\" after the for keyword");
+    }
+    ////////////////////////////// Initializer //////////////////////////////
+    if (match(TokenType::SEMICOLON)) {
+        consume(TokenType::SEMICOLON);
+    } else if (consume(TokenType::VAR)) {
+        variableDeclaration();
+    } else if (!match(TokenType::SEMICOLON)) {
+        expressionStatement();
+    }
+    /////////////////////////////////////////////////////////////////////////
+    //////////////////////////// Condition clause ///////////////////////////
+    auto loop_start = m_current_chunk->byte_code.size();
+
+    std::optional<uint64_t> exit_jump;
+    if (!match(TokenType::SEMICOLON)) {
+        expression();
+        exit_jump = emitJump(OpCode::OP_JUMP_IF_FALSE);
+        emitByte(OP_POP);
+    }
+    if (!consume(TokenType::SEMICOLON)) {
+        reportError(m_parser.previous_token->line_number, "Expected \";\" after optional conditional-clause");
+    }
+    /////////////////////////////////////////////////////////////////////////
+    //////////////////////////// Increment clause ///////////////////////////
+    if (!match(TokenType::RIGHT_PAREN)) {
+        auto for_body_jump = emitJump(OP_JUMP);
+        auto increment_start = m_current_chunk->byte_code.size();
+        expression();
+        emitByte(OP_POP);
+        emitLoop(loop_start); // Loop back to the start of the condition
+        loop_start = increment_start; // Adjust the loop start to jump to the evaluation of the increment expression after the end of the for body
+        patchJump(for_body_jump);
+    }
+    if (!consume(TokenType::RIGHT_PAREN)) {
+        reportError(m_parser.previous_token->line_number, "Expected \")\" after optional increment-clause");
+    }
+    /////////////////////////////////////////////////////////////////////////
+    statement();
+    emitLoop(loop_start);
+
+    if (exit_jump.has_value()) {
+        patchJump(exit_jump.value());
+        emitByte(OP_POP);
+    }
+
+    endScope();
+}
+
 void Compiler::whileStatement()
 {
     auto loop_start = m_current_chunk->byte_code.size();
-    consume(TokenType::WHILE);
+    auto _ = consume(TokenType::WHILE);
+    LOX_ASSERT(_);
     if (!consume(TokenType::LEFT_PAREN)) {
-        reportError(m_parser.previous_token->line_number, "Expected \"(\" after the while statement");
+        reportError(m_parser.previous_token->line_number, "Expected \"(\" after the while keyword");
     }
     expression();
     if (!consume(TokenType::RIGHT_PAREN)) {

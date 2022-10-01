@@ -337,3 +337,55 @@ TEST_F(CompilerTest, WhileStatement)
                                   },
         m_chunk.constant_pool));
 }
+
+TEST_F(CompilerTest, ForStatement)
+{
+    m_source.AppendFromConsole(R"(
+{
+    for(var i = 0; i < 3; i = i + 1){
+        print i;
+    }
+}
+)");
+    ASSERT_TRUE(m_compiler->CompileSource(m_source, m_chunk).IsValue());
+    ASSERT_TRUE(ValidateByteCode(std::vector<uint8_t> {
+                                     OP_CONSTANT, 0, 0,
+                                     OP_GET_LOCAL, 0, 0,
+                                     OP_CONSTANT, 1, 0,
+                                     OP_LESS,
+                                     OP_JUMP_IF_FALSE, 25, 0,
+                                     OP_POP,
+                                     OP_JUMP, 14, 0,
+                                     OP_GET_LOCAL, 0, 0,
+                                     OP_CONSTANT, 2, 0,
+                                     OP_ADD,
+                                     OP_SET_LOCAL, 0, 0,
+                                     OP_POP,
+                                     OP_LOOP, 28, 0,
+                                     OP_GET_LOCAL, 0, 0,
+                                     OP_PRINT,
+                                     OP_LOOP, 21, 0,
+                                     OP_POP,
+                                     OP_POP },
+        m_chunk.byte_code));
+    ASSERT_TRUE(ValidateConstants(std::vector<Value> {
+                                      0.0,
+                                      3.0,
+                                      1.0,
+                                  },
+        m_chunk.constant_pool));
+}
+
+TEST_F(CompilerTest, ForStatementScopeLeak)
+{
+    m_source.AppendFromConsole(R"(
+{
+    for(var i = 0; i < 3; i = i + 1){
+        print i;
+    }
+
+    print i; // Undeclared variable "i" in this scope
+}
+)");
+    ASSERT_TRUE(m_compiler->CompileSource(m_source, m_chunk).IsError());
+}
