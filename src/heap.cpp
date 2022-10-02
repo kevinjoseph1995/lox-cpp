@@ -5,7 +5,7 @@
 #include "heap.h"
 #include "error.h"
 
-void Heap::Reset()
+auto Heap::Reset() -> void
 {
     auto current = m_head;
     while (current != nullptr) {
@@ -20,7 +20,7 @@ void Heap::Reset()
     m_head = nullptr;
 }
 
-Object* Heap::Allocate(ObjectType type)
+auto Heap::Allocate(ObjectType type) -> Object*
 {
     Object* new_object = nullptr;
     switch (type) {
@@ -40,7 +40,7 @@ Heap::~Heap()
     Reset();
 }
 
-void Heap::insertAtHead(Object* new_node)
+auto Heap::insertAtHead(Object* new_node) -> void
 {
     LOX_ASSERT(new_node != nullptr);
     if (m_head == nullptr) {
@@ -51,7 +51,7 @@ void Heap::insertAtHead(Object* new_node)
     }
 }
 
-StringObject* Heap::AllocateStringObject(std::string_view string_data)
+auto Heap::AllocateStringObject(std::string_view string_data) -> StringObject*
 {
     auto* object_ptr = Allocate(ObjectType::STRING);
     LOX_ASSERT(object_ptr->type == ObjectType::STRING);

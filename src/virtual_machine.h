@@ -10,6 +10,7 @@
 
 #include "chunk.h"
 #include "compiler.h"
+#include "error.h"
 #include "heap.h"
 #include "source.h"
 
@@ -22,15 +23,15 @@ public:
     [[nodiscard]] ErrorOr<VoidType> Interpret(Source const& source_code);
 
 private:
-    [[nodiscard]] bool isAtEnd();
-    [[nodiscard]] ErrorOr<VoidType> run();
-    [[nodiscard]] uint8_t readByte();
-    [[nodiscard]] Value readConstant();
-    [[nodiscard]] uint16_t readIndex();
-    [[nodiscard]] Value popStack();
-    Value const& peekStack(uint32_t index_from_top);
-    [[nodiscard]] ErrorOr<VoidType> binaryOperation(OpCode op);
-    Error runtimeError(std::string error_message);
+    [[nodiscard]] auto isAtEnd() -> bool;
+    [[nodiscard]] auto run() -> ErrorOr<VoidType>;
+    [[nodiscard]] auto readByte() -> uint8_t;
+    [[nodiscard]] auto readConstant() -> Value;
+    [[nodiscard]] auto readIndex() -> uint16_t;
+    [[nodiscard]] auto popStack() -> Value;
+    [[nodiscard]] auto peekStack(uint32_t index_from_top) -> Value const&;
+    [[nodiscard]] auto binaryOperation(OpCode op) -> ErrorOr<VoidType>;
+    [[nodiscard]] auto runtimeError(std::string error_message) -> Error;
 
 private:
     Chunk m_current_chunk {};

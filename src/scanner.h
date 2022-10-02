@@ -68,28 +68,20 @@ std::string FormatToken(Token const& token, std::string const* source_code);
 
 class Scanner {
 public:
-    void Reset(Source const& source_code);
-
-    [[nodiscard]] ErrorOr<Token> GetNextToken();
+    auto Reset(Source const& source_code) -> void;
+    [[nodiscard]] auto GetNextToken() -> ErrorOr<Token>;
 
 private:
-    [[nodiscard]] ErrorOr<Token> number();
+    [[nodiscard]] auto number() -> ErrorOr<Token>;
+    [[nodiscard]] auto string() -> ErrorOr<Token>;
+    [[nodiscard]] auto identifierOrKeyword() -> ErrorOr<Token>;
+    [[nodiscard]] auto peek() const -> char;
+    [[nodiscard]] auto matchEqual() -> ErrorOr<bool>;
+    [[nodiscard]] auto makeToken(TokenType) const -> Token;
+    [[nodiscard]] auto isAtEnd() const -> bool;
 
-    [[nodiscard]] ErrorOr<Token> string();
-
-    [[nodiscard]] ErrorOr<Token> identifierOrKeyword();
-
-    [[nodiscard]] char peek() const;
-
-    char advance();
-
-    [[nodiscard]] ErrorOr<bool> matchEqual();
-
-    [[nodiscard]] Token makeToken(TokenType) const;
-
-    void consumeWhitespacesAndComments();
-
-    [[nodiscard]] bool isAtEnd() const;
+    auto consumeWhitespacesAndComments() -> void;
+    auto advance() -> char;
 
 private:
     Source const* m_source = nullptr;

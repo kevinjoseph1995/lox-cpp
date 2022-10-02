@@ -5,11 +5,11 @@
 #include "source.h"
 #include "fmt/core.h"
 #include <fstream>
-bool Source::ReadFromFile(std::string_view filename)
+auto Source::ReadFromFile(std::string_view filename) -> bool
 {
     m_filename = filename;
 
-    std::ifstream file;
+    auto file = std::ifstream {};
     file.open(m_filename);
     if (!file.good()) {
         fmt::print(stderr, "Failed to read file:{}", m_filename);
@@ -20,7 +20,7 @@ bool Source::ReadFromFile(std::string_view filename)
 
     return true;
 }
-void Source::AppendFromConsole(std::string_view source_part)
+auto Source::AppendFromConsole(std::string_view source_part) -> void
 {
     m_filename.clear();
     m_source.append(source_part);

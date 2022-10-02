@@ -7,7 +7,7 @@
 
 #include "error.h"
 
-void Disassemble_chunk(Chunk const& chunk)
+auto Disassemble_chunk(Chunk const& chunk) -> void
 {
     uint64_t offset = 0;
     auto const number_of_instructions = chunk.byte_code.size();
@@ -16,7 +16,7 @@ void Disassemble_chunk(Chunk const& chunk)
     }
 }
 
-uint64_t Disassemble_instruction(Chunk const& chunk, uint64_t offset)
+auto Disassemble_instruction(Chunk const& chunk, uint64_t offset) -> uint64_t
 {
     auto getIndex = [](uint8_t lsb, uint8_t hsb) -> uint16_t {
         return static_cast<uint16_t>(hsb << 8) + lsb;
@@ -144,14 +144,14 @@ uint64_t Disassemble_instruction(Chunk const& chunk, uint64_t offset)
     LOX_ASSERT(false);
 }
 
-void DumpConstants(Chunk const& chunk)
+auto DumpConstants(Chunk const& chunk) -> void
 {
     for (auto const& constant : chunk.constant_pool) {
         fmt::print("{}\n", constant);
     }
 }
 
-void Chunk::Clear()
+auto Chunk::Clear() -> void
 {
     byte_code.clear();
     lines.clear();

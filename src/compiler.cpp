@@ -12,7 +12,7 @@
 #include "fmt/core.h"
 #include "scanner.h"
 
-consteval ParseTable GenerateParseTable()
+consteval auto GenerateParseTable() -> ParseTable
 {
     ParseTable table;
     // clang-format off
@@ -61,19 +61,19 @@ consteval ParseTable GenerateParseTable()
 
 static constexpr auto PARSE_TABLE = GenerateParseTable();
 
-[[maybe_unused]] static void PrintTokens(std::vector<Token> const& tokens, const std::string* source)
+[[maybe_unused]] static auto PrintTokens(std::vector<Token> const& tokens, const std::string* source) -> void
 {
     for (auto token : tokens) {
         fmt::print("{}\n", FormatToken(token, source));
     }
 }
 
-static constexpr ParseRule const* GetRule(TokenType type)
+static constexpr auto GetRule(TokenType type) -> ParseRule const*
 {
     return &PARSE_TABLE[type];
 }
 
-void Compiler::reportError(int32_t line_number, std::string_view error_string)
+auto Compiler::reportError(int32_t line_number, std::string_view error_string) -> void
 {
     if (m_error_state.panic) {
         return;
@@ -87,7 +87,7 @@ void Compiler::reportError(int32_t line_number, std::string_view error_string)
     m_error_state.encountered_error = true;
 }
 
-void Compiler::errorAt(const Token& token, std::string_view message)
+auto Compiler::errorAt(const Token& token, std::string_view message) -> void
 {
     LOX_ASSERT(token.start + token.length <= m_source->GetSource().length());
 
@@ -103,7 +103,7 @@ void Compiler::errorAt(const Token& token, std::string_view message)
     reportError(token.line_number, error_string);
 }
 
-void Compiler::reset(Source const& source, Chunk& chunk)
+auto Compiler::reset(Source const& source, Chunk& chunk) -> void
 {
     m_source = &source;
     m_current_chunk = &chunk;
@@ -130,7 +130,7 @@ ErrorOr<VoidType> Compiler::CompileSource(Source const& source, Chunk& chunk)
     return VoidType {};
 }
 
-void Compiler::advance()
+auto Compiler::advance() -> void
 {
     m_parser.previous_token = m_parser.current_token;
     while (true) {
@@ -144,13 +144,13 @@ void Compiler::advance()
     }
 }
 
-void Compiler::emitByte(uint8_t byte)
+auto Compiler::emitByte(uint8_t byte) -> void
 {
     LOX_ASSERT(m_current_chunk != nullptr);
     m_current_chunk->byte_code.push_back(byte);
 }
 
-void Compiler::addConstant(Value constant)
+auto Compiler::addConstant(Value constant) -> void
 {
     LOX_ASSERT(m_current_chunk != nullptr);
     LOX_ASSERT(m_current_chunk->constant_pool.size() < MAX_NUMBER_CONSTANTS, "Exceeded the maximum number of supported constants");
@@ -160,7 +160,7 @@ void Compiler::addConstant(Value constant)
     emitIndex(static_cast<uint16_t>(m_current_chunk->constant_pool.size() - 1));
 }
 
-void Compiler::parsePrecedence(Precedence level)
+auto Compiler::parsePrecedence(Precedence level) -> void
 {
     /*
      * Explanation for future me on how Pratt Parsing works
@@ -200,12 +200,12 @@ void Compiler::parsePrecedence(Precedence level)
     }
 }
 
-void Compiler::expression()
+auto Compiler::expression() -> void
 {
     parsePrecedence(PREC_ASSIGNMENT);
 }
 
-void Compiler::grouping(bool)
+auto Compiler::grouping(bool) -> void
 {
     expression();
     if (!consume(TokenType::RIGHT_PAREN)) {
@@ -213,7 +213,7 @@ void Compiler::grouping(bool)
     }
 }
 
-void Compiler::number(bool)
+auto Compiler::number(bool) -> void
 {
     LOX_ASSERT(m_parser.previous_token.has_value());
     LOX_ASSERT(m_parser.previous_token->type == TokenType::NUMBER);
@@ -228,7 +228,7 @@ void Compiler::number(bool)
     addConstant(value);
 }
 
-void Compiler::literal(bool)
+auto Compiler::literal(bool) -> void
 {
     LOX_ASSERT(m_parser.previous_token.has_value());
     switch (m_parser.previous_token.value().type) {
@@ -246,7 +246,7 @@ void Compiler::literal(bool)
     }
 }
 
-void Compiler::binary(bool)
+auto Compiler::binary(bool) -> void
 {
     LOX_ASSERT(m_parser.previous_token.has_value());
 
@@ -288,7 +288,7 @@ void Compiler::binary(bool)
     }
 }
 
-void Compiler::unary(bool)
+auto Compiler::unary(bool) -> void
 {
     LOX_ASSERT(m_parser.previous_token.has_value());
 
@@ -303,7 +303,7 @@ void Compiler::unary(bool)
     }
 }
 
-void Compiler::string(bool)
+auto Compiler::string(bool) -> void
 {
     LOX_ASSERT(m_parser.previous_token.has_value());
     LOX_ASSERT(m_parser.previous_token->type == TokenType::STRING);
@@ -311,7 +311,7 @@ void Compiler::string(bool)
     this->addConstant(string_object);
 }
 
-void Compiler::declaration()
+auto Compiler::declaration() -> void
 {
     if (match(TokenType::VAR)) {
         variableDeclaration();
@@ -323,7 +323,7 @@ void Compiler::declaration()
     }
 }
 
-void Compiler::statement()
+auto Compiler::statement() -> void
 {
     if (match(TokenType::PRINT)) {
         printStatement();
@@ -340,7 +340,7 @@ void Compiler::statement()
     }
 }
 
-bool Compiler::consume(TokenType type)
+auto Compiler::consume(TokenType type) -> bool
 {
     LOX_ASSERT(m_parser.current_token.has_value());
     if (m_parser.current_token->type == type) {
@@ -350,7 +350,7 @@ bool Compiler::consume(TokenType type)
     return false;
 }
 
-bool Compiler::match(TokenType type) const
+auto Compiler::match(TokenType type) const -> bool
 {
     LOX_ASSERT(m_parser.current_token.has_value());
     if (m_parser.current_token->type == type) {
@@ -359,7 +359,7 @@ bool Compiler::match(TokenType type) const
     return false;
 }
 
-void Compiler::printStatement()
+auto Compiler::printStatement() -> void
 {
     auto _ = consume(TokenType::PRINT);
     static_cast<void>(_);
@@ -370,7 +370,7 @@ void Compiler::printStatement()
         emitByte(OP_PRINT);
     }
 }
-void Compiler::expressionStatement()
+auto Compiler::expressionStatement() -> void
 {
     expression();
     if (!consume(TokenType::SEMICOLON)) {
@@ -380,7 +380,7 @@ void Compiler::expressionStatement()
     }
 }
 
-void Compiler::synchronizeError()
+auto Compiler::synchronizeError() -> void
 {
     while (m_parser.current_token->type != TokenType::TOKEN_EOF) {
         if (m_parser.previous_token->type == TokenType::SEMICOLON) {
@@ -403,7 +403,7 @@ void Compiler::synchronizeError()
         }
     }
 }
-void Compiler::variableDeclaration()
+auto Compiler::variableDeclaration() -> void
 {
     consume(TokenType::VAR);
     auto identifier_index_in_constant_pool = parseVariable("Expected identifier after \"var\" keyword");
@@ -426,7 +426,7 @@ void Compiler::variableDeclaration()
     defineVariable(identifier_index_in_constant_pool.GetValue());
 }
 
-void Compiler::variable(bool can_assign)
+auto Compiler::variable(bool can_assign) -> void
 {
     std::string_view new_local_identifier_name { m_source->GetSource().begin() + m_parser.previous_token.value().start,
         m_source->GetSource().begin() + m_parser.previous_token.value().start + m_parser.previous_token.value().length };
@@ -461,7 +461,7 @@ void Compiler::variable(bool can_assign)
     }
 }
 
-uint16_t Compiler::identifierConstant(const Token& token)
+auto Compiler::identifierConstant(const Token& token) -> uint16_t
 {
     LOX_ASSERT(token.type == TokenType::IDENTIFIER);
     auto string_object_ptr = m_heap.AllocateStringObject(m_source->GetSource().substr(token.start, token.length));
@@ -470,14 +470,14 @@ uint16_t Compiler::identifierConstant(const Token& token)
     return m_current_chunk->constant_pool.size() - 1;
 }
 
-void Compiler::emitIndex(uint16_t index)
+auto Compiler::emitIndex(uint16_t index) -> void
 {
     // Extract the 8 LSB's
     emitByte(static_cast<uint8_t>(0x00FFU & index));
     emitByte(static_cast<uint8_t>((0xFF00U & index) >> 8U));
 }
 
-void Compiler::block()
+auto Compiler::block() -> void
 {
     beginScope();
     consume(TokenType::LEFT_BRACE);
@@ -490,7 +490,7 @@ void Compiler::block()
     endScope();
 }
 
-ErrorOr<uint16_t> Compiler::parseVariable(std::string_view error_message)
+auto Compiler::parseVariable(std::string_view error_message) -> ErrorOr<uint16_t>
 {
     // Need to extract the variable name out from the token
     if (!consume(TokenType::IDENTIFIER)) {
@@ -507,7 +507,7 @@ ErrorOr<uint16_t> Compiler::parseVariable(std::string_view error_message)
     return index;
 }
 
-void Compiler::defineVariable(uint16_t constant_pool_index)
+auto Compiler::defineVariable(uint16_t constant_pool_index) -> void
 {
     if (m_locals_state.current_scope_depth > 0) {
         // Local variable
@@ -518,7 +518,7 @@ void Compiler::defineVariable(uint16_t constant_pool_index)
     emitIndex(static_cast<uint16_t>(constant_pool_index));
 }
 
-void Compiler::declareVariable()
+auto Compiler::declareVariable() -> void
 {
     if (m_locals_state.current_scope_depth == 0) {
         // Global variable
@@ -566,12 +566,12 @@ void Compiler::declareVariable()
 
     m_locals_state.locals.emplace_back(new_local_identifier_name, -1); // The -1 here indicates that the local is still uninitialized
 }
-void Compiler::beginScope()
+auto Compiler::beginScope() -> void
 {
     ++m_locals_state.current_scope_depth;
 }
 
-void Compiler::endScope()
+auto Compiler::endScope() -> void
 {
     LOX_ASSERT(m_locals_state.current_scope_depth >= 1);
     --m_locals_state.current_scope_depth;
@@ -589,7 +589,7 @@ void Compiler::endScope()
     m_locals_state.locals.resize(i + 1);
 }
 
-std::optional<uint32_t> Compiler::resolveVariable(std::string_view identifier_name)
+auto Compiler::resolveVariable(std::string_view identifier_name) -> std::optional<uint32_t>
 {
     auto it = std::find_if(m_locals_state.locals.rbegin(), m_locals_state.locals.rend(), [&](LocalsState::Local const& local) {
         return local.identifier_name == identifier_name;
@@ -606,13 +606,13 @@ std::optional<uint32_t> Compiler::resolveVariable(std::string_view identifier_na
     return index;
 }
 
-void Compiler::markInitialized()
+auto Compiler::markInitialized() -> void
 {
     LOX_ASSERT(!m_locals_state.locals.empty());
     (m_locals_state.locals.end() - 1)->local_scope_depth = m_locals_state.current_scope_depth;
 }
 
-void Compiler::forStatement()
+auto Compiler::forStatement() -> void
 {
     beginScope(); // Add a scope to restrict variables declared in the initializer clause to within the for-body
     auto _ = consume(TokenType::FOR);
@@ -667,7 +667,7 @@ void Compiler::forStatement()
     endScope();
 }
 
-void Compiler::whileStatement()
+auto Compiler::whileStatement() -> void
 {
     auto loop_start = m_current_chunk->byte_code.size();
     auto _ = consume(TokenType::WHILE);
@@ -687,7 +687,7 @@ void Compiler::whileStatement()
     emitByte(OP_POP);
 }
 
-void Compiler::emitLoop(uint64_t loop_start)
+auto Compiler::emitLoop(uint64_t loop_start) -> void
 {
     emitByte(OP_LOOP);
     auto offset = m_current_chunk->byte_code.size() - loop_start + 2;
@@ -695,7 +695,7 @@ void Compiler::emitLoop(uint64_t loop_start)
     emitIndex(offset);
 }
 
-void Compiler::ifStatement()
+auto Compiler::ifStatement() -> void
 {
     consume(TokenType::IF);
     if (!consume(TokenType::LEFT_PAREN)) {
@@ -721,7 +721,7 @@ void Compiler::ifStatement()
     patchJump(else_destination);
 }
 
-uint64_t Compiler::emitJump(OpCode op_code)
+auto Compiler::emitJump(OpCode op_code) -> uint64_t
 {
     LOX_ASSERT(op_code == OP_JUMP_IF_FALSE || op_code == OP_JUMP);
     emitByte(op_code);
@@ -729,7 +729,7 @@ uint64_t Compiler::emitJump(OpCode op_code)
     return m_current_chunk->byte_code.size() - 2;
 }
 
-void Compiler::patchJump(uint64_t offset)
+auto Compiler::patchJump(uint64_t offset) -> void
 {
     LOX_ASSERT(offset + 2 <= m_current_chunk->byte_code.size());
     auto jump = m_current_chunk->byte_code.size() - offset - 2;
@@ -741,7 +741,7 @@ void Compiler::patchJump(uint64_t offset)
     m_current_chunk->byte_code[offset + 1] = static_cast<uint8_t>((0xFF00U & jump) >> 8U);
 }
 
-void Compiler::and_(bool can_assign)
+auto Compiler::and_(bool can_assign) -> void
 {
     static_cast<void>(can_assign);
     LOX_ASSERT(m_parser.previous_token.has_value());
@@ -753,7 +753,7 @@ void Compiler::and_(bool can_assign)
     patchJump(jump_destination);
 }
 
-void Compiler::or_(bool can_assign)
+auto Compiler::or_(bool can_assign) -> void
 {
     static_cast<void>(can_assign);
     LOX_ASSERT(m_parser.previous_token.has_value());

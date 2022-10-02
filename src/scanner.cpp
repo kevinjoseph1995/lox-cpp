@@ -5,7 +5,7 @@
 #include "scanner.h"
 #include "error.h"
 
-void Scanner::Reset(Source const& source)
+auto Scanner::Reset(Source const& source) -> void
 {
     m_source = &source;
     m_current_index = 0;
@@ -13,7 +13,7 @@ void Scanner::Reset(Source const& source)
     m_line = 1;
 }
 
-ErrorOr<Token> Scanner::GetNextToken()
+auto Scanner::GetNextToken() -> ErrorOr<Token>
 {
     LOX_ASSERT(m_source != nullptr);
 
@@ -63,28 +63,28 @@ ErrorOr<Token> Scanner::GetNextToken()
     case '!': {
         auto result = matchEqual();
         if (result.IsError())
-            return Error{result.GetError()};
+            return Error { result.GetError() };
         return result.GetValue() ? makeToken(TokenType::BANG_EQUAL)
                                  : makeToken(TokenType::BANG);
     }
     case '=': {
         auto result = matchEqual();
         if (result.IsError())
-            return Error{result.GetError()};
+            return Error { result.GetError() };
         return result.GetValue() ? makeToken(TokenType::EQUAL_EQUAL)
                                  : makeToken(TokenType::EQUAL);
     }
     case '>': {
         auto result = matchEqual();
         if (result.IsError())
-            return Error{result.GetError()};
+            return Error { result.GetError() };
         return result.GetValue() ? makeToken(TokenType::GREATER_EQUAL)
                                  : makeToken(TokenType::GREATER);
     }
     case '<': {
         auto result = matchEqual();
         if (result.IsError())
-            return Error{result.GetError()};
+            return Error { result.GetError() };
         return result.GetValue() ? makeToken(TokenType::LESS_EQUAL)
                                  : makeToken(TokenType::LESS);
     }
@@ -95,14 +95,14 @@ ErrorOr<Token> Scanner::GetNextToken()
     }
 }
 
-char Scanner::advance()
+auto Scanner::advance() -> char
 {
     LOX_ASSERT(m_source != nullptr);
     // Update m_current_index and return previous
     return m_source->GetSource().at(m_current_index++);
 }
 
-Token Scanner::makeToken(TokenType type) const
+auto Scanner::makeToken(TokenType type) const -> Token
 {
     LOX_ASSERT(m_source != nullptr);
     return Token {
@@ -113,14 +113,14 @@ Token Scanner::makeToken(TokenType type) const
     };
 }
 
-char Scanner::peek() const
+auto Scanner::peek() const -> char
 {
     LOX_ASSERT(m_source != nullptr);
     LOX_ASSERT(!isAtEnd());
     return m_source->GetSource().at(m_current_index);
 }
 
-void Scanner::consumeWhitespacesAndComments()
+auto Scanner::consumeWhitespacesAndComments() -> void
 {
     LOX_ASSERT(m_source != nullptr);
     while (!isAtEnd()) {
@@ -150,7 +150,7 @@ void Scanner::consumeWhitespacesAndComments()
     }
 }
 
-ErrorOr<bool> Scanner::matchEqual()
+auto Scanner::matchEqual() -> ErrorOr<bool>
 {
     if (isAtEnd()) {
         return Error {
@@ -165,7 +165,7 @@ ErrorOr<bool> Scanner::matchEqual()
     }
 }
 
-ErrorOr<Token> Scanner::string()
+auto Scanner::string() -> ErrorOr<Token>
 {
     if (isAtEnd()) {
         return Error { .type = ErrorType::ScanError,
@@ -178,12 +178,12 @@ ErrorOr<Token> Scanner::string()
     return makeToken(TokenType::STRING);
 }
 
-bool Scanner::isAtEnd() const
+auto Scanner::isAtEnd() const -> bool
 {
     return m_current_index == m_source->GetSource().length();
 }
 
-ErrorOr<Token> Scanner::number()
+auto Scanner::number() -> ErrorOr<Token>
 {
     while (!isAtEnd() && std::isdigit(peek())) {
         advance();
@@ -197,7 +197,7 @@ ErrorOr<Token> Scanner::number()
     return makeToken(TokenType::NUMBER);
 }
 
-ErrorOr<Token> Scanner::identifierOrKeyword()
+auto Scanner::identifierOrKeyword() -> ErrorOr<Token>
 {
     while (!this->isAtEnd() && (std::isalnum(m_source->GetSource().at(m_current_index)) || m_source->GetSource().at(m_current_index) == '_')) {
         advance();
@@ -267,7 +267,7 @@ ErrorOr<Token> Scanner::identifierOrKeyword()
     return makeToken(getTokenType(m_source->GetSource().data() + m_start, m_current_index - m_start));
 }
 
-[[maybe_unused]] char const* GetTokenTypeString(TokenType type)
+[[maybe_unused]] auto GetTokenTypeString(TokenType type) -> char const*
 {
     switch (type) {
     case TokenType::LEFT_PAREN:
@@ -354,7 +354,7 @@ ErrorOr<Token> Scanner::identifierOrKeyword()
     LOX_ASSERT(false);
 }
 
-std::string FormatToken(Token const& token, std::string const* source_code)
+auto FormatToken(Token const& token, std::string const* source_code) -> std::string
 {
     if (token.type == TokenType::IDENTIFIER) {
         auto name = std::string_view(source_code->data() + token.start, token.length);

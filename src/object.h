@@ -13,7 +13,7 @@ enum class ObjectType {
 
 class Object {
 public:
-    [[nodiscard]] ObjectType GetType() const
+    [[nodiscard]] auto GetType() const -> ObjectType
     {
         return type;
     }

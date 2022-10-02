@@ -10,12 +10,12 @@
 class Heap {
 public:
     ~Heap();
-    void Reset();
-    [[nodiscard]] Object* Allocate(ObjectType);
-    [[nodiscard]] StringObject* AllocateStringObject(std::string_view);
+    auto Reset() -> void;
+    [[nodiscard]] auto Allocate(ObjectType) -> Object*;
+    [[nodiscard]] auto AllocateStringObject(std::string_view) -> StringObject*;
 
 private:
-    void insertAtHead(Object* new_node);
+    auto insertAtHead(Object* new_node) -> void;
 
 private:
     Object* m_head = nullptr;

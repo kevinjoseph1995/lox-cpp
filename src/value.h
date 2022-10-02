@@ -23,22 +23,22 @@ struct Value : public std::variant<NilType, double, bool, Object*> {
         : std::variant<NilType, double, bool, Object*>(NilType {})
     {
     }
-    [[nodiscard]] bool IsNil() const;
-    [[nodiscard]] bool IsBool() const;
-    [[nodiscard]] bool IsDouble() const;
-    [[nodiscard]] bool IsObject() const;
+    [[nodiscard]] auto IsNil() const -> bool;
+    [[nodiscard]] auto IsBool() const -> bool;
+    [[nodiscard]] auto IsDouble() const -> bool;
+    [[nodiscard]] auto IsObject() const -> bool;
 
-    [[nodiscard]] bool& AsBool();
-    [[nodiscard]] double& AsDouble();
-    [[nodiscard]] double const& AsDouble() const;
-    [[nodiscard]] Object const& AsObject() const;
-    [[nodiscard]] Object& AsObject();
-    [[nodiscard]] Object* AsObjectPtr();
-    [[nodiscard]] Object const* AsObjectPtr() const;
-    [[nodiscard]] bool const& AsBool() const;
+    [[nodiscard]] auto AsBool() -> bool&;
+    [[nodiscard]] auto AsDouble() -> double&;
+    [[nodiscard]] auto AsDouble() const -> double const&;
+    [[nodiscard]] auto AsObject() const -> Object const&;
+    [[nodiscard]] auto AsObject() -> Object&;
+    [[nodiscard]] auto AsObjectPtr() -> Object*;
+    [[nodiscard]] auto AsObjectPtr() const -> Object const*;
+    [[nodiscard]] auto AsBool() const -> bool const&;
 
-    [[nodiscard]] bool operator==(Value const& other) const;
-    [[nodiscard]] bool operator!=(Value const& other) const;
+    [[nodiscard]] auto operator==(Value const& other) const -> bool;
+    [[nodiscard]] auto operator!=(Value const& other) const -> bool;
 };
 
 template <>

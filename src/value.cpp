@@ -3,75 +3,75 @@
 //
 #include "value.h"
 
-bool Value::IsNil() const
+auto Value::IsNil() const -> bool
 {
     return std::holds_alternative<NilType>(*this);
 }
 
-bool Value::IsDouble() const
+auto Value::IsDouble() const -> bool
 {
     return std::holds_alternative<double>(*this);
 }
 
-bool Value::IsBool() const
+auto Value::IsBool() const -> bool
 {
     return std::holds_alternative<bool>(*this);
 }
 
-bool Value::IsObject() const
+auto Value::IsObject() const -> bool
 {
     return std::holds_alternative<Object*>(*this);
 }
 
-double& Value::AsDouble()
+auto Value::AsDouble() -> double&
 {
     LOX_ASSERT(IsDouble());
     return *std::get_if<double>(this);
 }
 
-bool& Value::AsBool()
+auto Value::AsBool() -> bool&
 {
     LOX_ASSERT(IsBool());
     return *std::get_if<bool>(this);
 }
 
-double const& Value::AsDouble() const
+auto Value::AsDouble() const -> double const&
 {
     LOX_ASSERT(IsDouble());
     return *std::get_if<double>(this);
 }
 
-Object const& Value::AsObject() const
+auto Value::AsObject() const -> Object const&
 {
     LOX_ASSERT(IsObject());
     return *(*std::get_if<Object*>(this));
 }
 
-Object& Value::AsObject()
+auto Value::AsObject() -> Object&
 {
     LOX_ASSERT(IsObject());
     return *(*std::get_if<Object*>(this));
 }
 
-Object* Value::AsObjectPtr()
+auto Value::AsObjectPtr() -> Object*
 {
     LOX_ASSERT(IsObject());
     return (*std::get_if<Object*>(this));
 }
 
-Object const* Value::AsObjectPtr() const
+auto Value::AsObjectPtr() const -> Object const*
 {
     LOX_ASSERT(IsObject());
     return (*std::get_if<Object*>(this));
 }
 
-bool const& Value::AsBool() const
+auto Value::AsBool() const -> bool const&
 {
     LOX_ASSERT(IsBool());
     return *std::get_if<bool>(this);
 }
 
-bool Value::operator==(Value const& other) const
+auto Value::operator==(Value const& other) const -> bool
 {
     if (this->index() != other.index()) {
         return false;
@@ -88,7 +88,7 @@ bool Value::operator==(Value const& other) const
         LOX_ASSERT(false, "Unsupported comparison");
     }
 }
-bool Value::operator!=(Value const& other) const
+auto Value::operator!=(Value const& other) const -> bool
 {
     return !(*this == other);
 }

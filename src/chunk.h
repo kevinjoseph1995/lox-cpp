@@ -53,8 +53,8 @@ struct Chunk {
     void Clear();
 };
 
-[[maybe_unused]] void Disassemble_chunk(Chunk const& chunk);
-[[maybe_unused]] void DumpConstants(Chunk const& chunk);
-uint64_t Disassemble_instruction(Chunk const& chunk, uint64_t offset);
+[[maybe_unused]] auto Disassemble_chunk(Chunk const& chunk) -> void;
+[[maybe_unused]] auto DumpConstants(Chunk const& chunk) -> void;
+[[maybe_unused]] auto Disassemble_instruction(Chunk const& chunk, uint64_t offset) -> uint64_t;
 
 #endif // LOX_CPP_CHUNK_H

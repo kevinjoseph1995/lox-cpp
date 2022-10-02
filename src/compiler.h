@@ -30,7 +30,7 @@ enum  Precedence {
 // clang-format on
 
 class Compiler;
-using ParseFunc = void (Compiler::*)(bool);
+using ParseFunc = auto(Compiler::*)(bool) -> void;
 struct ParseRule {
     ParseFunc prefix;
     ParseFunc infix;
@@ -45,7 +45,7 @@ public:
         : m_heap(heap)
     {
     }
-    [[nodiscard]] ErrorOr<VoidType> CompileSource(Source const& source, Chunk& chunk);
+    [[nodiscard]] auto CompileSource(Source const& source, Chunk& chunk) -> ErrorOr<VoidType>;
 
 private:
     // Compiler state
@@ -80,62 +80,62 @@ private:
     } m_locals_state;
 
 private:
-    friend consteval ParseTable GenerateParseTable();
+    friend consteval auto GenerateParseTable() -> ParseTable;
 
     // Clear state
-    void reset(Source const& source, Chunk& chunk);
+    auto reset(Source const& source, Chunk& chunk) -> void;
 
     // Token processing
-    void advance();
-    bool consume(TokenType type);
+    auto advance() -> void;
+    auto consume(TokenType type) -> bool;
     [[nodiscard]] bool match(TokenType type) const;
 
     // Error reporting
-    void errorAt(Token const& token, std::string_view message);
-    void reportError(int32_t line_number, std::string_view error_string);
-    void synchronizeError();
+    auto errorAt(Token const& token, std::string_view message) -> void;
+    auto reportError(int32_t line_number, std::string_view error_string) -> void;
+    auto synchronizeError() -> void;
 
     // Chunk manipulation functions
-    void emitByte(uint8_t byte);
-    void addConstant(Value constant);
-    void emitIndex(uint16_t index);
-    [[nodiscard]] uint64_t emitJump(OpCode op_code);
-    [[nodiscard]] uint16_t identifierConstant(Token const& token);
-    void patchJump(uint64_t offset);
-    void emitLoop(uint64_t loop_start);
+    auto emitByte(uint8_t byte) -> void;
+    auto addConstant(Value constant) -> void;
+    auto emitIndex(uint16_t index) -> void;
+    [[nodiscard]] auto emitJump(OpCode op_code) -> uint64_t;
+    [[nodiscard]] auto identifierConstant(Token const& token) -> uint16_t;
+    auto patchJump(uint64_t offset) -> void;
+    auto emitLoop(uint64_t loop_start) -> void;
 
     // Statement parsing functions and associated helpers
-    void declaration();
-    void statement();
-    void printStatement();
-    void ifStatement();
-    void whileStatement();
-    void forStatement();
-    void expressionStatement();
-    void block();
-    void beginScope();
-    void endScope();
-    void variableDeclaration();
-    ErrorOr<uint16_t> parseVariable(std::string_view error_message);
-    void declareVariable();
-    void defineVariable(uint16_t constant_pool_index);
-    std::optional<uint32_t> resolveVariable(std::string_view identifier_name);
-    void markInitialized();
+    auto declaration() -> void;
+    auto statement() -> void;
+    auto printStatement() -> void;
+    auto ifStatement() -> void;
+    auto whileStatement() -> void;
+    auto forStatement() -> void;
+    auto expressionStatement() -> void;
+    auto block() -> void;
+    auto beginScope() -> void;
+    auto endScope() -> void;
+    auto variableDeclaration() -> void;
+    auto parseVariable(std::string_view error_message) -> ErrorOr<uint16_t>;
+    auto declareVariable() -> void;
+    auto defineVariable(uint16_t constant_pool_index) -> void;
+    auto resolveVariable(std::string_view identifier_name) -> std::optional<uint32_t>;
+    auto markInitialized() -> void;
 
     // Expressions
-    void parsePrecedence(Precedence level);
+    auto parsePrecedence(Precedence level) -> void;
     // Non-terminals
-    void expression();
-    void binary(bool can_assign);
-    void grouping(bool can_assign);
-    void unary(bool can_assign);
-    void and_(bool can_assign);
-    void or_(bool can_assign);
+    auto expression() -> void;
+    auto binary(bool can_assign) -> void;
+    auto grouping(bool can_assign) -> void;
+    auto unary(bool can_assign) -> void;
+    auto and_(bool can_assign) -> void;
+    auto or_(bool can_assign) -> void;
     // Terminals
-    void literal(bool can_assign);
-    void number(bool can_assign);
-    void variable(bool can_assign);
-    void string(bool can_assign);
+    auto literal(bool can_assign) -> void;
+    auto number(bool can_assign) -> void;
+    auto variable(bool can_assign) -> void;
+    auto string(bool can_assign) -> void;
 };
 
 #endif // LOX_CPP_COMPILER_H

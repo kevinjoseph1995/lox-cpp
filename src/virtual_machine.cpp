@@ -8,12 +8,12 @@
 
 //#define DEBUG_TRACE_EXECUTION
 
-static bool IsFalsy(Value const& value)
+static auto IsFalsy(Value const& value) -> bool
 {
     return value.IsNil() || (value.IsBool() && !value.AsBool());
 }
 
-ErrorOr<VoidType> VirtualMachine::Interpret(Source const& source)
+auto VirtualMachine::Interpret(Source const& source) -> ErrorOr<VoidType>
 {
     auto previous_pool_size = m_current_chunk.constant_pool.size();
     auto previous_lines_size = m_current_chunk.lines.size();
@@ -29,7 +29,7 @@ ErrorOr<VoidType> VirtualMachine::Interpret(Source const& source)
     return this->run();
 }
 
-ErrorOr<VoidType> VirtualMachine::run()
+auto VirtualMachine::run() -> ErrorOr<VoidType>
 {
     while (true) {
         if (isAtEnd()) {
@@ -209,18 +209,18 @@ ErrorOr<VoidType> VirtualMachine::run()
     }
 }
 
-uint8_t VirtualMachine::readByte()
+auto VirtualMachine::readByte() -> uint8_t
 {
     LOX_ASSERT(m_instruction_pointer < m_current_chunk.byte_code.size());
     return m_current_chunk.byte_code.at(m_instruction_pointer++);
 }
 
-Value VirtualMachine::readConstant()
+auto VirtualMachine::readConstant() -> Value
 {
     return m_current_chunk.constant_pool.at(readIndex());
 }
 
-Value VirtualMachine::popStack()
+auto VirtualMachine::popStack() -> Value
 {
     LOX_ASSERT(!m_value_stack.empty());
     auto value = m_value_stack.at(m_value_stack.size() - 1);
@@ -228,13 +228,13 @@ Value VirtualMachine::popStack()
     return value;
 }
 
-Value const& VirtualMachine::peekStack(uint32_t index_from_top)
+auto VirtualMachine::peekStack(uint32_t index_from_top) -> Value const&
 {
     LOX_ASSERT(m_value_stack.size() > index_from_top);
     return m_value_stack.at(m_value_stack.size() - 1 - index_from_top);
 }
 
-ErrorOr<VoidType> VirtualMachine::binaryOperation(OpCode op)
+auto VirtualMachine::binaryOperation(OpCode op) -> ErrorOr<VoidType>
 {
     auto getOperatorString = [](auto _op) {
         using decayed_type = typename std::decay<decltype(_op)>::type;
@@ -336,19 +336,19 @@ VirtualMachine::VirtualMachine(std::string* external_stream)
 {
     m_compiler = std::make_unique<Compiler>(m_heap);
 }
-bool VirtualMachine::isAtEnd()
+auto VirtualMachine::isAtEnd() -> bool
 {
     return m_instruction_pointer == m_current_chunk.byte_code.size();
 }
 
-Error VirtualMachine::runtimeError(std::string error_message)
+auto VirtualMachine::runtimeError(std::string error_message) -> Error
 {
     m_instruction_pointer = m_current_chunk.byte_code.size();
     return Error { .type = ErrorType::RuntimeError,
         .error_message = std::move(error_message) };
 }
 
-uint16_t VirtualMachine::readIndex()
+auto VirtualMachine::readIndex() -> uint16_t
 {
     auto lsb = readByte();
     auto hsb = static_cast<uint16_t>(readByte() << 8);
