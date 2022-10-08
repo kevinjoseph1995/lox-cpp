@@ -5,6 +5,7 @@
 #ifndef LOX_CPP_VIRTUAL_MACHINE_H
 #define LOX_CPP_VIRTUAL_MACHINE_H
 #include <cstdint>
+#include <memory>
 #include <stack>
 #include <unordered_map>
 

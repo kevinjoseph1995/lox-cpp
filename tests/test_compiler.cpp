@@ -7,6 +7,7 @@
 #include "chunk.h"
 #include "compiler.h"
 #include "fmt/core.h"
+#include "value_formatter.h"
 
 class CompilerTest : public ::testing::Test {
 protected:

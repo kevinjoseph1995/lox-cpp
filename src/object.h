@@ -5,10 +5,12 @@
 #ifndef LOX_CPP_OBJECT_H
 #define LOX_CPP_OBJECT_H
 
+#include "chunk.h"
 #include <string>
 
 enum class ObjectType {
     STRING,
+    FUNCTION
 };
 
 class Object {
@@ -31,6 +33,15 @@ struct StringObject : public Object {
         type = ObjectType::STRING;
     }
     std::string data;
+};
+
+struct FunctionObject : public Object {
+    FunctionObject() {
+        type = ObjectType::FUNCTION;
+    }
+    std::string function_name;
+    uint32_t arity;
+    Chunk chunk;
 };
 
 #endif // LOX_CPP_OBJECT_H

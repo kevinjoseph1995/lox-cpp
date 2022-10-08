@@ -2,6 +2,7 @@
 // Created by kevin on 9/15/22.
 //
 #include "value.h"
+#include "object.h"
 
 auto Value::IsNil() const -> bool
 {

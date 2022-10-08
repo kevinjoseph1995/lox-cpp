@@ -22,6 +22,7 @@ cc_library(
             "source.h",
             "value.h",
             "virtual_machine.h",
+	    "value_formatter.h"
     ],
     linkstatic = True,
     includes = ["."],

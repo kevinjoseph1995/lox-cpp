@@ -13,6 +13,7 @@ public:
     auto Reset() -> void;
     [[nodiscard]] auto Allocate(ObjectType) -> Object*;
     [[nodiscard]] auto AllocateStringObject(std::string_view) -> StringObject*;
+    [[nodiscard]] auto AllocateFunctionObject(std::string_view function_name, uint32_t arity) -> FunctionObject*;
 
 private:
     auto insertAtHead(Object* new_node) -> void;

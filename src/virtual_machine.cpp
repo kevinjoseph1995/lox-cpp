@@ -4,6 +4,7 @@
 
 #include "virtual_machine.h"
 #include "error.h"
+#include "value_formatter.h"
 #include <fmt/core.h>
 
 //#define DEBUG_TRACE_EXECUTION
