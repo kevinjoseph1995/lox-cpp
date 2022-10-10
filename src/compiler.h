@@ -4,6 +4,7 @@
 
 #ifndef LOX_CPP_COMPILER_H
 #define LOX_CPP_COMPILER_H
+#include <array>
 #include <cstdint>
 #include <optional>
 
