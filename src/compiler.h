@@ -104,6 +104,7 @@ private:
     [[nodiscard]] auto identifierConstant(Token const& token) -> uint16_t;
     auto patchJump(uint64_t offset) -> void;
     auto emitLoop(uint64_t loop_start) -> void;
+    auto currentChunk() -> Chunk*;
 
     // Statement parsing functions and associated helpers
     auto declaration() -> void;

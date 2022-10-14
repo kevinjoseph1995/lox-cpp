@@ -146,18 +146,18 @@ auto Compiler::advance() -> void
 
 auto Compiler::emitByte(uint8_t byte) -> void
 {
-    LOX_ASSERT(m_current_chunk != nullptr);
-    m_current_chunk->byte_code.push_back(byte);
+    LOX_ASSERT(currentChunk() != nullptr);
+    currentChunk()->byte_code.push_back(byte);
 }
 
 auto Compiler::addConstant(Value constant) -> void
 {
-    LOX_ASSERT(m_current_chunk != nullptr);
-    LOX_ASSERT(m_current_chunk->constant_pool.size() < MAX_NUMBER_CONSTANTS, "Exceeded the maximum number of supported constants");
+    LOX_ASSERT(currentChunk() != nullptr);
+    LOX_ASSERT(currentChunk()->constant_pool.size() < MAX_NUMBER_CONSTANTS, "Exceeded the maximum number of supported constants");
 
-    m_current_chunk->constant_pool.push_back(constant);
+    currentChunk()->constant_pool.push_back(constant);
     emitByte(OP_CONSTANT);
-    emitIndex(static_cast<uint16_t>(m_current_chunk->constant_pool.size() - 1));
+    emitIndex(static_cast<uint16_t>(currentChunk()->constant_pool.size() - 1));
 }
 
 auto Compiler::parsePrecedence(Precedence level) -> void
@@ -465,9 +465,9 @@ auto Compiler::identifierConstant(const Token& token) -> uint16_t
 {
     LOX_ASSERT(token.type == TokenType::IDENTIFIER);
     auto string_object_ptr = m_heap.AllocateStringObject(m_source->GetSource().substr(token.start, token.length));
-    m_current_chunk->constant_pool.push_back(string_object_ptr);
-    LOX_ASSERT(m_current_chunk->constant_pool.size() <= MAX_NUMBER_CONSTANTS);
-    return m_current_chunk->constant_pool.size() - 1;
+    currentChunk()->constant_pool.push_back(string_object_ptr);
+    LOX_ASSERT(currentChunk()->constant_pool.size() <= MAX_NUMBER_CONSTANTS);
+    return currentChunk()->constant_pool.size() - 1;
 }
 
 auto Compiler::emitIndex(uint16_t index) -> void
@@ -630,7 +630,7 @@ auto Compiler::forStatement() -> void
     }
     /////////////////////////////////////////////////////////////////////////
     //////////////////////////// Condition clause ///////////////////////////
-    auto loop_start = m_current_chunk->byte_code.size();
+    auto loop_start = currentChunk()->byte_code.size();
 
     std::optional<uint64_t> exit_jump;
     if (!match(TokenType::SEMICOLON)) {
@@ -645,7 +645,7 @@ auto Compiler::forStatement() -> void
     //////////////////////////// Increment clause ///////////////////////////
     if (!match(TokenType::RIGHT_PAREN)) {
         auto for_body_jump = emitJump(OP_JUMP);
-        auto increment_start = m_current_chunk->byte_code.size();
+        auto increment_start = currentChunk()->byte_code.size();
         expression();
         emitByte(OP_POP);
         emitLoop(loop_start); // Loop back to the start of the condition
@@ -669,7 +669,7 @@ auto Compiler::forStatement() -> void
 
 auto Compiler::whileStatement() -> void
 {
-    auto loop_start = m_current_chunk->byte_code.size();
+    auto loop_start = currentChunk()->byte_code.size();
     auto _ = consume(TokenType::WHILE);
     LOX_ASSERT(_);
     if (!consume(TokenType::LEFT_PAREN)) {
@@ -690,7 +690,7 @@ auto Compiler::whileStatement() -> void
 auto Compiler::emitLoop(uint64_t loop_start) -> void
 {
     emitByte(OP_LOOP);
-    auto offset = m_current_chunk->byte_code.size() - loop_start + 2;
+    auto offset = currentChunk()->byte_code.size() - loop_start + 2;
     LOX_ASSERT(offset < MAX_JUMP_OFFSET, "Loop body too large");
     emitIndex(offset);
 }
@@ -726,19 +726,19 @@ auto Compiler::emitJump(OpCode op_code) -> uint64_t
     LOX_ASSERT(op_code == OP_JUMP_IF_FALSE || op_code == OP_JUMP);
     emitByte(op_code);
     emitIndex(0xFFFF);
-    return m_current_chunk->byte_code.size() - 2;
+    return currentChunk()->byte_code.size() - 2;
 }
 
 auto Compiler::patchJump(uint64_t offset) -> void
 {
-    LOX_ASSERT(offset + 2 <= m_current_chunk->byte_code.size());
-    auto jump = m_current_chunk->byte_code.size() - offset - 2;
+    LOX_ASSERT(offset + 2 <= currentChunk()->byte_code.size());
+    auto jump = currentChunk()->byte_code.size() - offset - 2;
     if (jump > MAX_JUMP_OFFSET) {
         reportError(m_parser.previous_token->line_number, fmt::format("Jump offset:{} is larger than supported limit: {}", jump, MAX_JUMP_OFFSET));
         return;
     }
-    m_current_chunk->byte_code[offset] = static_cast<uint8_t>(0x00FFU & jump);
-    m_current_chunk->byte_code[offset + 1] = static_cast<uint8_t>((0xFF00U & jump) >> 8U);
+    currentChunk()->byte_code[offset] = static_cast<uint8_t>(0x00FFU & jump);
+    currentChunk()->byte_code[offset + 1] = static_cast<uint8_t>((0xFF00U & jump) >> 8U);
 }
 
 auto Compiler::and_(bool can_assign) -> void
@@ -765,4 +765,8 @@ auto Compiler::or_(bool can_assign) -> void
     emitByte(OP_POP); // To pop the LHS value of the stack as we know it's "false"ish
     parsePrecedence(Precedence::PREC_OR); // Consume all the tokens according to the current precedence level emitting op-codes for the RHS expression
     patchJump(true_destination);
+}
+auto Compiler::currentChunk() -> Chunk*
+{
+    return m_current_chunk;
 }

@@ -36,7 +36,8 @@ struct StringObject : public Object {
 };
 
 struct FunctionObject : public Object {
-    FunctionObject() {
+    FunctionObject()
+    {
         type = ObjectType::FUNCTION;
     }
     std::string function_name;
