@@ -37,32 +37,30 @@ struct Error {
 struct VoidType { };
 
 template <typename T>
-struct ErrorOr : public std::variant<Error, T> {
-    ErrorOr(Error&& error)
-        : std::variant<Error, T>(std::forward<Error>(error))
-    {
-    }
-    ErrorOr(T&& value)
-        : std::variant<Error, T>(std::forward<T>(value))
-    {
-    }
-
+struct ErrorOr {
+    ErrorOr(Error const& error) : m_variant(error){}
+    ErrorOr(Error && error) : m_variant(std::move(error)){}
+    ErrorOr(T const& value) : m_variant(value){}
+    ErrorOr(T && value) : m_variant(std::move(value)){}
+    ErrorOr() = delete;
     ~ErrorOr() = default;
 
-    [[nodiscard]] auto IsError() const -> bool { return std::holds_alternative<Error>(*this); }
-    [[nodiscard]] auto IsValue() const -> bool { return std::holds_alternative<T>(*this); }
+    [[nodiscard]] auto IsError() const -> bool { return std::holds_alternative<Error>(m_variant); }
+    [[nodiscard]] auto IsValue() const -> bool { return std::holds_alternative<T>(m_variant); }
     [[nodiscard]] auto GetError() const -> Error const&
     {
-        auto ptr = std::get_if<Error>(this);
+        auto ptr = std::get_if<Error>(&m_variant);
         LOX_ASSERT(ptr != nullptr, "Invalid ErrorOr access");
         return *ptr;
     }
     [[nodiscard]] auto GetValue() const -> T const&
     {
-        auto ptr = std::get_if<T>(this);
+        auto ptr = std::get_if<T>(&m_variant);
         LOX_ASSERT(ptr != nullptr, "Invalid ErrorOr access");
         return *ptr;
     }
+private:
+    std::variant<Error, T> m_variant;
 };
 
 #endif // LOX_CPP_ERROR_H
