@@ -240,3 +240,38 @@ TEST_F(VMTest, ForStatement)
     static constexpr auto EXPECTED_OUTPUT = "0\n1\n2\n";
     ASSERT_EQ(m_vm_output_stream, EXPECTED_OUTPUT);
 }
+
+TEST_F(VMTest, Accumulation)
+{
+    m_source.AppendFromConsole(R"(
+{
+    var sum = 0;
+    for(var i = 1; i <= 3; i = i + 1){
+        sum = sum + i;
+    }
+    print sum;
+}
+)");
+    ASSERT_TRUE(m_vm->Interpret(m_source).IsValue());
+    static constexpr auto EXPECTED_OUTPUT = "6\n";
+    ASSERT_EQ(m_vm_output_stream, EXPECTED_OUTPUT);
+}
+
+TEST_F(VMTest, AccumulationGlobal)
+{
+    m_source.AppendFromConsole(R"(
+var sum = 0;
+{
+    for(var i = 1; i <= 3; i = i + 1){
+        sum = sum + i;
+    }
+    print sum;
+}
+print sum;
+sum = 1;
+print sum;
+)");
+    ASSERT_TRUE(m_vm->Interpret(m_source).IsValue());
+    static constexpr auto EXPECTED_OUTPUT = "6\n6\n1\n";
+    ASSERT_EQ(m_vm_output_stream, EXPECTED_OUTPUT);
+}
