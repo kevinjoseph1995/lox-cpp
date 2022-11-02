@@ -24,6 +24,7 @@ public:
     [[nodiscard]] ErrorOr<VoidType> Interpret(Source const& source_code);
 
 private:
+    [[nodiscard]] auto currentChunk() -> Chunk const&;
     [[nodiscard]] auto isAtEnd() -> bool;
     [[nodiscard]] auto run() -> ErrorOr<VoidType>;
     [[nodiscard]] auto readByte() -> uint8_t;
@@ -35,8 +36,13 @@ private:
     [[nodiscard]] auto runtimeError(std::string error_message) -> Error;
 
 private:
-    Chunk m_current_chunk {};
-    uint64_t m_instruction_pointer = 0;
+    struct CallFrame {
+        FunctionObject* function = nullptr;
+        uint64_t instruction_pointer = 0;
+        uint64_t slot = 0;
+    };
+    std::vector<CallFrame> m_frames;
+
     std::unique_ptr<Compiler> m_compiler = nullptr;
     std::string* const m_external_stream = nullptr;
 

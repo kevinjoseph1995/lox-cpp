@@ -42,22 +42,29 @@ using ParseTable = std::array<ParseRule, static_cast<int>(TokenType::NUMBER_OF_T
 class Compiler {
 public:
     Compiler() = delete;
-    Compiler(Heap& heap)
-        : m_heap(heap)
-    {
-    }
-    [[nodiscard]] auto CompileSource(Source const& source, Chunk& chunk) -> ErrorOr<VoidType>;
+    Compiler(Heap& heap);
+    [[nodiscard]] auto CompileSource(Source const& source) -> ErrorOr<FunctionObject*>;
 
 private:
     // Compiler state
+    enum class Context {
+        SCRIPT,
+        FUNCTION
+    };
     Scanner m_scanner;
     Source const* m_source = nullptr;
-    Chunk* m_current_chunk = nullptr;
+    FunctionObject* m_function = nullptr;
+    Context m_context = Context::SCRIPT;
     Heap& m_heap;
 
     struct ParserState {
         std::optional<Token> previous_token;
         std::optional<Token> current_token;
+        auto Reset() -> void
+        {
+            previous_token.reset();
+            current_token.reset();
+        }
     } m_parser {};
 
     struct ErrorState {
@@ -76,6 +83,11 @@ private:
             {
             }
         };
+        auto Reset() -> void
+        {
+            current_scope_depth = 0;
+            locals.clear();
+        }
         int32_t current_scope_depth = 0;
         std::vector<Local> locals;
     } m_locals_state;
@@ -84,7 +96,7 @@ private:
     friend consteval auto GenerateParseTable() -> ParseTable;
 
     // Clear state
-    auto reset(Source const& source, Chunk& chunk) -> void;
+    auto reset(Source const& source) -> void;
 
     // Token processing
     auto advance() -> void;

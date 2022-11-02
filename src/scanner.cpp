@@ -128,22 +128,25 @@ auto Scanner::consumeWhitespacesAndComments() -> void
         switch (c) {
         case ' ':
         case '\r':
-
-        case '\t':
+        case '\t': {
             advance();
             break;
-        case '\n':
+        }
+        case '\n': {
             ++m_line;
             advance();
             break;
-        case '/':
+        }
+        case '/': {
             if (m_current_index + 1 < m_source->GetSource().length() && m_source->GetSource().at(m_current_index + 1) == '/') {
                 // Skip a comment line
                 while (!isAtEnd() && peek() != '\n') {
                     advance();
                 }
+                ++m_line;
+                break;
             }
-            return;
+        }
         default:
             return;
         }

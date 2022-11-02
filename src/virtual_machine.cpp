@@ -16,17 +16,14 @@ static auto IsFalsy(Value const& value) -> bool
 
 auto VirtualMachine::Interpret(Source const& source) -> ErrorOr<VoidType>
 {
-    auto previous_pool_size = m_current_chunk.constant_pool.size();
-    auto previous_lines_size = m_current_chunk.lines.size();
-    auto byte_code__chunk_size = m_current_chunk.byte_code.size();
-    auto compilation_status = m_compiler->CompileSource(source, m_current_chunk);
-    if (compilation_status.IsError()) {
-        // Restore chunk to the state it was before we started to process the new source as we encountered an error.
-        m_current_chunk.constant_pool.resize(previous_pool_size);
-        m_current_chunk.lines.resize(previous_lines_size);
-        m_current_chunk.byte_code.resize(byte_code__chunk_size);
-        return compilation_status;
+
+    auto compiled_function_result = m_compiler->CompileSource(source);
+    if (compiled_function_result.IsError()) {
+        return compiled_function_result.GetError();
     }
+
+    m_frames.push_back({.function = compiled_function_result.GetValue(),.instruction_pointer = 0,.slot = 0});
+
     return this->run();
 }
 
@@ -38,13 +35,13 @@ auto VirtualMachine::run() -> ErrorOr<VoidType>
             return VoidType {};
         }
 #ifdef DEBUG_TRACE_EXECUTION
-        Disassemble_instruction(m_current_chunk, m_instruction_pointer);
+        Disassemble_instruction(currentChunk(), m_frames.rbegin()->instruction_pointer);
 #endif
 
         auto const instruction = static_cast<OpCode>(readByte());
         switch (instruction) {
         case OP_RETURN: {
-            LOX_ASSERT(false);
+            return VoidType{};
         }
         case OP_CONSTANT: {
             m_value_stack.push_back(readConstant());
@@ -53,7 +50,7 @@ auto VirtualMachine::run() -> ErrorOr<VoidType>
         case OP_NEGATE: {
             Value value = popStack();
             if (!value.IsDouble()) {
-                return runtimeError(fmt::format("Cannot negate non-number type, line number:{}", m_current_chunk.lines[m_instruction_pointer]));
+                return runtimeError(fmt::format("Cannot negate non-number type, line number:{}", currentChunk().lines[m_frames.rbegin()->instruction_pointer]));
             }
             m_value_stack.emplace_back(-value.AsDouble());
             break;
@@ -156,14 +153,14 @@ auto VirtualMachine::run() -> ErrorOr<VoidType>
         }
         case OP_DEFINE_GLOBAL: {
             // Need to get the variable name from the constant pool
-            auto identifier_name_value = m_current_chunk.constant_pool.at(readIndex());
+            auto identifier_name_value = currentChunk().constant_pool.at(readIndex());
             LOX_ASSERT(identifier_name_value.IsObject() && identifier_name_value.AsObjectPtr()->GetType() == ObjectType::STRING);
             auto string_object = static_cast<StringObject*>(identifier_name_value.AsObjectPtr());
             m_globals[string_object->data] = popStack();
             break;
         }
         case OP_GET_GLOBAL: {
-            auto identifier_name_value = m_current_chunk.constant_pool.at(readIndex());
+            auto identifier_name_value = currentChunk().constant_pool.at(readIndex());
             LOX_ASSERT(identifier_name_value.IsObject() && identifier_name_value.AsObjectPtr()->GetType() == ObjectType::STRING);
             auto identifier_string_object = static_cast<StringObject*>(identifier_name_value.AsObjectPtr());
             if (m_globals.count(identifier_string_object->data) == 0) {
@@ -173,7 +170,7 @@ auto VirtualMachine::run() -> ErrorOr<VoidType>
             break;
         }
         case OP_SET_GLOBAL: {
-            auto identifier_name_value = m_current_chunk.constant_pool.at(readIndex());
+            auto identifier_name_value = currentChunk().constant_pool.at(readIndex());
             LOX_ASSERT(identifier_name_value.IsObject() && identifier_name_value.AsObjectPtr()->GetType() == ObjectType::STRING);
             auto identifier_string_object = static_cast<StringObject*>(identifier_name_value.AsObjectPtr());
             if (m_globals.count(identifier_string_object->data) == 0) {
@@ -183,27 +180,29 @@ auto VirtualMachine::run() -> ErrorOr<VoidType>
             break;
         }
         case OP_GET_LOCAL: {
-            m_value_stack.push_back(m_value_stack.at(readIndex()));
+            auto const slotIndex = m_frames.rbegin()->slot + readIndex();
+            m_value_stack.push_back(m_value_stack.at(slotIndex));
             break;
         }
         case OP_SET_LOCAL: {
-            m_value_stack[readIndex()] = peekStack(0);
+            auto const slotIndex = m_frames.rbegin()->slot + readIndex();
+            m_value_stack.at(slotIndex) = peekStack(0);
             break;
         }
         case OP_JUMP_IF_FALSE: {
             auto condition_value = peekStack(0); // Not popping it off yet
             auto offset = readIndex();
             if (IsFalsy(condition_value)) {
-                m_instruction_pointer += offset;
+                m_frames.rbegin()->instruction_pointer += offset;
             }
             break;
         }
         case OP_JUMP: {
-            m_instruction_pointer += readIndex();
+            m_frames.rbegin()->instruction_pointer += readIndex();
             break;
         }
         case OP_LOOP: {
-            m_instruction_pointer -= readIndex();
+            m_frames.rbegin()->instruction_pointer -= readIndex();
             break;
         }
         }
@@ -212,13 +211,13 @@ auto VirtualMachine::run() -> ErrorOr<VoidType>
 
 auto VirtualMachine::readByte() -> uint8_t
 {
-    LOX_ASSERT(m_instruction_pointer < m_current_chunk.byte_code.size());
-    return m_current_chunk.byte_code.at(m_instruction_pointer++);
+    LOX_ASSERT(m_frames.rbegin()->instruction_pointer < currentChunk().byte_code.size());
+    return currentChunk().byte_code.at(m_frames.rbegin()->instruction_pointer++);
 }
 
 auto VirtualMachine::readConstant() -> Value
 {
-    return m_current_chunk.constant_pool.at(readIndex());
+    return currentChunk().constant_pool.at(readIndex());
 }
 
 auto VirtualMachine::popStack() -> Value
@@ -339,12 +338,12 @@ VirtualMachine::VirtualMachine(std::string* external_stream)
 }
 auto VirtualMachine::isAtEnd() -> bool
 {
-    return m_instruction_pointer == m_current_chunk.byte_code.size();
+    return m_frames.rbegin()->instruction_pointer == currentChunk().byte_code.size();
 }
 
 auto VirtualMachine::runtimeError(std::string error_message) -> Error
 {
-    m_instruction_pointer = m_current_chunk.byte_code.size();
+    m_frames.rbegin()->instruction_pointer = currentChunk().byte_code.size();
     return Error { .type = ErrorType::RuntimeError,
         .error_message = std::move(error_message) };
 }
@@ -354,4 +353,8 @@ auto VirtualMachine::readIndex() -> uint16_t
     auto lsb = readByte();
     auto hsb = static_cast<uint16_t>(readByte() << 8);
     return static_cast<uint16_t>(hsb + lsb);
+}
+auto VirtualMachine::currentChunk() -> Chunk const&
+{
+    return m_frames.rbegin()->function->chunk;
 }

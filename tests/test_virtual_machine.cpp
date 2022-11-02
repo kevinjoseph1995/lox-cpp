@@ -21,9 +21,9 @@ protected:
 TEST_F(VMTest, ExpressionTest)
 {
     m_source.AppendFromConsole(R"(
-print 8 * 1 + 2 + 3 + 3 * 4 + (2 + 2);
-print 1 / 2;
-print "Hello" + "World";
+  print 8 * 1 + 2 + 3 + 3 * 4 + (2 + 2);
+  print 1 / 2;
+  print "Hello" + "World";
 )");
     static constexpr auto OUTPUT = "29\n"
                                    "0.5\n"
@@ -35,8 +35,8 @@ print "Hello" + "World";
 TEST_F(VMTest, GlobalVariableDeclaration)
 {
     m_source.AppendFromConsole(R"(
-var a =  8 * 1 + 2 + 3 + 3 * 4 + (2 + 2);
-print a;
+  var a =  8 * 1 + 2 + 3 + 3 * 4 + (2 + 2);
+  print a;
 )");
     static constexpr auto EXPECTED_OUTPUT = "29\n";
     ASSERT_TRUE(m_vm->Interpret(m_source).IsValue());
@@ -46,10 +46,10 @@ print a;
 TEST_F(VMTest, GlobalVariableReAssignment)
 {
     m_source.AppendFromConsole(R"(
-var a =  8 * 1 + 2 + 3 + 3 * 4 + (2 + 2);
-print a;
-a = "HelloWorld";
-print a;
+  var a =  8 * 1 + 2 + 3 + 3 * 4 + (2 + 2);
+  print a;
+  a = "HelloWorld";
+  print a;
 )");
     static constexpr auto EXPECTED_OUTPUT = "29\n"
                                             "HelloWorld\n";
@@ -60,7 +60,7 @@ print a;
 TEST_F(VMTest, TestMixedConcatenation)
 {
     m_source.AppendFromConsole(R"(
-var a =  1 + "Hello World";
+  var a =  1 + "Hello World";
 )");
     ASSERT_FALSE(m_vm->Interpret(m_source).IsValue());
 }
@@ -68,10 +68,10 @@ var a =  1 + "Hello World";
 TEST_F(VMTest, TestStringComparison)
 {
     m_source.AppendFromConsole(R"(
-var a =  "Hello" +  "World";
-var b = "HelloWorld";
-print a == b;
-print "FooBar" == a;
+  var a =  "Hello" +  "World";
+  var b = "HelloWorld";
+  print a == b;
+  print "FooBar" == a;
 )");
     ASSERT_TRUE(m_vm->Interpret(m_source).IsValue());
     static constexpr auto EXPECTED_OUTPUT = "true\n"
@@ -82,9 +82,9 @@ print "FooBar" == a;
 TEST_F(VMTest, TestNumberComparison)
 {
     m_source.AppendFromConsole(R"(
-print 1 < 2;
-print 1 == 1;
-print 1.0 == 1.1;
+  print 1 < 2;
+  print 1 == 1;
+  print 1.0 == 1.1;
 )");
     ASSERT_TRUE(m_vm->Interpret(m_source).IsValue());
     static constexpr auto EXPECTED_OUTPUT = "true\n"
@@ -96,8 +96,8 @@ print 1.0 == 1.1;
 TEST_F(VMTest, TestDefaultValue)
 {
     m_source.AppendFromConsole(R"(
-var a;
-print a;
+  var a;
+  print a;
 )");
     ASSERT_TRUE(m_vm->Interpret(m_source).IsValue());
     static constexpr auto EXPECTED_OUTPUT = "Nil\n";
@@ -108,13 +108,13 @@ TEST_F(VMTest, TestLocalVaraibles1)
 {
     m_source.AppendFromConsole(R"(
 {
-    var abcd = 10;
-    {
-        var abcd;
-        print abcd;
-    }
-    print abcd;
-}
+     var abcd = 10;
+     {
+         var abcd;
+         print abcd;
+     }
+     print abcd;
+ }
 )");
     ASSERT_TRUE(m_vm->Interpret(m_source).IsValue());
     static constexpr auto EXPECTED_OUTPUT = "Nil\n10\n";
@@ -125,11 +125,11 @@ TEST_F(VMTest, TestLocalVaraibles2)
 {
     m_source.AppendFromConsole(R"(
 {
-    var abcd = 10;
-    {
-        var abcd = abcd; // Cannot refer to same variable in the initializer
-    }
-}
+     var abcd = 10;
+     {
+         var abcd = abcd; // Cannot refer to same variable in the initializer
+     }
+ }
 )");
     ASSERT_TRUE(m_vm->Interpret(m_source).IsError());
 }
@@ -138,11 +138,11 @@ TEST_F(VMTest, IfStatement)
 {
     m_source.AppendFromConsole(R"(
 {
-    if(false) {
-        print "If-branch";
-    }
-    print "Jumped here";
-}
+     if(false) {
+         print "If-branch";
+     }
+     print "Jumped here";
+ }
 )");
     ASSERT_TRUE(m_vm->Interpret(m_source).IsValue());
     static constexpr auto EXPECTED_OUTPUT = "Jumped here\n";
@@ -153,13 +153,13 @@ TEST_F(VMTest, IfStatement2)
 {
     m_source.AppendFromConsole(R"(
 {
-    if(false) {
-        print "If-branch";
-    } else{
-        print "Else-branch";
-    }
-    print "Jumped here";
-}
+     if(false) {
+         print "If-branch";
+     } else{
+         print "Else-branch";
+     }
+     print "Jumped here";
+ }
 )");
     ASSERT_TRUE(m_vm->Interpret(m_source).IsValue());
     static constexpr auto EXPECTED_OUTPUT = "Else-branch\nJumped here\n";
@@ -170,8 +170,8 @@ TEST_F(VMTest, LogicalOperatorsAnd)
 {
     m_source.AppendFromConsole(R"(
 {
-    print false and true;
-}
+     print false and true;
+ }
 )");
     ASSERT_TRUE(m_vm->Interpret(m_source).IsValue());
     static constexpr auto EXPECTED_OUTPUT = "false\n";
@@ -182,8 +182,8 @@ TEST_F(VMTest, LogicalOperatorsOr)
 {
     m_source.AppendFromConsole(R"(
 {
-    print false or true or false;
-}
+     print false or true or false;
+ }
 )");
     ASSERT_TRUE(m_vm->Interpret(m_source).IsValue());
     static constexpr auto EXPECTED_OUTPUT = "true\n";
@@ -194,13 +194,13 @@ TEST_F(VMTest, LogicalOperatorsOr2)
 {
     m_source.AppendFromConsole(R"(
 {
-    if((1 + 2 * 4) < 0 or true or false) {
-        print "True branch";
-    } else {
-        print "False branch";
-    }
+     if((1 + 2 * 4) < 0 or true or false) {
+         print "True branch";
+     } else {
+         print "False branch";
+     }
 
-}
+ }
 )");
     ASSERT_TRUE(m_vm->Interpret(m_source).IsValue());
     static constexpr auto EXPECTED_OUTPUT = "True branch\n";
@@ -211,16 +211,16 @@ TEST_F(VMTest, WhileStatement)
 {
     m_source.AppendFromConsole(R"(
 {
-    var a  = 0;
-    while(a < 3) {
-        print a;
-        a = a + 1;
-    }
-    while(a >= 0) {
-        print a;
-        a = a - 1;
-    }
-}
+     var a  = 0;
+     while(a < 3) {
+         print a;
+         a = a + 1;
+     }
+     while(a >= 0) {
+         print a;
+         a = a - 1;
+     }
+ }
 )");
     ASSERT_TRUE(m_vm->Interpret(m_source).IsValue());
     static constexpr auto EXPECTED_OUTPUT = "0\n1\n2\n3\n2\n1\n0\n";
@@ -231,10 +231,10 @@ TEST_F(VMTest, ForStatement)
 {
     m_source.AppendFromConsole(R"(
 {
-    for(var i = 0; i < 3; i = i + 1){
-        print i;
-    }
-}
+     for(var i = 0; i < 3; i = i + 1){
+         print i;
+     }
+ }
 )");
     ASSERT_TRUE(m_vm->Interpret(m_source).IsValue());
     static constexpr auto EXPECTED_OUTPUT = "0\n1\n2\n";
@@ -245,12 +245,12 @@ TEST_F(VMTest, Accumulation)
 {
     m_source.AppendFromConsole(R"(
 {
-    var sum = 0;
-    for(var i = 1; i <= 3; i = i + 1){
-        sum = sum + i;
-    }
-    print sum;
-}
+     var sum = 0;
+     for(var i = 1; i <= 3; i = i + 1){
+         sum = sum + i;
+     }
+     print sum;
+ }
 )");
     ASSERT_TRUE(m_vm->Interpret(m_source).IsValue());
     static constexpr auto EXPECTED_OUTPUT = "6\n";
@@ -260,18 +260,31 @@ TEST_F(VMTest, Accumulation)
 TEST_F(VMTest, AccumulationGlobal)
 {
     m_source.AppendFromConsole(R"(
-var sum = 0;
+  var sum = 0;
 {
-    for(var i = 1; i <= 3; i = i + 1){
-        sum = sum + i;
-    }
-    print sum;
-}
-print sum;
-sum = 1;
-print sum;
+     for(var i = 1; i <= 3; i = i + 1){
+         sum = sum + i;
+     }
+     print sum;
+ }
+  print sum;
+  sum = 1;
+  print sum;
 )");
     ASSERT_TRUE(m_vm->Interpret(m_source).IsValue());
     static constexpr auto EXPECTED_OUTPUT = "6\n6\n1\n";
     ASSERT_EQ(m_vm_output_stream, EXPECTED_OUTPUT);
+}
+
+TEST_F(VMTest, ForStatementScopeLeak)
+{
+    m_source.AppendFromConsole(R"(
+        for(var i = 0; i < 3; i = i + 1){
+            print i;
+        }
+        print i;
+)");
+    auto result = m_vm->Interpret(m_source);
+    ASSERT_TRUE(result.IsError());
+    ASSERT_TRUE(result.GetError().type == ErrorType::RuntimeError);
 }

@@ -73,6 +73,11 @@ static constexpr auto GetRule(TokenType type) -> ParseRule const*
     return &PARSE_TABLE[type];
 }
 
+Compiler::Compiler(Heap& heap)
+    : m_heap(heap)
+{
+}
+
 auto Compiler::reportError(int32_t line_number, std::string_view error_string) -> void
 {
     if (m_error_state.panic) {
@@ -103,19 +108,23 @@ auto Compiler::errorAt(const Token& token, std::string_view message) -> void
     reportError(token.line_number, error_string);
 }
 
-auto Compiler::reset(Source const& source, Chunk& chunk) -> void
+auto Compiler::reset(Source const& source) -> void
 {
     m_source = &source;
-    m_current_chunk = &chunk;
+    m_function = m_heap.AllocateFunctionObject("",0);
+    m_context = Context::SCRIPT;
     m_scanner.Reset(source);
-    m_parser = ParserState {};
+    m_parser.Reset();
+    m_locals_state.Reset();
+    m_locals_state.current_scope_depth = 0;
+    m_locals_state.locals.emplace_back("",0);
     m_error_state.panic = false;
     m_error_state.encountered_error = false;
 }
 
-ErrorOr<VoidType> Compiler::CompileSource(Source const& source, Chunk& chunk)
+auto Compiler::CompileSource(const Source& source) -> ErrorOr<FunctionObject*>
 {
-    this->reset(source, chunk);
+    this->reset(source);
 
     this->advance();
 
@@ -127,7 +136,8 @@ ErrorOr<VoidType> Compiler::CompileSource(Source const& source, Chunk& chunk)
         return Error { .type = ErrorType::ParseError, .error_message = "Parse error" };
     }
 
-    return VoidType {};
+    emitByte(OP_RETURN);
+    return m_function;
 }
 
 auto Compiler::advance() -> void
@@ -601,7 +611,7 @@ auto Compiler::resolveVariable(std::string_view identifier_name) -> std::optiona
     if (it->local_scope_depth == -1) {
         reportError(m_parser.previous_token->line_number, "Can't read local variable in its own initializer.");
     }
-    auto index = std::distance(it, m_locals_state.locals.rend()) - 1;
+    auto index = std::distance(it, m_locals_state.locals.rend()) - 2; // TODO:  The -2 here is because the 0-index local is not observable outside the compiler. Clean this up later
     LOX_ASSERT(index >= 0);
     return index;
 }
@@ -768,5 +778,5 @@ auto Compiler::or_(bool can_assign) -> void
 }
 auto Compiler::currentChunk() -> Chunk*
 {
-    return m_current_chunk;
+    return &m_function->chunk;
 }
