@@ -28,7 +28,7 @@ TEST_F(VMTest, ExpressionTest)
     static constexpr auto OUTPUT = "29\n"
                                    "0.5\n"
                                    "HelloWorld\n";
-    ASSERT_TRUE(m_vm->Interpret(m_source).IsValue());
+    ASSERT_TRUE(m_vm->Interpret(m_source).has_value());
     ASSERT_EQ(m_vm_output_stream, OUTPUT);
 }
 
@@ -39,7 +39,7 @@ TEST_F(VMTest, GlobalVariableDeclaration)
   print a;
 )");
     static constexpr auto EXPECTED_OUTPUT = "29\n";
-    ASSERT_TRUE(m_vm->Interpret(m_source).IsValue());
+    ASSERT_TRUE(m_vm->Interpret(m_source).has_value());
     ASSERT_EQ(m_vm_output_stream, EXPECTED_OUTPUT);
 }
 
@@ -53,7 +53,7 @@ TEST_F(VMTest, GlobalVariableReAssignment)
 )");
     static constexpr auto EXPECTED_OUTPUT = "29\n"
                                             "HelloWorld\n";
-    ASSERT_TRUE(m_vm->Interpret(m_source).IsValue());
+    ASSERT_TRUE(m_vm->Interpret(m_source).has_value());
     ASSERT_EQ(m_vm_output_stream, EXPECTED_OUTPUT);
 }
 
@@ -62,7 +62,7 @@ TEST_F(VMTest, TestMixedConcatenation)
     m_source.AppendFromConsole(R"(
   var a =  1 + "Hello World";
 )");
-    ASSERT_FALSE(m_vm->Interpret(m_source).IsValue());
+    ASSERT_FALSE(m_vm->Interpret(m_source).has_value());
 }
 
 TEST_F(VMTest, TestStringComparison)
@@ -73,7 +73,7 @@ TEST_F(VMTest, TestStringComparison)
   print a == b;
   print "FooBar" == a;
 )");
-    ASSERT_TRUE(m_vm->Interpret(m_source).IsValue());
+    ASSERT_TRUE(m_vm->Interpret(m_source).has_value());
     static constexpr auto EXPECTED_OUTPUT = "true\n"
                                             "false\n";
     ASSERT_EQ(m_vm_output_stream, EXPECTED_OUTPUT);
@@ -86,7 +86,7 @@ TEST_F(VMTest, TestNumberComparison)
   print 1 == 1;
   print 1.0 == 1.1;
 )");
-    ASSERT_TRUE(m_vm->Interpret(m_source).IsValue());
+    ASSERT_TRUE(m_vm->Interpret(m_source).has_value());
     static constexpr auto EXPECTED_OUTPUT = "true\n"
                                             "true\n"
                                             "false\n";
@@ -99,7 +99,7 @@ TEST_F(VMTest, TestDefaultValue)
   var a;
   print a;
 )");
-    ASSERT_TRUE(m_vm->Interpret(m_source).IsValue());
+    ASSERT_TRUE(m_vm->Interpret(m_source).has_value());
     static constexpr auto EXPECTED_OUTPUT = "Nil\n";
     ASSERT_EQ(m_vm_output_stream, EXPECTED_OUTPUT);
 }
@@ -116,7 +116,7 @@ TEST_F(VMTest, TestLocalVaraibles1)
      print abcd;
  }
 )");
-    ASSERT_TRUE(m_vm->Interpret(m_source).IsValue());
+    ASSERT_TRUE(m_vm->Interpret(m_source).has_value());
     static constexpr auto EXPECTED_OUTPUT = "Nil\n10\n";
     ASSERT_EQ(m_vm_output_stream, EXPECTED_OUTPUT);
 }
@@ -131,7 +131,7 @@ TEST_F(VMTest, TestLocalVaraibles2)
      }
  }
 )");
-    ASSERT_TRUE(m_vm->Interpret(m_source).IsError());
+    ASSERT_FALSE(m_vm->Interpret(m_source).has_value());
 }
 
 TEST_F(VMTest, IfStatement)
@@ -144,7 +144,7 @@ TEST_F(VMTest, IfStatement)
      print "Jumped here";
  }
 )");
-    ASSERT_TRUE(m_vm->Interpret(m_source).IsValue());
+    ASSERT_TRUE(m_vm->Interpret(m_source).has_value());
     static constexpr auto EXPECTED_OUTPUT = "Jumped here\n";
     ASSERT_EQ(m_vm_output_stream, EXPECTED_OUTPUT);
 }
@@ -161,7 +161,7 @@ TEST_F(VMTest, IfStatement2)
      print "Jumped here";
  }
 )");
-    ASSERT_TRUE(m_vm->Interpret(m_source).IsValue());
+    ASSERT_TRUE(m_vm->Interpret(m_source).has_value());
     static constexpr auto EXPECTED_OUTPUT = "Else-branch\nJumped here\n";
     ASSERT_EQ(m_vm_output_stream, EXPECTED_OUTPUT);
 }
@@ -173,7 +173,7 @@ TEST_F(VMTest, LogicalOperatorsAnd)
      print false and true;
  }
 )");
-    ASSERT_TRUE(m_vm->Interpret(m_source).IsValue());
+    ASSERT_TRUE(m_vm->Interpret(m_source).has_value());
     static constexpr auto EXPECTED_OUTPUT = "false\n";
     ASSERT_EQ(m_vm_output_stream, EXPECTED_OUTPUT);
 }
@@ -185,7 +185,7 @@ TEST_F(VMTest, LogicalOperatorsOr)
      print false or true or false;
  }
 )");
-    ASSERT_TRUE(m_vm->Interpret(m_source).IsValue());
+    ASSERT_TRUE(m_vm->Interpret(m_source).has_value());
     static constexpr auto EXPECTED_OUTPUT = "true\n";
     ASSERT_EQ(m_vm_output_stream, EXPECTED_OUTPUT);
 }
@@ -202,7 +202,7 @@ TEST_F(VMTest, LogicalOperatorsOr2)
 
  }
 )");
-    ASSERT_TRUE(m_vm->Interpret(m_source).IsValue());
+    ASSERT_TRUE(m_vm->Interpret(m_source).has_value());
     static constexpr auto EXPECTED_OUTPUT = "True branch\n";
     ASSERT_EQ(m_vm_output_stream, EXPECTED_OUTPUT);
 }
@@ -222,7 +222,7 @@ TEST_F(VMTest, WhileStatement)
      }
  }
 )");
-    ASSERT_TRUE(m_vm->Interpret(m_source).IsValue());
+    ASSERT_TRUE(m_vm->Interpret(m_source).has_value());
     static constexpr auto EXPECTED_OUTPUT = "0\n1\n2\n3\n2\n1\n0\n";
     ASSERT_EQ(m_vm_output_stream, EXPECTED_OUTPUT);
 }
@@ -236,7 +236,7 @@ TEST_F(VMTest, ForStatement)
      }
  }
 )");
-    ASSERT_TRUE(m_vm->Interpret(m_source).IsValue());
+    ASSERT_TRUE(m_vm->Interpret(m_source).has_value());
     static constexpr auto EXPECTED_OUTPUT = "0\n1\n2\n";
     ASSERT_EQ(m_vm_output_stream, EXPECTED_OUTPUT);
 }
@@ -252,7 +252,7 @@ TEST_F(VMTest, Accumulation)
      print sum;
  }
 )");
-    ASSERT_TRUE(m_vm->Interpret(m_source).IsValue());
+    ASSERT_TRUE(m_vm->Interpret(m_source).has_value());
     static constexpr auto EXPECTED_OUTPUT = "6\n";
     ASSERT_EQ(m_vm_output_stream, EXPECTED_OUTPUT);
 }
@@ -271,7 +271,7 @@ TEST_F(VMTest, AccumulationGlobal)
   sum = 1;
   print sum;
 )");
-    ASSERT_TRUE(m_vm->Interpret(m_source).IsValue());
+    ASSERT_TRUE(m_vm->Interpret(m_source).has_value());
     static constexpr auto EXPECTED_OUTPUT = "6\n6\n1\n";
     ASSERT_EQ(m_vm_output_stream, EXPECTED_OUTPUT);
 }
@@ -285,6 +285,6 @@ TEST_F(VMTest, ForStatementScopeLeak)
         print i;
 )");
     auto result = m_vm->Interpret(m_source);
-    ASSERT_TRUE(result.IsError());
-    ASSERT_TRUE(result.GetError().type == ErrorType::RuntimeError);
+    ASSERT_FALSE(result.has_value());
+    ASSERT_TRUE(result.error().type == ErrorType::RuntimeError);
 }

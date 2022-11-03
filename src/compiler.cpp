@@ -111,13 +111,13 @@ auto Compiler::errorAt(const Token& token, std::string_view message) -> void
 auto Compiler::reset(Source const& source) -> void
 {
     m_source = &source;
-    m_function = m_heap.AllocateFunctionObject("",0);
+    m_function = m_heap.AllocateFunctionObject("", 0);
     m_context = Context::SCRIPT;
     m_scanner.Reset(source);
     m_parser.Reset();
     m_locals_state.Reset();
     m_locals_state.current_scope_depth = 0;
-    m_locals_state.locals.emplace_back("",0);
+    m_locals_state.locals.emplace_back("", 0);
     m_error_state.panic = false;
     m_error_state.encountered_error = false;
 }
@@ -133,7 +133,7 @@ auto Compiler::CompileSource(const Source& source) -> ErrorOr<FunctionObject*>
     }
 
     if (m_error_state.encountered_error) {
-        return Error { .type = ErrorType::ParseError, .error_message = "Parse error" };
+        return std::unexpected(Error { .type = ErrorType::ParseError, .error_message = "Parse error" });
     }
 
     emitByte(OP_RETURN);
@@ -145,10 +145,10 @@ auto Compiler::advance() -> void
     m_parser.previous_token = m_parser.current_token;
     while (true) {
         auto token_or_error = m_scanner.GetNextToken();
-        if (token_or_error.IsError()) {
-            reportError(m_parser.previous_token->line_number, token_or_error.GetError().error_message);
+        if (!token_or_error) {
+            reportError(m_parser.previous_token->line_number, token_or_error.error().error_message);
         } else {
-            m_parser.current_token = token_or_error.GetValue();
+            m_parser.current_token = token_or_error.value();
             break;
         }
     }
@@ -417,7 +417,7 @@ auto Compiler::variableDeclaration() -> void
 {
     consume(TokenType::VAR);
     auto identifier_index_in_constant_pool = parseVariable("Expected identifier after \"var\" keyword");
-    if (identifier_index_in_constant_pool.IsError()) {
+    if (!identifier_index_in_constant_pool) {
         return;
     }
 
@@ -433,7 +433,7 @@ auto Compiler::variableDeclaration() -> void
         reportError(m_parser.previous_token->line_number, "Expected semi-colon at the end of variable declaration");
     }
 
-    defineVariable(identifier_index_in_constant_pool.GetValue());
+    defineVariable(identifier_index_in_constant_pool.value());
 }
 
 auto Compiler::variable(bool can_assign) -> void
@@ -505,7 +505,7 @@ auto Compiler::parseVariable(std::string_view error_message) -> ErrorOr<uint16_t
     // Need to extract the variable name out from the token
     if (!consume(TokenType::IDENTIFIER)) {
         reportError(m_parser.previous_token->line_number, error_message);
-        return Error { .type = ErrorType::ParseError, .error_message = "" };
+        return std::unexpected(Error { .type = ErrorType::ParseError, .error_message = "" });
     }
     declareVariable();
     if (m_locals_state.current_scope_depth > 0) {

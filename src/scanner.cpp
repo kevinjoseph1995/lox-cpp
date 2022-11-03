@@ -62,36 +62,36 @@ auto Scanner::GetNextToken() -> ErrorOr<Token>
     // One or two character tokens.
     case '!': {
         auto result = matchEqual();
-        if (result.IsError())
-            return Error { result.GetError() };
-        return result.GetValue() ? makeToken(TokenType::BANG_EQUAL)
-                                 : makeToken(TokenType::BANG);
+        if (!result)
+            return std::unexpected(result.error());
+        return result.value() ? makeToken(TokenType::BANG_EQUAL)
+                              : makeToken(TokenType::BANG);
     }
     case '=': {
         auto result = matchEqual();
-        if (result.IsError())
-            return Error { result.GetError() };
-        return result.GetValue() ? makeToken(TokenType::EQUAL_EQUAL)
-                                 : makeToken(TokenType::EQUAL);
+        if (!result)
+            return std::unexpected(result.error());
+        return result.value() ? makeToken(TokenType::EQUAL_EQUAL)
+                              : makeToken(TokenType::EQUAL);
     }
     case '>': {
         auto result = matchEqual();
-        if (result.IsError())
-            return Error { result.GetError() };
-        return result.GetValue() ? makeToken(TokenType::GREATER_EQUAL)
-                                 : makeToken(TokenType::GREATER);
+        if (!result)
+            return std::unexpected(result.error());
+        return result.value() ? makeToken(TokenType::GREATER_EQUAL)
+                              : makeToken(TokenType::GREATER);
     }
     case '<': {
         auto result = matchEqual();
-        if (result.IsError())
-            return Error { result.GetError() };
-        return result.GetValue() ? makeToken(TokenType::LESS_EQUAL)
-                                 : makeToken(TokenType::LESS);
+        if (!result)
+            return std::unexpected(result.error());
+        return result.value() ? makeToken(TokenType::LESS_EQUAL)
+                              : makeToken(TokenType::LESS);
     }
     case '"':
-        return string();
+        return this->string();
     default:
-        return Error { .type = ErrorType::ParseError, .error_message = fmt::format("Unidentified character: \"{}\"(index:{})", m_source->GetSource().at(m_start), m_start) };
+        return std::unexpected(Error { .type = ErrorType::ParseError, .error_message = fmt::format("Unidentified character: \"{}\"(index:{})", m_source->GetSource().at(m_start), m_start) });
     }
 }
 
@@ -156,9 +156,8 @@ auto Scanner::consumeWhitespacesAndComments() -> void
 auto Scanner::matchEqual() -> ErrorOr<bool>
 {
     if (isAtEnd()) {
-        return Error {
-            .type = ErrorType::ScanError, .error_message = "Expected tokens after \"=\""
-        };
+        return std::unexpected(Error {
+            .type = ErrorType::ScanError, .error_message = "Expected tokens after \"=\"" });
     }
     if ('=' == m_source->GetSource().at(m_current_index)) {
         ++m_current_index;
@@ -171,8 +170,8 @@ auto Scanner::matchEqual() -> ErrorOr<bool>
 auto Scanner::string() -> ErrorOr<Token>
 {
     if (isAtEnd()) {
-        return Error { .type = ErrorType::ScanError,
-            .error_message = "Unterminated string literal" };
+        return std::unexpected(Error { .type = ErrorType::ScanError,
+            .error_message = "Unterminated string literal" });
     }
     while (peek() != '"' && !isAtEnd()) {
         advance();

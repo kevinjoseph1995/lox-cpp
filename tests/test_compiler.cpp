@@ -56,8 +56,8 @@ TEST_F(CompilerTest, BasicBinaryExpression1)
 {
     m_source.AppendFromConsole("1 + 2;");
     auto compilation_result = m_compiler->CompileSource(m_source);
-    ASSERT_TRUE(compilation_result.IsValue());
-    auto const& compiled_function = compilation_result.GetValue();
+    ASSERT_TRUE(compilation_result.has_value());
+    auto const& compiled_function = compilation_result.value();
     ASSERT_TRUE(ValidateByteCode(std::vector<uint8_t> { OP_CONSTANT, 0, 0, OP_CONSTANT, 1, 0, OP_ADD, OP_POP, OP_RETURN }, compiled_function->chunk.byte_code));
     ASSERT_TRUE(ValidateConstants(std::vector<Value> { 1.0, 2.0 }, compiled_function->chunk.constant_pool));
 }
@@ -66,8 +66,8 @@ TEST_F(CompilerTest, BasicBinaryExpression2)
 {
     m_source.AppendFromConsole("(1 + 2) + 3 + 3 * (20);");
     auto compilation_result = m_compiler->CompileSource(m_source);
-    ASSERT_TRUE(compilation_result.IsValue());
-    auto const& compiled_function = compilation_result.GetValue();
+    ASSERT_TRUE(compilation_result.has_value());
+    auto const& compiled_function = compilation_result.value();
     ASSERT_TRUE(ValidateByteCode(std::vector<uint8_t> {
                                      OP_CONSTANT, 0, 0,
                                      OP_CONSTANT, 1, 0,
@@ -89,8 +89,8 @@ TEST_F(CompilerTest, VaraibleDeclaration)
     m_source.AppendFromConsole(R"(
  var a = (1 + 2) + 3 + 3 * (20);)");
     auto compilation_result = m_compiler->CompileSource(m_source);
-    ASSERT_TRUE(compilation_result.IsValue());
-    auto const& compiled_function = compilation_result.GetValue();
+    ASSERT_TRUE(compilation_result.has_value());
+    auto const& compiled_function = compilation_result.value();
     ASSERT_TRUE(ValidateByteCode(std::vector<uint8_t> {
                                      OP_CONSTANT, 1, 0,
                                      OP_CONSTANT, 2, 0,
@@ -114,8 +114,8 @@ TEST_F(CompilerTest, StringConcatenation)
  var b = a + "FooBar";
 )");
     auto compilation_result = m_compiler->CompileSource(m_source);
-    ASSERT_TRUE(compilation_result.IsValue());
-    auto const& compiled_function = compilation_result.GetValue();
+    ASSERT_TRUE(compilation_result.has_value());
+    auto const& compiled_function = compilation_result.value();
 
     ASSERT_TRUE(ValidateByteCode(std::vector<uint8_t> {
                                      OP_CONSTANT, 1, 0,
@@ -144,7 +144,7 @@ TEST_F(CompilerTest, Comments)
 }
 )");
     auto compilation_result = m_compiler->CompileSource(m_source);
-    ASSERT_TRUE(compilation_result.IsValue());
+    ASSERT_TRUE(compilation_result.has_value());
 }
 
 TEST_F(CompilerTest, PrintStatements)
@@ -153,8 +153,8 @@ TEST_F(CompilerTest, PrintStatements)
  print (((((((1))))))) + 2;
 )");
     auto compilation_result = m_compiler->CompileSource(m_source);
-    ASSERT_TRUE(compilation_result.IsValue());
-    auto const& compiled_function = compilation_result.GetValue();
+    ASSERT_TRUE(compilation_result.has_value());
+    auto const& compiled_function = compilation_result.value();
 
     ASSERT_TRUE(ValidateByteCode(std::vector<uint8_t> {
                                      OP_CONSTANT, 0, 0,
@@ -174,8 +174,8 @@ TEST_F(CompilerTest, AssignmentStatements)
  print a;
  a = "Hello World";)");
     auto compilation_result = m_compiler->CompileSource(m_source);
-    ASSERT_TRUE(compilation_result.IsValue());
-    auto const& compiled_function = compilation_result.GetValue();
+    ASSERT_TRUE(compilation_result.has_value());
+    auto const& compiled_function = compilation_result.value();
     ASSERT_TRUE(ValidateByteCode(std::vector<uint8_t> {
                                      OP_CONSTANT, 1, 0,
                                      OP_DEFINE_GLOBAL, 0, 0,
@@ -202,7 +202,7 @@ TEST_F(CompilerTest, InvalidAssignmentTarget)
  var b = 20;
  a + b = 50; // Syntax error)");
     auto compilation_result = m_compiler->CompileSource(m_source);
-    ASSERT_TRUE(compilation_result.IsError());
+    ASSERT_FALSE(compilation_result.has_value());
 }
 
 TEST_F(CompilerTest, InvalidBinaryOp)
@@ -212,8 +212,8 @@ TEST_F(CompilerTest, InvalidBinaryOp)
  var b = "String";
  a + b; // Runtime error but still valid syntax)");
     auto compilation_result = m_compiler->CompileSource(m_source);
-    ASSERT_TRUE(compilation_result.IsValue());
-    auto const& compiled_function = compilation_result.GetValue();
+    ASSERT_TRUE(compilation_result.has_value());
+    auto const& compiled_function = compilation_result.value();
     ASSERT_TRUE(ValidateConstants(std::vector<Value> {
                                       m_heap.AllocateStringObject("a"),
                                       10.0,
@@ -232,8 +232,8 @@ TEST_F(CompilerTest, LocalVariables1)
  }
 )");
     auto compilation_result = m_compiler->CompileSource(m_source);
-    ASSERT_TRUE(compilation_result.IsValue());
-    auto const& compiled_function = compilation_result.GetValue();
+    ASSERT_TRUE(compilation_result.has_value());
+    auto const& compiled_function = compilation_result.value();
     ASSERT_TRUE(ValidateByteCode(std::vector<uint8_t> {
                                      OP_CONSTANT, 0, 0,
                                      OP_POP,
@@ -256,8 +256,8 @@ TEST_F(CompilerTest, LocalVariablesShadowing)
  }
 )");
     auto compilation_result = m_compiler->CompileSource(m_source);
-    ASSERT_TRUE(compilation_result.IsValue());
-    auto const& compiled_function = compilation_result.GetValue();
+    ASSERT_TRUE(compilation_result.has_value());
+    auto const& compiled_function = compilation_result.value();
     ASSERT_TRUE(ValidateByteCode(std::vector<uint8_t> {
                                      OP_CONSTANT, 0, 0,
                                      OP_CONSTANT, 1, 0,
@@ -283,8 +283,8 @@ TEST_F(CompilerTest, IfStatement)
  }
 )");
     auto compilation_result = m_compiler->CompileSource(m_source);
-    ASSERT_TRUE(compilation_result.IsValue());
-    auto const& compiled_function = compilation_result.GetValue();
+    ASSERT_TRUE(compilation_result.has_value());
+    auto const& compiled_function = compilation_result.value();
     ASSERT_TRUE(ValidateByteCode(std::vector<uint8_t> {
                                      OP_FALSE,
                                      OP_JUMP_IF_FALSE, 8, 0,
@@ -312,8 +312,8 @@ TEST_F(CompilerTest, LogicalOperatorsAnd)
  }
 )");
     auto compilation_result = m_compiler->CompileSource(m_source);
-    ASSERT_TRUE(compilation_result.IsValue());
-    auto const& compiled_function = compilation_result.GetValue();
+    ASSERT_TRUE(compilation_result.has_value());
+    auto const& compiled_function = compilation_result.value();
     ASSERT_TRUE(ValidateByteCode(std::vector<uint8_t> {
                                      OP_FALSE,
                                      OP_JUMP_IF_FALSE, 2, 0,
@@ -332,8 +332,8 @@ TEST_F(CompilerTest, LogicalOperatorsOr)
  }
 )");
     auto compilation_result = m_compiler->CompileSource(m_source);
-    ASSERT_TRUE(compilation_result.IsValue());
-    auto const& compiled_function = compilation_result.GetValue();
+    ASSERT_TRUE(compilation_result.has_value());
+    auto const& compiled_function = compilation_result.value();
     ASSERT_TRUE(ValidateByteCode(std::vector<uint8_t> {
                                      OP_FALSE,
                                      OP_JUMP_IF_FALSE, 3, 0,
@@ -361,8 +361,8 @@ TEST_F(CompilerTest, WhileStatement)
  }
 )");
     auto compilation_result = m_compiler->CompileSource(m_source);
-    ASSERT_TRUE(compilation_result.IsValue());
-    auto const& compiled_function = compilation_result.GetValue();
+    ASSERT_TRUE(compilation_result.has_value());
+    auto const& compiled_function = compilation_result.value();
     ASSERT_TRUE(ValidateByteCode(std::vector<uint8_t> {
                                      OP_CONSTANT, 0, 0,
                                      OP_GET_LOCAL, 0, 0,
@@ -400,8 +400,8 @@ TEST_F(CompilerTest, ForStatement)
  }
 )");
     auto compilation_result = m_compiler->CompileSource(m_source);
-    ASSERT_TRUE(compilation_result.IsValue());
-    auto const& compiled_function = compilation_result.GetValue();
+    ASSERT_TRUE(compilation_result.has_value());
+    auto const& compiled_function = compilation_result.value();
     ASSERT_TRUE(ValidateByteCode(std::vector<uint8_t> {
                                      OP_CONSTANT, 0, 0,
                                      OP_GET_LOCAL, 0, 0,

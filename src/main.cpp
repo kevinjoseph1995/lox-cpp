@@ -13,8 +13,8 @@ usage: lox_cpp [LOX_SOURCE_FILE?]
 static int Run(VirtualMachine& vm, Source& source)
 {
     auto result = vm.Interpret(source);
-    if (result.IsError()) {
-        auto& error = result.GetError();
+    if (!result) {
+        auto const& error = result.error();
         switch (error.type) {
         case ErrorType::ScanError:
             fmt::print(stderr, "ScanError: {}\n", error.error_message);
