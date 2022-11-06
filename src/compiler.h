@@ -11,6 +11,7 @@
 #include "chunk.h"
 #include "error.h"
 #include "heap.h"
+#include "parser_state.h"
 #include "scanner.h"
 #include "source.h"
 
@@ -31,7 +32,7 @@ enum  Precedence {
 // clang-format on
 
 class Compiler;
-using ParseFunc = auto(Compiler::*)(bool) -> void;
+using ParseFunc = auto (Compiler::*)(bool) -> void;
 struct ParseRule {
     ParseFunc prefix;
     ParseFunc infix;
@@ -42,7 +43,7 @@ using ParseTable = std::array<ParseRule, static_cast<int>(TokenType::NUMBER_OF_T
 class Compiler {
 public:
     Compiler() = delete;
-    Compiler(Heap& heap);
+    Compiler(Heap& heap, ParserState& parser_state);
     [[nodiscard]] auto CompileSource(Source const& source) -> ErrorOr<FunctionObject*>;
 
 private:
@@ -51,26 +52,13 @@ private:
         SCRIPT,
         FUNCTION
     };
-    Scanner m_scanner;
+
     Source const* m_source = nullptr;
     FunctionObject* m_function = nullptr;
     Context m_context = Context::SCRIPT;
+
     Heap& m_heap;
-
-    struct ParserState {
-        std::optional<Token> previous_token;
-        std::optional<Token> current_token;
-        auto Reset() -> void
-        {
-            previous_token.reset();
-            current_token.reset();
-        }
-    } m_parser {};
-
-    struct ErrorState {
-        bool panic = false;
-        bool encountered_error = false;
-    } m_error_state;
+    ParserState& m_parser_state;
 
     struct LocalsState {
         struct Local {
@@ -98,14 +86,6 @@ private:
     // Clear state
     auto reset(Source const& source) -> void;
 
-    // Token processing
-    auto advance() -> void;
-    auto consume(TokenType type) -> bool;
-    [[nodiscard]] bool match(TokenType type) const;
-
-    // Error reporting
-    auto errorAt(Token const& token, std::string_view message) -> void;
-    auto reportError(int32_t line_number, std::string_view error_string) -> void;
     auto synchronizeError() -> void;
 
     // Chunk manipulation functions
@@ -122,6 +102,8 @@ private:
     auto declaration() -> void;
     auto statement() -> void;
     auto printStatement() -> void;
+    auto functionDeclaration() -> void;
+    auto function() -> void;
     auto ifStatement() -> void;
     auto whileStatement() -> void;
     auto forStatement() -> void;

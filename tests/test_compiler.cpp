@@ -13,11 +13,12 @@ class CompilerTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        m_compiler = std::make_unique<Compiler>(m_heap);
+        m_compiler = std::make_unique<Compiler>(m_heap, m_parser_state);
     }
     std::unique_ptr<Compiler> m_compiler;
     Heap m_heap;
     Source m_source;
+    ParserState m_parser_state;
 };
 
 bool ValidateByteCode(std::vector<uint8_t> expected, std::vector<uint8_t> const& generated_byte_code)

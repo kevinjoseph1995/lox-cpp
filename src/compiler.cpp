@@ -73,39 +73,10 @@ static constexpr auto GetRule(TokenType type) -> ParseRule const*
     return &PARSE_TABLE[type];
 }
 
-Compiler::Compiler(Heap& heap)
+Compiler::Compiler(Heap& heap, ParserState& parser_state)
     : m_heap(heap)
+    , m_parser_state(parser_state)
 {
-}
-
-auto Compiler::reportError(int32_t line_number, std::string_view error_string) -> void
-{
-    if (m_error_state.panic) {
-        return;
-    }
-    m_error_state.panic = true;
-    if (m_source->IsFromFile()) {
-        fmt::print(stderr, "Error:{} at {}:{}\n", error_string, m_source->GetFilename(), line_number);
-    } else {
-        fmt::print(stderr, "Error:{} on line:{}\n", error_string, line_number);
-    }
-    m_error_state.encountered_error = true;
-}
-
-auto Compiler::errorAt(const Token& token, std::string_view message) -> void
-{
-    LOX_ASSERT(token.start + token.length <= m_source->GetSource().length());
-
-    auto error_string = fmt::format("[line {}] Error", token.line_number);
-
-    if (token.type == TokenType::TOKEN_EOF) {
-        error_string.append(" at end");
-    } else {
-        auto token_source = std::string_view(m_source->GetSource().data() + token.start, token.length);
-        error_string.append(fmt::format(" at {}", token_source));
-    }
-    error_string.append(fmt::format(": {}\n", message));
-    reportError(token.line_number, error_string);
 }
 
 auto Compiler::reset(Source const& source) -> void
@@ -113,45 +84,28 @@ auto Compiler::reset(Source const& source) -> void
     m_source = &source;
     m_function = m_heap.AllocateFunctionObject("", 0);
     m_context = Context::SCRIPT;
-    m_scanner.Reset(source);
-    m_parser.Reset();
+    m_parser_state.Initialize(source);
     m_locals_state.Reset();
     m_locals_state.current_scope_depth = 0;
     m_locals_state.locals.emplace_back("", 0);
-    m_error_state.panic = false;
-    m_error_state.encountered_error = false;
 }
 
 auto Compiler::CompileSource(const Source& source) -> ErrorOr<FunctionObject*>
 {
     this->reset(source);
 
-    this->advance();
+    m_parser_state.Advance();
 
-    while (!match(TokenType::TOKEN_EOF)) {
+    while (!m_parser_state.Match(TokenType::TOKEN_EOF)) {
         declaration();
     }
 
-    if (m_error_state.encountered_error) {
+    if (m_parser_state.EncounteredError()) {
         return std::unexpected(Error { .type = ErrorType::ParseError, .error_message = "Parse error" });
     }
 
     emitByte(OP_RETURN);
     return m_function;
-}
-
-auto Compiler::advance() -> void
-{
-    m_parser.previous_token = m_parser.current_token;
-    while (true) {
-        auto token_or_error = m_scanner.GetNextToken();
-        if (!token_or_error) {
-            reportError(m_parser.previous_token->line_number, token_or_error.error().error_message);
-        } else {
-            m_parser.current_token = token_or_error.value();
-            break;
-        }
-    }
 }
 
 auto Compiler::emitByte(uint8_t byte) -> void
@@ -190,23 +144,23 @@ auto Compiler::parsePrecedence(Precedence level) -> void
      *      than the current level("because the binary operators are left-associative"). In this special case the RHS parsing will end up consuming all the remaining tokens.
      *      It does not stop at (MINUS, NUMBER) because STAR has a precedence == (current_precedence_level + 1).
      */
-    advance();
-    auto prefixRuleFunction = GetRule(m_parser.previous_token->type)->prefix;
+    m_parser_state.Advance();
+    auto prefixRuleFunction = GetRule(m_parser_state.PreviousToken()->type)->prefix;
     if (prefixRuleFunction == nullptr) {
-        reportError(m_parser.previous_token->line_number, "Expected expression");
+        m_parser_state.ReportError(m_parser_state.PreviousToken()->line_number, "Expected expression");
         return;
     }
     bool can_assign = level <= PREC_ASSIGNMENT;
     (this->*prefixRuleFunction)(can_assign);
 
-    while (level <= GetRule(m_parser.current_token->type)->precedence) {
-        advance();
-        auto infixRuleFunction = GetRule(m_parser.previous_token->type)->infix;
+    while (level <= GetRule(m_parser_state.CurrentToken()->type)->precedence) {
+        m_parser_state.Advance();
+        auto infixRuleFunction = GetRule(m_parser_state.PreviousToken()->type)->infix;
         (this->*infixRuleFunction)(can_assign);
     }
-    if (can_assign and match(TokenType::EQUAL)) {
-        advance(); // Move past the "="
-        reportError(m_parser.previous_token->line_number, "Invalid assignment target");
+    if (can_assign and m_parser_state.Match(TokenType::EQUAL)) {
+        m_parser_state.Advance(); // Move past the "="
+        m_parser_state.ReportError(m_parser_state.PreviousToken()->line_number, "Invalid assignment target");
     }
 }
 
@@ -218,30 +172,30 @@ auto Compiler::expression() -> void
 auto Compiler::grouping(bool) -> void
 {
     expression();
-    if (!consume(TokenType::RIGHT_PAREN)) {
-        errorAt(m_parser.current_token.value(), "Expected \")\" at the end of a group expression");
+    if (!m_parser_state.Consume(TokenType::RIGHT_PAREN)) {
+        m_parser_state.ReportError(m_parser_state.CurrentToken()->line_number, "Expected \")\" at the end of a group expression");
     }
 }
 
 auto Compiler::number(bool) -> void
 {
-    LOX_ASSERT(m_parser.previous_token.has_value());
-    LOX_ASSERT(m_parser.previous_token->type == TokenType::NUMBER);
-    LOX_ASSERT(m_parser.previous_token->start + m_parser.previous_token->length <= m_source->GetSource().length());
+    LOX_ASSERT(m_parser_state.PreviousToken().has_value());
+    LOX_ASSERT(m_parser_state.PreviousToken()->type == TokenType::NUMBER);
+    LOX_ASSERT(m_parser_state.PreviousToken()->start + m_parser_state.PreviousToken()->length <= m_source->GetSource().length());
 
     char* endpoint = nullptr;
-    double value = std::strtod(m_source->GetSource().data() + m_parser.previous_token->start, &endpoint);
+    double value = std::strtod(m_source->GetSource().data() + m_parser_state.PreviousToken()->start, &endpoint);
 
-    LOX_ASSERT(endpoint != m_source->GetSource().data() + m_parser.previous_token->start);
-    LOX_ASSERT(endpoint - (m_source->GetSource().data() + m_parser.previous_token->start) == static_cast<int64_t>(m_parser.previous_token->length));
+    LOX_ASSERT(endpoint != m_source->GetSource().data() + m_parser_state.PreviousToken()->start);
+    LOX_ASSERT(endpoint - (m_source->GetSource().data() + m_parser_state.PreviousToken()->start) == static_cast<int64_t>(m_parser_state.PreviousToken()->length));
 
     addConstant(value);
 }
 
 auto Compiler::literal(bool) -> void
 {
-    LOX_ASSERT(m_parser.previous_token.has_value());
-    switch (m_parser.previous_token.value().type) {
+    LOX_ASSERT(m_parser_state.PreviousToken().has_value());
+    switch (m_parser_state.PreviousToken().value().type) {
     case FALSE:
         emitByte(OP_FALSE);
         break;
@@ -258,10 +212,10 @@ auto Compiler::literal(bool) -> void
 
 auto Compiler::binary(bool) -> void
 {
-    LOX_ASSERT(m_parser.previous_token.has_value());
+    LOX_ASSERT(m_parser_state.PreviousToken().has_value());
 
-    auto type = m_parser.previous_token->type;
-    parsePrecedence(static_cast<Precedence>(GetRule(m_parser.previous_token->type)->precedence + 1));
+    auto type = m_parser_state.PreviousToken()->type;
+    parsePrecedence(static_cast<Precedence>(GetRule(m_parser_state.PreviousToken()->type)->precedence + 1));
     switch (type) {
     case PLUS:
         emitByte(OP_ADD);
@@ -300,9 +254,9 @@ auto Compiler::binary(bool) -> void
 
 auto Compiler::unary(bool) -> void
 {
-    LOX_ASSERT(m_parser.previous_token.has_value());
+    LOX_ASSERT(m_parser_state.PreviousToken().has_value());
 
-    auto const type = m_parser.previous_token->type;
+    auto const type = m_parser_state.PreviousToken()->type;
     parsePrecedence(PREC_UNARY);
     if (type == TokenType::MINUS) {
         emitByte(OP_NEGATE);
@@ -315,67 +269,63 @@ auto Compiler::unary(bool) -> void
 
 auto Compiler::string(bool) -> void
 {
-    LOX_ASSERT(m_parser.previous_token.has_value());
-    LOX_ASSERT(m_parser.previous_token->type == TokenType::STRING);
-    auto string_object = m_heap.AllocateStringObject(m_source->GetSource().substr(m_parser.previous_token->start + 1, m_parser.previous_token->length - 2));
+    LOX_ASSERT(m_parser_state.PreviousToken().has_value());
+    LOX_ASSERT(m_parser_state.PreviousToken()->type == TokenType::STRING);
+    auto string_object = m_heap.AllocateStringObject(m_source->GetSource().substr(m_parser_state.PreviousToken()->start + 1, m_parser_state.PreviousToken()->length - 2));
     this->addConstant(string_object);
 }
 
 auto Compiler::declaration() -> void
 {
-    if (match(TokenType::VAR)) {
+    if (m_parser_state.Match(TokenType::VAR)) {
         variableDeclaration();
+    } else if (m_parser_state.Match(TokenType::FUN)) {
+        functionDeclaration();
     } else {
         statement();
     }
-    if (m_error_state.panic) {
+    if (m_parser_state.InPanicState()) {
         synchronizeError();
     }
 }
 
 auto Compiler::statement() -> void
 {
-    if (match(TokenType::PRINT)) {
+    if (m_parser_state.Match(TokenType::PRINT)) {
         printStatement();
-    } else if (match(TokenType::LEFT_BRACE)) {
+    } else if (m_parser_state.Match(TokenType::LEFT_BRACE)) {
         block();
-    } else if (match(TokenType::IF)) {
+    } else if (m_parser_state.Match(TokenType::IF)) {
         ifStatement();
-    } else if (match(TokenType::WHILE)) {
+    } else if (m_parser_state.Match(TokenType::WHILE)) {
         whileStatement();
-    } else if (match(TokenType::FOR)) {
+    } else if (m_parser_state.Match(TokenType::FOR)) {
         forStatement();
     } else {
         expressionStatement();
     }
 }
-
-auto Compiler::consume(TokenType type) -> bool
+auto Compiler::functionDeclaration() -> void
 {
-    LOX_ASSERT(m_parser.current_token.has_value());
-    if (m_parser.current_token->type == type) {
-        advance();
-        return true;
-    }
-    return false;
+    LOX_ASSERT(m_parser_state.Match(TokenType::FUN));
+    m_parser_state.Consume(TokenType::FUN);
+    auto constant_index_result = parseVariable("Expected function identifier");
+    markInitialized(); // Marking as initialized as functions can refer to them even as we are compiling the body of the function.
+    function();
+    defineVariable(constant_index_result.value());
 }
 
-auto Compiler::match(TokenType type) const -> bool
+auto Compiler::function() -> void
 {
-    LOX_ASSERT(m_parser.current_token.has_value());
-    if (m_parser.current_token->type == type) {
-        return true;
-    }
-    return false;
 }
 
 auto Compiler::printStatement() -> void
 {
-    auto _ = consume(TokenType::PRINT);
+    auto _ = m_parser_state.Consume(TokenType::PRINT);
     static_cast<void>(_);
     expression();
-    if (!consume(TokenType::SEMICOLON)) {
-        reportError(m_parser.previous_token->line_number, "Expected semi-colon at the end of print statement");
+    if (!m_parser_state.Consume(TokenType::SEMICOLON)) {
+        m_parser_state.ReportError(m_parser_state.PreviousToken()->line_number, "Expected semi-colon at the end of print statement");
     } else {
         emitByte(OP_PRINT);
     }
@@ -383,8 +333,8 @@ auto Compiler::printStatement() -> void
 auto Compiler::expressionStatement() -> void
 {
     expression();
-    if (!consume(TokenType::SEMICOLON)) {
-        reportError(m_parser.previous_token->line_number, "Expected semi-colon at the end of expression-statement");
+    if (!m_parser_state.Consume(TokenType::SEMICOLON)) {
+        m_parser_state.ReportError(m_parser_state.PreviousToken()->line_number, "Expected semi-colon at the end of expression-statement");
     } else {
         emitByte(OP_POP);
     }
@@ -392,12 +342,12 @@ auto Compiler::expressionStatement() -> void
 
 auto Compiler::synchronizeError() -> void
 {
-    while (m_parser.current_token->type != TokenType::TOKEN_EOF) {
-        if (m_parser.previous_token->type == TokenType::SEMICOLON) {
+    while (m_parser_state.CurrentToken()->type != TokenType::TOKEN_EOF) {
+        if (m_parser_state.PreviousToken()->type == TokenType::SEMICOLON) {
             // Indicates the end of the previous statement
             return;
         }
-        switch (m_parser.current_token->type) {
+        switch (m_parser_state.CurrentToken()->type) {
         // Advance until we hit one of the control flow or declaration keywords.
         case ELSE:
         case FOR:
@@ -409,28 +359,29 @@ auto Compiler::synchronizeError() -> void
         case WHILE:
             return;
         default:
-            advance();
+            m_parser_state.Advance();
         }
     }
 }
+
 auto Compiler::variableDeclaration() -> void
 {
-    consume(TokenType::VAR);
+    m_parser_state.Consume(TokenType::VAR);
     auto identifier_index_in_constant_pool = parseVariable("Expected identifier after \"var\" keyword");
     if (!identifier_index_in_constant_pool) {
         return;
     }
 
     // Parse the initial value, emit Nil if there is no initializer expression
-    if (match(TokenType::EQUAL)) {
-        auto _ = consume(TokenType::EQUAL);
+    if (m_parser_state.Match(TokenType::EQUAL)) {
+        auto _ = m_parser_state.Consume(TokenType::EQUAL);
         static_cast<void>(_);
         expression();
     } else {
         emitByte(OP_NIL);
     }
-    if (!consume(SEMICOLON)) {
-        reportError(m_parser.previous_token->line_number, "Expected semi-colon at the end of variable declaration");
+    if (!m_parser_state.Consume(SEMICOLON)) {
+        m_parser_state.ReportError(m_parser_state.PreviousToken()->line_number, "Expected semi-colon at the end of variable declaration");
     }
 
     defineVariable(identifier_index_in_constant_pool.value());
@@ -438,8 +389,8 @@ auto Compiler::variableDeclaration() -> void
 
 auto Compiler::variable(bool can_assign) -> void
 {
-    std::string_view new_local_identifier_name { m_source->GetSource().begin() + m_parser.previous_token.value().start,
-        m_source->GetSource().begin() + m_parser.previous_token.value().start + m_parser.previous_token.value().length };
+    std::string_view new_local_identifier_name { m_source->GetSource().begin() + m_parser_state.PreviousToken().value().start,
+        m_source->GetSource().begin() + m_parser_state.PreviousToken().value().start + m_parser_state.PreviousToken().value().length };
 
     OpCode set_op;
     OpCode get_op;
@@ -454,14 +405,14 @@ auto Compiler::variable(bool can_assign) -> void
 
     } else {
         // Global variable
-        index = identifierConstant(m_parser.previous_token.value());
+        index = identifierConstant(m_parser_state.PreviousToken().value());
         set_op = OP_SET_GLOBAL;
         get_op = OP_GET_GLOBAL;
     }
 
-    if (can_assign and match(TokenType::EQUAL)) {
+    if (can_assign and m_parser_state.Match(TokenType::EQUAL)) {
         // Look-ahead one token if we find an "=" then this is an assignment
-        advance(); // Move past the "="
+        m_parser_state.Advance(); // Move past the "="
         expression(); // Emit the instructions for the expression that would be evaluated to the value that this identifier must be assigned with.
         emitByte(set_op);
         emitIndex(index);
@@ -490,11 +441,11 @@ auto Compiler::emitIndex(uint16_t index) -> void
 auto Compiler::block() -> void
 {
     beginScope();
-    consume(TokenType::LEFT_BRACE);
-    while (m_parser.current_token->type != TokenType::TOKEN_EOF && m_parser.current_token->type != RIGHT_BRACE) {
+    m_parser_state.Consume(TokenType::LEFT_BRACE);
+    while (m_parser_state.CurrentToken()->type != TokenType::TOKEN_EOF && m_parser_state.CurrentToken()->type != RIGHT_BRACE) {
         declaration();
     }
-    if (!consume(TokenType::RIGHT_BRACE)) {
+    if (!m_parser_state.Consume(TokenType::RIGHT_BRACE)) {
         return;
     }
     endScope();
@@ -503,8 +454,8 @@ auto Compiler::block() -> void
 auto Compiler::parseVariable(std::string_view error_message) -> ErrorOr<uint16_t>
 {
     // Need to extract the variable name out from the token
-    if (!consume(TokenType::IDENTIFIER)) {
-        reportError(m_parser.previous_token->line_number, error_message);
+    if (!m_parser_state.Consume(TokenType::IDENTIFIER)) {
+        m_parser_state.ReportError(m_parser_state.PreviousToken()->line_number, error_message);
         return std::unexpected(Error { .type = ErrorType::ParseError, .error_message = "" });
     }
     declareVariable();
@@ -512,7 +463,7 @@ auto Compiler::parseVariable(std::string_view error_message) -> ErrorOr<uint16_t
         // Local variable
         return 0;
     }
-    auto index = identifierConstant(m_parser.previous_token.value());
+    auto index = identifierConstant(m_parser_state.PreviousToken().value());
     LOX_ASSERT(index < MAX_NUMBER_CONSTANTS);
     return index;
 }
@@ -535,8 +486,8 @@ auto Compiler::declareVariable() -> void
         return;
     }
 
-    std::string_view new_local_identifier_name { m_source->GetSource().begin() + m_parser.previous_token.value().start,
-        m_source->GetSource().begin() + m_parser.previous_token.value().start + m_parser.previous_token.value().length };
+    std::string_view new_local_identifier_name { m_source->GetSource().begin() + m_parser_state.PreviousToken().value().start,
+        m_source->GetSource().begin() + m_parser_state.PreviousToken().value().start + m_parser_state.PreviousToken().value().length };
 
     /*
      * The following check ensures that the following is not permitted:
@@ -568,7 +519,7 @@ auto Compiler::declareVariable() -> void
             break;
         }
         if (new_local_identifier_name == local.identifier_name) {
-            reportError(m_parser.previous_token->line_number, "Already a variable with this name in this scope.");
+            m_parser_state.ReportError(m_parser_state.PreviousToken()->line_number, "Already a variable with this name in this scope.");
             return;
         }
     }
@@ -609,7 +560,7 @@ auto Compiler::resolveVariable(std::string_view identifier_name) -> std::optiona
         return {};
     }
     if (it->local_scope_depth == -1) {
-        reportError(m_parser.previous_token->line_number, "Can't read local variable in its own initializer.");
+        m_parser_state.ReportError(m_parser_state.PreviousToken()->line_number, "Can't read local variable in its own initializer.");
     }
     auto index = std::distance(it, m_locals_state.locals.rend()) - 2; // TODO:  The -2 here is because the 0-index local is not observable outside the compiler. Clean this up later
     LOX_ASSERT(index >= 0);
@@ -618,6 +569,9 @@ auto Compiler::resolveVariable(std::string_view identifier_name) -> std::optiona
 
 auto Compiler::markInitialized() -> void
 {
+    if (m_locals_state.current_scope_depth == 0) {
+        return;
+    }
     LOX_ASSERT(!m_locals_state.locals.empty());
     (m_locals_state.locals.end() - 1)->local_scope_depth = m_locals_state.current_scope_depth;
 }
@@ -625,17 +579,17 @@ auto Compiler::markInitialized() -> void
 auto Compiler::forStatement() -> void
 {
     beginScope(); // Add a scope to restrict variables declared in the initializer clause to within the for-body
-    auto _ = consume(TokenType::FOR);
+    auto _ = m_parser_state.Consume(TokenType::FOR);
     LOX_ASSERT(_);
-    if (!consume(TokenType::LEFT_PAREN)) {
-        reportError(m_parser.previous_token->line_number, "Expected \"(\" after the for keyword");
+    if (!m_parser_state.Consume(TokenType::LEFT_PAREN)) {
+        m_parser_state.ReportError(m_parser_state.PreviousToken()->line_number, "Expected \"(\" after the for keyword");
     }
     ////////////////////////////// Initializer //////////////////////////////
-    if (match(TokenType::SEMICOLON)) {
-        consume(TokenType::SEMICOLON);
-    } else if (consume(TokenType::VAR)) {
+    if (m_parser_state.Match(TokenType::SEMICOLON)) {
+        m_parser_state.Consume(TokenType::SEMICOLON);
+    } else if (m_parser_state.Consume(TokenType::VAR)) {
         variableDeclaration();
-    } else if (!match(TokenType::SEMICOLON)) {
+    } else if (!m_parser_state.Match(TokenType::SEMICOLON)) {
         expressionStatement();
     }
     /////////////////////////////////////////////////////////////////////////
@@ -643,17 +597,17 @@ auto Compiler::forStatement() -> void
     auto loop_start = currentChunk()->byte_code.size();
 
     std::optional<uint64_t> exit_jump;
-    if (!match(TokenType::SEMICOLON)) {
+    if (!m_parser_state.Match(TokenType::SEMICOLON)) {
         expression();
         exit_jump = emitJump(OpCode::OP_JUMP_IF_FALSE);
         emitByte(OP_POP);
     }
-    if (!consume(TokenType::SEMICOLON)) {
-        reportError(m_parser.previous_token->line_number, "Expected \";\" after optional conditional-clause");
+    if (!m_parser_state.Consume(TokenType::SEMICOLON)) {
+        m_parser_state.ReportError(m_parser_state.PreviousToken()->line_number, "Expected \";\" after optional conditional-clause");
     }
     /////////////////////////////////////////////////////////////////////////
     //////////////////////////// Increment clause ///////////////////////////
-    if (!match(TokenType::RIGHT_PAREN)) {
+    if (!m_parser_state.Match(TokenType::RIGHT_PAREN)) {
         auto for_body_jump = emitJump(OP_JUMP);
         auto increment_start = currentChunk()->byte_code.size();
         expression();
@@ -662,8 +616,8 @@ auto Compiler::forStatement() -> void
         loop_start = increment_start; // Adjust the loop start to jump to the evaluation of the increment expression after the end of the for body
         patchJump(for_body_jump);
     }
-    if (!consume(TokenType::RIGHT_PAREN)) {
-        reportError(m_parser.previous_token->line_number, "Expected \")\" after optional increment-clause");
+    if (!m_parser_state.Consume(TokenType::RIGHT_PAREN)) {
+        m_parser_state.ReportError(m_parser_state.PreviousToken()->line_number, "Expected \")\" after optional increment-clause");
     }
     /////////////////////////////////////////////////////////////////////////
     statement();
@@ -680,14 +634,14 @@ auto Compiler::forStatement() -> void
 auto Compiler::whileStatement() -> void
 {
     auto loop_start = currentChunk()->byte_code.size();
-    auto _ = consume(TokenType::WHILE);
+    auto _ = m_parser_state.Consume(TokenType::WHILE);
     LOX_ASSERT(_);
-    if (!consume(TokenType::LEFT_PAREN)) {
-        reportError(m_parser.previous_token->line_number, "Expected \"(\" after the while keyword");
+    if (!m_parser_state.Consume(TokenType::LEFT_PAREN)) {
+        m_parser_state.ReportError(m_parser_state.PreviousToken()->line_number, "Expected \"(\" after the while keyword");
     }
     expression();
-    if (!consume(TokenType::RIGHT_PAREN)) {
-        reportError(m_parser.previous_token->line_number, "Expected \")\" after the while-condition");
+    if (!m_parser_state.Consume(TokenType::RIGHT_PAREN)) {
+        m_parser_state.ReportError(m_parser_state.PreviousToken()->line_number, "Expected \")\" after the while-condition");
     }
     auto break_destination = emitJump(OP_JUMP_IF_FALSE);
     emitByte(OP_POP);
@@ -707,13 +661,13 @@ auto Compiler::emitLoop(uint64_t loop_start) -> void
 
 auto Compiler::ifStatement() -> void
 {
-    consume(TokenType::IF);
-    if (!consume(TokenType::LEFT_PAREN)) {
-        reportError(m_parser.previous_token->line_number, "Expected \"(\" after the if statement");
+    m_parser_state.Consume(TokenType::IF);
+    if (!m_parser_state.Consume(TokenType::LEFT_PAREN)) {
+        m_parser_state.ReportError(m_parser_state.PreviousToken()->line_number, "Expected \"(\" after the if statement");
     }
     expression();
-    if (!consume(TokenType::RIGHT_PAREN)) {
-        reportError(m_parser.previous_token->line_number, "Expected \")\" after the if-condition");
+    if (!m_parser_state.Consume(TokenType::RIGHT_PAREN)) {
+        m_parser_state.ReportError(m_parser_state.PreviousToken()->line_number, "Expected \")\" after the if-condition");
     }
 
     auto jump_destination = emitJump(OP_JUMP_IF_FALSE);
@@ -724,8 +678,8 @@ auto Compiler::ifStatement() -> void
     patchJump(jump_destination);
     emitByte(OP_POP);
 
-    if (match(TokenType::ELSE)) {
-        consume(TokenType::ELSE);
+    if (m_parser_state.Match(TokenType::ELSE)) {
+        m_parser_state.Consume(TokenType::ELSE);
         statement();
     }
     patchJump(else_destination);
@@ -744,7 +698,7 @@ auto Compiler::patchJump(uint64_t offset) -> void
     LOX_ASSERT(offset + 2 <= currentChunk()->byte_code.size());
     auto jump = currentChunk()->byte_code.size() - offset - 2;
     if (jump > MAX_JUMP_OFFSET) {
-        reportError(m_parser.previous_token->line_number, fmt::format("Jump offset:{} is larger than supported limit: {}", jump, MAX_JUMP_OFFSET));
+        m_parser_state.ReportError(m_parser_state.PreviousToken()->line_number, fmt::format("Jump offset:{} is larger than supported limit: {}", jump, MAX_JUMP_OFFSET));
         return;
     }
     currentChunk()->byte_code[offset] = static_cast<uint8_t>(0x00FFU & jump);
@@ -754,8 +708,8 @@ auto Compiler::patchJump(uint64_t offset) -> void
 auto Compiler::and_(bool can_assign) -> void
 {
     static_cast<void>(can_assign);
-    LOX_ASSERT(m_parser.previous_token.has_value());
-    LOX_ASSERT(m_parser.previous_token->type == TokenType::AND);
+    LOX_ASSERT(m_parser_state.PreviousToken().has_value());
+    LOX_ASSERT(m_parser_state.PreviousToken()->type == TokenType::AND);
     // We've already parsed the LHS expression
     auto jump_destination = emitJump(OP_JUMP_IF_FALSE);
     emitByte(OP_POP); // To pop the LHS value of the stack as we know it's "true"ish
@@ -766,8 +720,8 @@ auto Compiler::and_(bool can_assign) -> void
 auto Compiler::or_(bool can_assign) -> void
 {
     static_cast<void>(can_assign);
-    LOX_ASSERT(m_parser.previous_token.has_value());
-    LOX_ASSERT(m_parser.previous_token->type == TokenType::OR);
+    LOX_ASSERT(m_parser_state.PreviousToken().has_value());
+    LOX_ASSERT(m_parser_state.PreviousToken()->type == TokenType::OR);
     // We've already parsed the LHS expression
     auto false_destination = emitJump(OP_JUMP_IF_FALSE);
     auto true_destination = emitJump(OP_JUMP);

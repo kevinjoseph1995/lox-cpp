@@ -43,6 +43,7 @@ private:
     };
     std::vector<CallFrame> m_frames;
 
+    ParserState m_parser_state;
     std::unique_ptr<Compiler> m_compiler = nullptr;
     std::string* const m_external_stream = nullptr;
 

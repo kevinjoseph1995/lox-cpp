@@ -334,7 +334,7 @@ auto VirtualMachine::binaryOperation(OpCode op) -> ErrorOr<VoidType>
 VirtualMachine::VirtualMachine(std::string* external_stream)
     : m_external_stream(external_stream)
 {
-    m_compiler = std::make_unique<Compiler>(m_heap);
+    m_compiler = std::make_unique<Compiler>(m_heap, m_parser_state);
 }
 auto VirtualMachine::isAtEnd() -> bool
 {
