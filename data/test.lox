@@ -1,1 +1,5 @@
-"H";
+fun MyFunction(param1, param2) {
+
+}
+
+print MyFunction;

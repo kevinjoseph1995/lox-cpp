@@ -42,16 +42,16 @@ using ParseTable = std::array<ParseRule, static_cast<int>(TokenType::NUMBER_OF_T
 
 class Compiler {
 public:
-    Compiler() = delete;
-    Compiler(Heap& heap, ParserState& parser_state);
-    [[nodiscard]] auto CompileSource(Source const& source) -> ErrorOr<FunctionObject*>;
-
-private:
-    // Compiler state
     enum class Context {
         SCRIPT,
         FUNCTION
     };
+    Compiler() = delete;
+    Compiler(Heap& heap, ParserState& parser_state, Context context = Context::SCRIPT);
+    [[nodiscard]] auto CompileSource(Source const& source) -> ErrorOr<FunctionObject*>;
+
+private:
+    // Compiler state
 
     Source const* m_source = nullptr;
     FunctionObject* m_function = nullptr;
@@ -83,10 +83,8 @@ private:
 private:
     friend consteval auto GenerateParseTable() -> ParseTable;
 
-    // Clear state
-    auto reset(Source const& source) -> void;
-
     auto synchronizeError() -> void;
+    auto endCompiler() -> FunctionObject*;
 
     // Chunk manipulation functions
     auto emitByte(uint8_t byte) -> void;

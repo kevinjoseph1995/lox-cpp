@@ -45,6 +45,7 @@ enum OpCode : uint8_t {
 static constexpr auto MAX_NUMBER_CONSTANTS = 0xFFFF; // Currently we can only store as many constants that can be addressed by 16 bits
 static constexpr auto MAX_NUMBER_LOCAL_VARIABLES = 0xFFFF;
 static constexpr auto MAX_JUMP_OFFSET = 0xFFFF;
+static constexpr auto MAX_NUMBER_OF_FUNCTION_PARAMETERS = 255;
 
 struct Chunk {
     std::vector<uint8_t> byte_code;

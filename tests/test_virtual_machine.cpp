@@ -288,3 +288,19 @@ TEST_F(VMTest, ForStatementScopeLeak)
     ASSERT_FALSE(result.has_value());
     ASSERT_TRUE(result.error().type == ErrorType::RuntimeError);
 }
+
+TEST_F(VMTest, FunctionDeclaration)
+{
+    m_source.AppendFromConsole(R"(
+
+fun MyFunction(param1, param2, param3) {
+}
+
+print MyFunction;
+
+)");
+    auto result = m_vm->Interpret(m_source);
+    ASSERT_TRUE(result.has_value());
+    static constexpr auto EXPECTED_OUTPUT = "function<FUNCTION, arity=3>\n";
+    ASSERT_EQ(m_vm_output_stream, EXPECTED_OUTPUT);
+}

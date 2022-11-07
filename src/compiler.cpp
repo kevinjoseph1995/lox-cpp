@@ -73,26 +73,23 @@ static constexpr auto GetRule(TokenType type) -> ParseRule const*
     return &PARSE_TABLE[type];
 }
 
-Compiler::Compiler(Heap& heap, ParserState& parser_state)
-    : m_heap(heap)
+Compiler::Compiler(Heap& heap, ParserState& parser_state, Compiler::Context context)
+    : m_context(context)
+    , m_heap(heap)
     , m_parser_state(parser_state)
 {
-}
-
-auto Compiler::reset(Source const& source) -> void
-{
-    m_source = &source;
-    m_function = m_heap.AllocateFunctionObject("", 0);
-    m_context = Context::SCRIPT;
-    m_parser_state.Initialize(source);
-    m_locals_state.Reset();
-    m_locals_state.current_scope_depth = 0;
+    if (m_context == Context::FUNCTION) {
+        m_function = m_heap.AllocateFunctionObject("FUNCTION", 0);
+    } else {
+        m_function = m_heap.AllocateFunctionObject("", 0);
+    }
     m_locals_state.locals.emplace_back("", 0);
 }
 
 auto Compiler::CompileSource(const Source& source) -> ErrorOr<FunctionObject*>
 {
-    this->reset(source);
+    m_parser_state.Initialize(source);
+    m_source = &source;
 
     m_parser_state.Advance();
 
@@ -103,7 +100,11 @@ auto Compiler::CompileSource(const Source& source) -> ErrorOr<FunctionObject*>
     if (m_parser_state.EncounteredError()) {
         return std::unexpected(Error { .type = ErrorType::ParseError, .error_message = "Parse error" });
     }
+    return endCompiler();
+}
 
+auto Compiler::endCompiler() -> FunctionObject*
+{
     emitByte(OP_RETURN);
     return m_function;
 }
@@ -317,6 +318,38 @@ auto Compiler::functionDeclaration() -> void
 
 auto Compiler::function() -> void
 {
+    Compiler function_compiler(m_heap, m_parser_state, Context::FUNCTION);
+    ///////////////////////////////////////////////// Compile the function body ////////////////////////////////////////////////////////////////////////////////////////////
+    function_compiler.m_source = this->m_source;
+    function_compiler.beginScope();
+    auto success = function_compiler.m_parser_state.Consume(TokenType::LEFT_PAREN);
+    if (!success) {
+        function_compiler.m_parser_state.ReportError(m_parser_state.PreviousToken()->line_number, "Expected open parenthesis after function identifier");
+    }
+
+    if (!function_compiler.m_parser_state.Match(TokenType::RIGHT_PAREN)) {
+        do {
+            ++(function_compiler.m_function->arity);
+            if (function_compiler.m_function->arity > MAX_NUMBER_OF_FUNCTION_PARAMETERS) {
+                function_compiler.m_parser_state.ReportError(function_compiler.m_parser_state.PreviousToken()->line_number,
+                    fmt::format("Exceeded more than {} function parameters", MAX_NUMBER_OF_FUNCTION_PARAMETERS));
+            }
+            auto constant_index = function_compiler.parseVariable("Expected function parameter identifier");
+            if (constant_index) {
+                function_compiler.defineVariable(constant_index.value());
+            }
+        } while (function_compiler.m_parser_state.Consume(TokenType::COMMA));
+    }
+
+    success = function_compiler.m_parser_state.Consume(TokenType::RIGHT_PAREN);
+    if (!success) {
+        function_compiler.m_parser_state.ReportError(m_parser_state.PreviousToken()->line_number, "Expected closing parenthesis after function identifier");
+    }
+    function_compiler.block();
+    auto compiled_function = function_compiler.endCompiler();
+    //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+    addConstant(Value { compiled_function });
 }
 
 auto Compiler::printStatement() -> void
@@ -441,7 +474,9 @@ auto Compiler::emitIndex(uint16_t index) -> void
 auto Compiler::block() -> void
 {
     beginScope();
-    m_parser_state.Consume(TokenType::LEFT_BRACE);
+    if (!m_parser_state.Consume(TokenType::LEFT_BRACE)) {
+        m_parser_state.ReportError(m_parser_state.PreviousToken()->line_number, "Expected opening brace at the start of block statement");
+    }
     while (m_parser_state.CurrentToken()->type != TokenType::TOKEN_EOF && m_parser_state.CurrentToken()->type != RIGHT_BRACE) {
         declaration();
     }

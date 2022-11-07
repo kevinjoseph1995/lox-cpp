@@ -431,3 +431,15 @@ TEST_F(CompilerTest, ForStatement)
                                   },
         compiled_function->chunk.constant_pool));
 }
+
+TEST_F(CompilerTest, FunctionDeclaration)
+{
+    m_source.AppendFromConsole(R"(
+
+fun MyFunction() {
+}
+
+)");
+    auto compilation_result = m_compiler->CompileSource(m_source);
+    ASSERT_TRUE(compilation_result.has_value());
+}
