@@ -79,7 +79,7 @@ Compiler::Compiler(Heap& heap, ParserState& parser_state, Compiler::Context cont
     , m_parser_state(parser_state)
 {
     if (m_context == Context::FUNCTION) {
-        m_function = m_heap.AllocateFunctionObject("FUNCTION", 0);
+        m_function = m_heap.AllocateFunctionObject("_", 0);
     } else {
         m_function = m_heap.AllocateFunctionObject("", 0);
     }
@@ -316,11 +316,24 @@ auto Compiler::functionDeclaration() -> void
     defineVariable(constant_index_result.value());
 }
 
+auto Compiler::setFunctionName() -> void
+{
+    LOX_ASSERT(m_parser_state.PreviousToken().has_value());
+    LOX_ASSERT(m_parser_state.PreviousToken().value().type == TokenType::IDENTIFIER);
+    LOX_ASSERT(m_parser_state.PreviousToken().value().start + +m_parser_state.PreviousToken().value().length <= m_source->GetSource().length());
+    auto const start = m_parser_state.PreviousToken().value().start;
+    auto const length = m_parser_state.PreviousToken().value().length;
+    auto function_name = std::string_view(m_source->GetSource().data() + start, m_source->GetSource().data() + start + length);
+    m_function->function_name = function_name;
+}
+
 auto Compiler::function() -> void
 {
     Compiler function_compiler(m_heap, m_parser_state, Context::FUNCTION);
     ///////////////////////////////////////////////// Compile the function body ////////////////////////////////////////////////////////////////////////////////////////////
     function_compiler.m_source = this->m_source;
+    function_compiler.setFunctionName();
+
     function_compiler.beginScope();
     auto success = function_compiler.m_parser_state.Consume(TokenType::LEFT_PAREN);
     if (!success) {

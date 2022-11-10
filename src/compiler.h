@@ -102,6 +102,7 @@ private:
     auto printStatement() -> void;
     auto functionDeclaration() -> void;
     auto function() -> void;
+    auto setFunctionName()-> void;
     auto ifStatement() -> void;
     auto whileStatement() -> void;
     auto forStatement() -> void;
