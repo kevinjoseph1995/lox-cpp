@@ -32,7 +32,7 @@ enum  Precedence {
 // clang-format on
 
 class Compiler;
-using ParseFunc = auto (Compiler::*)(bool) -> void;
+using ParseFunc = auto(Compiler::*)(bool) -> void;
 struct ParseRule {
     ParseFunc prefix;
     ParseFunc infix;
@@ -102,7 +102,7 @@ private:
     auto printStatement() -> void;
     auto functionDeclaration() -> void;
     auto function() -> void;
-    auto setFunctionName()-> void;
+    auto setFunctionName() -> void;
     auto ifStatement() -> void;
     auto whileStatement() -> void;
     auto forStatement() -> void;
@@ -116,11 +116,13 @@ private:
     auto defineVariable(uint16_t constant_pool_index) -> void;
     auto resolveVariable(std::string_view identifier_name) -> std::optional<uint32_t>;
     auto markInitialized() -> void;
+    auto argumentList() -> uint16_t;
 
     // Expressions
     auto parsePrecedence(Precedence level) -> void;
     // Non-terminals
     auto expression() -> void;
+    auto call(bool can_assign) -> void;
     auto binary(bool can_assign) -> void;
     auto grouping(bool can_assign) -> void;
     auto unary(bool can_assign) -> void;

@@ -16,7 +16,7 @@ consteval auto GenerateParseTable() -> ParseTable
 {
     ParseTable table;
     // clang-format off
-    table[LEFT_PAREN]    = { .prefix = &Compiler::grouping, .infix = nullptr,           .precedence = PREC_NONE };
+    table[LEFT_PAREN]    = { .prefix = &Compiler::grouping, .infix = &Compiler::call,   .precedence = PREC_CALL };
     table[RIGHT_PAREN]   = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
     table[LEFT_BRACE]    = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
     table[RIGHT_BRACE]   = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
@@ -781,4 +781,32 @@ auto Compiler::or_(bool can_assign) -> void
 auto Compiler::currentChunk() -> Chunk*
 {
     return &m_function->chunk;
+}
+
+auto Compiler::call(bool) -> void
+{
+    LOX_ASSERT(m_parser_state.PreviousToken().has_value());
+    LOX_ASSERT(m_parser_state.PreviousToken().value().type == TokenType::LEFT_PAREN);
+    auto const  num_args = argumentList();
+    emitByte(OP_CALL);
+    emitIndex(num_args);
+}
+
+auto Compiler::argumentList() -> uint16_t
+{
+    auto count = 0;
+    if (m_parser_state.CurrentToken()->type != TokenType::RIGHT_PAREN) {
+        do {
+            expression();
+            ++count;
+            if (count > MAX_NUMBER_OF_FUNCTION_PARAMETERS) {
+                m_parser_state.ReportError(m_parser_state.PreviousToken()->line_number, "Exceeded maximum number of arguments in function call");
+            }
+        } while (m_parser_state.Consume(TokenType::COMMA));
+    }
+
+    if(!m_parser_state.Consume(TokenType::RIGHT_PAREN)){
+        m_parser_state.ReportError(m_parser_state.PreviousToken()->line_number, "Expected closing parenthesis at the end of call expression");
+    }
+    return static_cast<uint16_t>(count);
 }

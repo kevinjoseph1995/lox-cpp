@@ -205,6 +205,10 @@ auto VirtualMachine::run() -> ErrorOr<VoidType>
             m_frames.rbegin()->instruction_pointer -= readIndex();
             break;
         }
+        case OP_CALL: {
+            // TODO
+            break;
+        }
         }
     }
 }

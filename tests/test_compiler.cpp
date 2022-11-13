@@ -41,6 +41,9 @@ bool ValidateConstants(std::vector<Value> expected, std::vector<Value> const& ge
 {
     if (expected.size() != generated_constants.size()) {
         fmt::print(stderr, "Size mismatch, expected:{} got:{}\n", expected.size(), generated_constants.size());
+        for (auto const& gen : generated_constants) {
+            fmt::print("{}", gen);
+        }
         return false;
     }
     bool success = true;
@@ -442,4 +445,14 @@ fun MyFunction() {
 )");
     auto compilation_result = m_compiler->CompileSource(m_source);
     ASSERT_TRUE(compilation_result.has_value());
+    auto const& compiled_function = compilation_result.value();
+    ASSERT_TRUE(ValidateByteCode(std::vector<uint8_t> {
+                                     OP_CONSTANT, 1, 0,
+                                     OP_DEFINE_GLOBAL, 0, 0,
+                                     OP_RETURN },
+        compiled_function->chunk.byte_code));
+    ASSERT_TRUE(ValidateConstants(std::vector<Value> {
+                                      m_heap.AllocateStringObject("MyFunction"),
+                                      m_heap.AllocateFunctionObject("MyFunction", 0) },
+        compiled_function->chunk.constant_pool));
 }

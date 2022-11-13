@@ -34,6 +34,7 @@ struct Error {
     ErrorType type;
     std::string error_message;
 };
+static_assert(std::is_destructible_v<Error>);
 
 struct VoidType { };
 

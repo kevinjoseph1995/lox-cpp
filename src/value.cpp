@@ -82,9 +82,19 @@ auto Value::operator==(Value const& other) const -> bool
     } else if (this->IsDouble()) {
         return std::abs(*std::get_if<double>(this) - *std::get_if<double>(&other)) < std::numeric_limits<double>::epsilon();
     } else if (this->IsObject()) {
-        LOX_ASSERT(this->AsObject().GetType() == ObjectType::STRING);
-        LOX_ASSERT(other.AsObject().GetType() == ObjectType::STRING);
-        return static_cast<StringObject const*>(this->AsObjectPtr())->data == static_cast<StringObject const*>(other.AsObjectPtr())->data;
+        switch (this->AsObject().GetType()) {
+        case ObjectType::STRING: {
+            return static_cast<StringObject const*>(this->AsObjectPtr())->data == static_cast<StringObject const*>(other.AsObjectPtr())->data;
+        }
+        case ObjectType::FUNCTION: {
+            auto function_ptr = static_cast<FunctionObject const*>(this->AsObjectPtr());
+            auto other_function_ptr = static_cast<FunctionObject const*>(this->AsObjectPtr());
+            return (function_ptr->function_name == other_function_ptr->function_name) && (function_ptr->arity == other_function_ptr->arity);
+        }
+        default: {
+            LOX_ASSERT(false);
+        }
+        }
     } else {
         LOX_ASSERT(false, "Unsupported comparison");
     }
