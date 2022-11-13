@@ -88,7 +88,7 @@ auto Value::operator==(Value const& other) const -> bool
         }
         case ObjectType::FUNCTION: {
             auto function_ptr = static_cast<FunctionObject const*>(this->AsObjectPtr());
-            auto other_function_ptr = static_cast<FunctionObject const*>(this->AsObjectPtr());
+            auto other_function_ptr = static_cast<FunctionObject const*>(other.AsObjectPtr());
             return (function_ptr->function_name == other_function_ptr->function_name) && (function_ptr->arity == other_function_ptr->arity);
         }
         default: {

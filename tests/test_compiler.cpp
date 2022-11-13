@@ -435,7 +435,7 @@ TEST_F(CompilerTest, ForStatement)
         compiled_function->chunk.constant_pool));
 }
 
-TEST_F(CompilerTest, FunctionDeclaration)
+TEST_F(CompilerTest, FunctionDeclaration1)
 {
     m_source.AppendFromConsole(R"(
 
@@ -454,5 +454,26 @@ fun MyFunction() {
     ASSERT_TRUE(ValidateConstants(std::vector<Value> {
                                       m_heap.AllocateStringObject("MyFunction"),
                                       m_heap.AllocateFunctionObject("MyFunction", 0) },
+        compiled_function->chunk.constant_pool));
+}
+
+TEST_F(CompilerTest, FunctionDeclaration2)
+{
+    m_source.AppendFromConsole(
+        R"(fun MyFunction(a, b, c) {
+    print a + b + c;
+}
+)");
+    auto compilation_result = m_compiler->CompileSource(m_source);
+    ASSERT_TRUE(compilation_result.has_value());
+    auto const& compiled_function = compilation_result.value();
+    ASSERT_TRUE(ValidateByteCode(std::vector<uint8_t> {
+                                     OP_CONSTANT, 1, 0,
+                                     OP_DEFINE_GLOBAL, 0, 0,
+                                     OP_RETURN },
+        compiled_function->chunk.byte_code));
+    ASSERT_TRUE(ValidateConstants(std::vector<Value> {
+                                      m_heap.AllocateStringObject("MyFunction"),
+                                      m_heap.AllocateFunctionObject("MyFunction", 3) },
         compiled_function->chunk.constant_pool));
 }
