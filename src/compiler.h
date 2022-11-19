@@ -114,7 +114,7 @@ private:
     auto parseVariable(std::string_view error_message) -> ErrorOr<uint16_t>;
     auto declareVariable() -> void;
     auto defineVariable(uint16_t constant_pool_index) -> void;
-    auto resolveVariable(std::string_view identifier_name) -> std::optional<uint32_t>;
+    auto resolveVariable(std::string_view identifier_name) -> std::optional<uint16_t>;
     auto markInitialized() -> void;
     auto argumentList() -> uint16_t;
 

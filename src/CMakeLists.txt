@@ -11,7 +11,7 @@ add_library(lox_compiler STATIC
 target_include_directories(lox_compiler PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(lox_compiler fmt)
 target_compile_options(lox_compiler PUBLIC
-        -Wall -Wextra -Werror -fno-exceptions
+    -Wall -Wextra -Werror -fno-exceptions -Wconversion
         $<$<CONFIG:Debug>:-fsanitize=address;-fsanitize=undefined;-fsanitize=signed-integer-overflow;-fsanitize=null;-fsanitize=float-cast-overflow;-fsanitize=alignment>)
 target_link_options(lox_compiler PUBLIC
         $<$<CONFIG:Debug>:-fsanitize=address;-fsanitize=undefined>)

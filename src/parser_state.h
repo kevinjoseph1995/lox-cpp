@@ -23,7 +23,7 @@ public:
     {
         return previous_token;
     }
-    auto ReportError(int32_t line_number, std::string_view error_string) -> void;
+    auto ReportError(uint64_t line_number, std::string_view error_string) -> void;
     auto InPanicState() const -> bool
     {
         return m_panic;

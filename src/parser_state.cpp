@@ -2,6 +2,7 @@
 // Created by kevin on 11/6/22.
 //
 #include "parser_state.h"
+#include <cstdint>
 
 auto ParserState::Initialize(const Source& source) -> void
 {
@@ -35,7 +36,7 @@ auto ParserState::Consume(TokenType type) -> bool
     return false;
 }
 
-auto ParserState::ReportError(int32_t line_number, std::string_view error_string) -> void
+auto ParserState::ReportError(uint64_t line_number, std::string_view error_string) -> void
 {
     LOX_ASSERT(m_source != nullptr);
     if (m_panic) {

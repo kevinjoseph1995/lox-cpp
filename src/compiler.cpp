@@ -4,6 +4,7 @@
 
 #include <cstdint>
 #include <functional>
+#include <limits>
 #include <optional>
 
 #include "chunk.h"
@@ -474,7 +475,7 @@ auto Compiler::identifierConstant(const Token& token) -> uint16_t
     auto string_object_ptr = m_heap.AllocateStringObject(m_source->GetSource().substr(token.start, token.length));
     currentChunk()->constant_pool.push_back(string_object_ptr);
     LOX_ASSERT(currentChunk()->constant_pool.size() <= MAX_NUMBER_CONSTANTS);
-    return currentChunk()->constant_pool.size() - 1;
+    return static_cast<uint16_t>(currentChunk()->constant_pool.size() - 1);
 }
 
 auto Compiler::emitIndex(uint16_t index) -> void
@@ -585,7 +586,7 @@ auto Compiler::endScope() -> void
     LOX_ASSERT(m_locals_state.current_scope_depth >= 1);
     --m_locals_state.current_scope_depth;
 
-    int32_t i = m_locals_state.locals.size() - 1;
+    int32_t i = static_cast<int32_t>(m_locals_state.locals.size()) - 1;
     for (; i >= 0; --i) {
         if (m_locals_state.locals[i].local_scope_depth > m_locals_state.current_scope_depth) {
             emitByte(OP_POP);
@@ -598,7 +599,7 @@ auto Compiler::endScope() -> void
     m_locals_state.locals.resize(i + 1);
 }
 
-auto Compiler::resolveVariable(std::string_view identifier_name) -> std::optional<uint32_t>
+auto Compiler::resolveVariable(std::string_view identifier_name) -> std::optional<uint16_t>
 {
     auto it = std::find_if(m_locals_state.locals.rbegin(), m_locals_state.locals.rend(), [&](LocalsState::Local const& local) {
         return local.identifier_name == identifier_name;
@@ -612,7 +613,8 @@ auto Compiler::resolveVariable(std::string_view identifier_name) -> std::optiona
     }
     auto index = std::distance(it, m_locals_state.locals.rend()) - 2; // TODO:  The -2 here is because the 0-index local is not observable outside the compiler. Clean this up later
     LOX_ASSERT(index >= 0);
-    return index;
+    LOX_ASSERT(index < std::numeric_limits<uint16_t>::max());
+    return static_cast<uint16_t>(index);
 }
 
 auto Compiler::markInitialized() -> void
@@ -704,7 +706,7 @@ auto Compiler::emitLoop(uint64_t loop_start) -> void
     emitByte(OP_LOOP);
     auto offset = currentChunk()->byte_code.size() - loop_start + 2;
     LOX_ASSERT(offset < MAX_JUMP_OFFSET, "Loop body too large");
-    emitIndex(offset);
+    emitIndex(static_cast<uint16_t>(offset));
 }
 
 auto Compiler::ifStatement() -> void
@@ -787,7 +789,7 @@ auto Compiler::call(bool) -> void
 {
     LOX_ASSERT(m_parser_state.PreviousToken().has_value());
     LOX_ASSERT(m_parser_state.PreviousToken().value().type == TokenType::LEFT_PAREN);
-    auto const  num_args = argumentList();
+    auto const num_args = argumentList();
     emitByte(OP_CALL);
     emitIndex(num_args);
 }
@@ -805,7 +807,7 @@ auto Compiler::argumentList() -> uint16_t
         } while (m_parser_state.Consume(TokenType::COMMA));
     }
 
-    if(!m_parser_state.Consume(TokenType::RIGHT_PAREN)){
+    if (!m_parser_state.Consume(TokenType::RIGHT_PAREN)) {
         m_parser_state.ReportError(m_parser_state.PreviousToken()->line_number, "Expected closing parenthesis at the end of call expression");
     }
     return static_cast<uint16_t>(count);
