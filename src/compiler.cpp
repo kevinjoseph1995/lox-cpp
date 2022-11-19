@@ -2,6 +2,7 @@
 // Created by kevin on 8/12/22.
 //
 
+#include <cstddef>
 #include <cstdint>
 #include <functional>
 #include <limits>
@@ -437,8 +438,9 @@ auto Compiler::variableDeclaration() -> void
 
 auto Compiler::variable(bool can_assign) -> void
 {
-    std::string_view new_local_identifier_name { m_source->GetSource().begin() + m_parser_state.PreviousToken().value().start,
-        m_source->GetSource().begin() + m_parser_state.PreviousToken().value().start + m_parser_state.PreviousToken().value().length };
+    auto start_offset = static_cast<std::string::difference_type>(m_parser_state.PreviousToken().value().start);
+    auto end_offset = start_offset + static_cast<std::string::difference_type>(m_parser_state.PreviousToken()->length);
+    std::string_view new_local_identifier_name { m_source->GetSource().begin() + start_offset, m_source->GetSource().begin() + end_offset };
 
     OpCode set_op;
     OpCode get_op;
@@ -535,8 +537,8 @@ auto Compiler::declareVariable() -> void
         return;
     }
 
-    std::string_view new_local_identifier_name { m_source->GetSource().begin() + m_parser_state.PreviousToken().value().start,
-        m_source->GetSource().begin() + m_parser_state.PreviousToken().value().start + m_parser_state.PreviousToken().value().length };
+    std::string_view new_local_identifier_name { m_source->GetSource().begin() + static_cast<std::string::difference_type>(m_parser_state.PreviousToken().value().start),
+        m_source->GetSource().begin() + static_cast<std::string::difference_type>(m_parser_state.PreviousToken().value().start + m_parser_state.PreviousToken().value().length) };
 
     /*
      * The following check ensures that the following is not permitted:
@@ -588,7 +590,7 @@ auto Compiler::endScope() -> void
 
     int32_t i = static_cast<int32_t>(m_locals_state.locals.size()) - 1;
     for (; i >= 0; --i) {
-        if (m_locals_state.locals[i].local_scope_depth > m_locals_state.current_scope_depth) {
+        if (m_locals_state.locals[static_cast<size_t>(i)].local_scope_depth > m_locals_state.current_scope_depth) {
             emitByte(OP_POP);
             continue;
         } else {
@@ -596,7 +598,7 @@ auto Compiler::endScope() -> void
         }
     }
     LOX_ASSERT(i >= -1);
-    m_locals_state.locals.resize(i + 1);
+    m_locals_state.locals.resize(static_cast<size_t>(i + 1));
 }
 
 auto Compiler::resolveVariable(std::string_view identifier_name) -> std::optional<uint16_t>
