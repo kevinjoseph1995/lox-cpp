@@ -17,7 +17,7 @@ auto ParserState::Advance() -> void
     while (true) {
         auto token_or_error = m_scanner.GetNextToken();
         if (!token_or_error) {
-            ReportError(previous_token->line_number, token_or_error.error().error_message);
+            ReportError(previous_token->line_number, GetTokenSpan(*previous_token), token_or_error.error().error_message);
         } else {
             current_token = token_or_error.value();
             break;
@@ -36,19 +36,35 @@ auto ParserState::Consume(TokenType type) -> bool
     return false;
 }
 
-auto ParserState::ReportError(uint64_t line_number, std::string_view error_string) -> void
+auto ParserState::ReportError(uint64_t const line_number, Span const& span, std::string_view const error_string) -> void
 {
     LOX_ASSERT(m_source != nullptr);
     if (m_panic) {
         return;
     }
     m_panic = true;
-    if (m_source->IsFromFile()) {
-        fmt::print(stderr, "Error:{} at {}:{}\n", error_string, m_source->GetFilename(), line_number);
-    } else {
-        fmt::print(stderr, "Error:{} on line:{}\n", error_string, line_number);
-    }
     encountered_error = true;
+
+    auto line_start = [this, &span]() {
+        auto line_start = m_source->GetSource().rfind('\n', span.start);
+        if (line_start == std::string::npos) {
+            line_start = 0;
+        }
+        line_start += 1;
+        return line_start;
+    }();
+
+    auto line_end = [this, &span]() {
+        auto line_end = m_source->GetSource().find('\n', span.start);
+        if (line_end == std::string::npos) {
+            line_end = m_source->GetSource().length();
+        }
+        return line_end;
+    }();
+    auto error_line_prefix = fmt::format("{} |", line_number);
+    auto line = std::string_view(m_source->GetSource().data() + line_start, line_end - line_start);
+    auto error_message_prefix = std::string(error_line_prefix.length() + 1, ' ');
+    fmt::print(stderr, "{}{}\n{}[{}]\n", error_line_prefix, line, error_message_prefix,error_string);
 }
 
 bool ParserState::Match(TokenType type) const
@@ -59,21 +75,4 @@ bool ParserState::Match(TokenType type) const
         return true;
     }
     return false;
-}
-
-auto ParserState::ErrorAt(const Token& token, std::string_view message) -> void
-{
-    LOX_ASSERT(m_source != nullptr);
-    LOX_ASSERT(token.start + token.length <= m_source->GetSource().length());
-
-    auto error_string = fmt::format("[line {}] Error", token.line_number);
-
-    if (token.type == TokenType::TOKEN_EOF) {
-        error_string.append(" at end");
-    } else {
-        auto token_source = std::string_view(m_source->GetSource().data() + token.start, token.length);
-        error_string.append(fmt::format(" at {}", token_source));
-    }
-    error_string.append(fmt::format(": {}\n", message));
-    ReportError(token.line_number, error_string);
 }

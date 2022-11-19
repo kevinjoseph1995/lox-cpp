@@ -58,7 +58,7 @@ bool ValidateConstants(std::vector<Value> expected, std::vector<Value> const& ge
 
 TEST_F(CompilerTest, BasicBinaryExpression1)
 {
-    m_source.AppendFromConsole("1 + 2;");
+    m_source.Append("1 + 2;");
     auto compilation_result = m_compiler->CompileSource(m_source);
     ASSERT_TRUE(compilation_result.has_value());
     auto const& compiled_function = compilation_result.value();
@@ -68,7 +68,7 @@ TEST_F(CompilerTest, BasicBinaryExpression1)
 
 TEST_F(CompilerTest, BasicBinaryExpression2)
 {
-    m_source.AppendFromConsole("(1 + 2) + 3 + 3 * (20);");
+    m_source.Append("(1 + 2) + 3 + 3 * (20);");
     auto compilation_result = m_compiler->CompileSource(m_source);
     ASSERT_TRUE(compilation_result.has_value());
     auto const& compiled_function = compilation_result.value();
@@ -90,7 +90,7 @@ TEST_F(CompilerTest, BasicBinaryExpression2)
 
 TEST_F(CompilerTest, VaraibleDeclaration)
 {
-    m_source.AppendFromConsole(R"(
+    m_source.Append(R"(
  var a = (1 + 2) + 3 + 3 * (20);)");
     auto compilation_result = m_compiler->CompileSource(m_source);
     ASSERT_TRUE(compilation_result.has_value());
@@ -113,7 +113,7 @@ TEST_F(CompilerTest, VaraibleDeclaration)
 
 TEST_F(CompilerTest, StringConcatenation)
 {
-    m_source.AppendFromConsole(R"(
+    m_source.Append(R"(
  var a = "Hello world";
  var b = a + "FooBar";
 )");
@@ -141,7 +141,7 @@ TEST_F(CompilerTest, StringConcatenation)
 
 TEST_F(CompilerTest, Comments)
 {
-    m_source.AppendFromConsole(R"(
+    m_source.Append(R"(
 {
       var i = 10;
       print i; // TEST COMMENT
@@ -153,7 +153,7 @@ TEST_F(CompilerTest, Comments)
 
 TEST_F(CompilerTest, PrintStatements)
 {
-    m_source.AppendFromConsole(R"(
+    m_source.Append(R"(
  print (((((((1))))))) + 2;
 )");
     auto compilation_result = m_compiler->CompileSource(m_source);
@@ -173,7 +173,7 @@ TEST_F(CompilerTest, PrintStatements)
 
 TEST_F(CompilerTest, AssignmentStatements)
 {
-    m_source.AppendFromConsole(R"(
+    m_source.Append(R"(
  var a = 10;
  print a;
  a = "Hello World";)");
@@ -201,7 +201,7 @@ TEST_F(CompilerTest, AssignmentStatements)
 
 TEST_F(CompilerTest, InvalidAssignmentTarget)
 {
-    m_source.AppendFromConsole(R"(
+    m_source.Append(R"(
  var a = 10;
  var b = 20;
  a + b = 50; // Syntax error)");
@@ -211,7 +211,7 @@ TEST_F(CompilerTest, InvalidAssignmentTarget)
 
 TEST_F(CompilerTest, InvalidBinaryOp)
 {
-    m_source.AppendFromConsole(R"(
+    m_source.Append(R"(
  var a = 10;
  var b = "String";
  a + b; // Runtime error but still valid syntax)");
@@ -230,7 +230,7 @@ TEST_F(CompilerTest, InvalidBinaryOp)
 
 TEST_F(CompilerTest, LocalVariables1)
 {
-    m_source.AppendFromConsole(R"(
+    m_source.Append(R"(
 {
      var abcd = 10;
  }
@@ -251,7 +251,7 @@ TEST_F(CompilerTest, LocalVariables1)
 
 TEST_F(CompilerTest, LocalVariablesShadowing)
 {
-    m_source.AppendFromConsole(R"(
+    m_source.Append(R"(
 {
      var abcd = 10;
      {
@@ -278,7 +278,7 @@ TEST_F(CompilerTest, LocalVariablesShadowing)
 
 TEST_F(CompilerTest, IfStatement)
 {
-    m_source.AppendFromConsole(R"(
+    m_source.Append(R"(
 {
      if(false) {
          print "If-branch";
@@ -310,7 +310,7 @@ TEST_F(CompilerTest, IfStatement)
 
 TEST_F(CompilerTest, LogicalOperatorsAnd)
 {
-    m_source.AppendFromConsole(R"(
+    m_source.Append(R"(
 {
      print false and true;
  }
@@ -330,7 +330,7 @@ TEST_F(CompilerTest, LogicalOperatorsAnd)
 
 TEST_F(CompilerTest, LogicalOperatorsOr)
 {
-    m_source.AppendFromConsole(R"(
+    m_source.Append(R"(
 {
      print false or true or false;
  }
@@ -355,7 +355,7 @@ TEST_F(CompilerTest, LogicalOperatorsOr)
 
 TEST_F(CompilerTest, WhileStatement)
 {
-    m_source.AppendFromConsole(R"(
+    m_source.Append(R"(
 {
      var a  = 0;
      while(a < 10) {
@@ -396,7 +396,7 @@ TEST_F(CompilerTest, WhileStatement)
 
 TEST_F(CompilerTest, ForStatement)
 {
-    m_source.AppendFromConsole(R"(
+    m_source.Append(R"(
 {
      for(var i = 0; i < 3; i = i + 1){
          print i;
@@ -437,7 +437,7 @@ TEST_F(CompilerTest, ForStatement)
 
 TEST_F(CompilerTest, FunctionDeclaration1)
 {
-    m_source.AppendFromConsole(R"(
+    m_source.Append(R"(
 
 fun MyFunction() {
 }
@@ -459,7 +459,7 @@ fun MyFunction() {
 
 TEST_F(CompilerTest, FunctionDeclaration2)
 {
-    m_source.AppendFromConsole(
+    m_source.Append(
         R"(fun MyFunction(a, b, c) {
     print a + b + c;
 }
@@ -476,4 +476,40 @@ TEST_F(CompilerTest, FunctionDeclaration2)
                                       m_heap.AllocateStringObject("MyFunction"),
                                       m_heap.AllocateFunctionObject("MyFunction", 3) },
         compiled_function->chunk.constant_pool));
+}
+
+TEST_F(CompilerTest, TestInvalidSyntax1)
+{
+    m_source.Append(R"( // 1
+                        // 2
+                        // 3
+                        // 4
+                        // 5
+                        // 6
+                        // 7
+{                       // 8
+    var a = a;          // 9
+}                       // 10
+while(1)                // 11
+{                       // 12
+    var a = a;          // 13
+}                       // 14
+)");
+    auto compilation_result = m_compiler->CompileSource(m_source);
+    ASSERT_FALSE(compilation_result.has_value());
+}
+
+TEST_F(CompilerTest, TestInvalidSyntax2)
+{
+    m_source.Append(R"( // 1
+                        // 2
+                        // 3
+                        // 4
+                        // 5
+                        // 6
+                        // 7
+{ 5 = 3 + 2;}       // 8
+)");
+    auto compilation_result = m_compiler->CompileSource(m_source);
+    ASSERT_FALSE(compilation_result.has_value());
 }

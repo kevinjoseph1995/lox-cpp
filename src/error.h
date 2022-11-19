@@ -24,19 +24,40 @@ auto PrintAssertionMessage(const char* file, int line, const char* function_name
         }                                                                                   \
     } while (0)
 
-enum class ErrorType {
-    ScanError,
-    ParseError,
-    RuntimeError
-};
-
 struct Error {
-    ErrorType type;
     std::string error_message;
 };
+
+struct Span {
+    uint64_t start;
+    uint64_t end;
+};
+
+struct ScanError : Error {
+    Span span;
+};
+
+struct ParseError : Error {
+    Span span;
+};
+
 static_assert(std::is_destructible_v<Error>);
 
 struct VoidType { };
+
+template <typename T>
+using ScanErrorOr = tl::expected<T, ScanError>;
+
+template <typename T>
+using ParseErrorOr = tl::expected<T, ParseError>;
+
+using CompilationError = Error;
+template <typename T>
+using CompilationErrorOr = tl::expected<T, CompilationError>;
+
+using RuntimeError = Error;
+template <typename T>
+using RuntimeErrorOr = tl::expected<T, RuntimeError>;
 
 template <typename T>
 using ErrorOr = tl::expected<T, Error>;

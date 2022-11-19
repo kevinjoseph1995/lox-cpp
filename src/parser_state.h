@@ -13,7 +13,6 @@ public:
     auto Initialize(Source const& source) -> void;
     auto Advance() -> void;
     auto Consume(TokenType type) -> bool;
-    auto ErrorAt(Token const& token, std::string_view message) -> void;
     [[nodiscard]] auto Match(TokenType type) const -> bool;
     [[nodiscard]] auto CurrentToken() const -> std::optional<Token> const&
     {
@@ -23,7 +22,11 @@ public:
     {
         return previous_token;
     }
-    auto ReportError(uint64_t line_number, std::string_view error_string) -> void;
+    auto ReportError(uint64_t const line_number, Span const& span, std::string_view const error_string) -> void;
+    auto ResetPanicState() -> void
+    {
+        m_panic = false;
+    }
     auto InPanicState() const -> bool
     {
         return m_panic;

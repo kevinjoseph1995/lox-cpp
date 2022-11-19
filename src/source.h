@@ -6,18 +6,15 @@
 #define LOX_CPP_SOURCE_H
 
 #include <string>
+#include "error.h"
 
 class Source {
 public:
     [[nodiscard]] auto ReadFromFile(std::string_view filename) -> bool;
-    auto AppendFromConsole(std::string_view source_part) -> void;
+    auto Append(std::string_view source_part) -> void;
     [[nodiscard]] auto IsFromFile() const -> bool
     {
         return !m_filename.empty();
-    }
-    [[nodiscard]] bool IsFromConsole() const
-    {
-        return !IsFromFile();
     }
     auto Clear() -> void
     {
@@ -31,10 +28,15 @@ public:
     }
     auto GetFilename() const -> std::string const&
     {
+        LOX_ASSERT(!m_filename.empty());
         return m_filename;
     }
 
-    [[nodiscard]] auto GetFilename() -> const char* { return m_filename.c_str(); }
+    [[nodiscard]] auto GetFilename() -> const char*
+    {
+        LOX_ASSERT(!m_filename.empty());
+        return m_filename.c_str();
+    }
 
 private:
     std::string m_filename;

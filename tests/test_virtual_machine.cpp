@@ -20,7 +20,7 @@ protected:
 
 TEST_F(VMTest, ExpressionTest)
 {
-    m_source.AppendFromConsole(R"(
+    m_source.Append(R"(
   print 8 * 1 + 2 + 3 + 3 * 4 + (2 + 2);
   print 1 / 2;
   print "Hello" + "World";
@@ -34,7 +34,7 @@ TEST_F(VMTest, ExpressionTest)
 
 TEST_F(VMTest, GlobalVariableDeclaration)
 {
-    m_source.AppendFromConsole(R"(
+    m_source.Append(R"(
   var a =  8 * 1 + 2 + 3 + 3 * 4 + (2 + 2);
   print a;
 )");
@@ -45,7 +45,7 @@ TEST_F(VMTest, GlobalVariableDeclaration)
 
 TEST_F(VMTest, GlobalVariableReAssignment)
 {
-    m_source.AppendFromConsole(R"(
+    m_source.Append(R"(
   var a =  8 * 1 + 2 + 3 + 3 * 4 + (2 + 2);
   print a;
   a = "HelloWorld";
@@ -59,7 +59,7 @@ TEST_F(VMTest, GlobalVariableReAssignment)
 
 TEST_F(VMTest, TestMixedConcatenation)
 {
-    m_source.AppendFromConsole(R"(
+    m_source.Append(R"(
   var a =  1 + "Hello World";
 )");
     ASSERT_FALSE(m_vm->Interpret(m_source).has_value());
@@ -67,7 +67,7 @@ TEST_F(VMTest, TestMixedConcatenation)
 
 TEST_F(VMTest, TestStringComparison)
 {
-    m_source.AppendFromConsole(R"(
+    m_source.Append(R"(
   var a =  "Hello" +  "World";
   var b = "HelloWorld";
   print a == b;
@@ -81,7 +81,7 @@ TEST_F(VMTest, TestStringComparison)
 
 TEST_F(VMTest, TestNumberComparison)
 {
-    m_source.AppendFromConsole(R"(
+    m_source.Append(R"(
   print 1 < 2;
   print 1 == 1;
   print 1.0 == 1.1;
@@ -95,7 +95,7 @@ TEST_F(VMTest, TestNumberComparison)
 
 TEST_F(VMTest, TestDefaultValue)
 {
-    m_source.AppendFromConsole(R"(
+    m_source.Append(R"(
   var a;
   print a;
 )");
@@ -106,7 +106,7 @@ TEST_F(VMTest, TestDefaultValue)
 
 TEST_F(VMTest, TestLocalVaraibles1)
 {
-    m_source.AppendFromConsole(R"(
+    m_source.Append(R"(
 {
      var abcd = 10;
      {
@@ -123,7 +123,7 @@ TEST_F(VMTest, TestLocalVaraibles1)
 
 TEST_F(VMTest, TestLocalVaraibles2)
 {
-    m_source.AppendFromConsole(R"(
+    m_source.Append(R"(
 {
      var abcd = 10;
      {
@@ -136,7 +136,7 @@ TEST_F(VMTest, TestLocalVaraibles2)
 
 TEST_F(VMTest, IfStatement)
 {
-    m_source.AppendFromConsole(R"(
+    m_source.Append(R"(
 {
      if(false) {
          print "If-branch";
@@ -151,7 +151,7 @@ TEST_F(VMTest, IfStatement)
 
 TEST_F(VMTest, IfStatement2)
 {
-    m_source.AppendFromConsole(R"(
+    m_source.Append(R"(
 {
      if(false) {
          print "If-branch";
@@ -168,7 +168,7 @@ TEST_F(VMTest, IfStatement2)
 
 TEST_F(VMTest, LogicalOperatorsAnd)
 {
-    m_source.AppendFromConsole(R"(
+    m_source.Append(R"(
 {
      print false and true;
  }
@@ -180,7 +180,7 @@ TEST_F(VMTest, LogicalOperatorsAnd)
 
 TEST_F(VMTest, LogicalOperatorsOr)
 {
-    m_source.AppendFromConsole(R"(
+    m_source.Append(R"(
 {
      print false or true or false;
  }
@@ -192,7 +192,7 @@ TEST_F(VMTest, LogicalOperatorsOr)
 
 TEST_F(VMTest, LogicalOperatorsOr2)
 {
-    m_source.AppendFromConsole(R"(
+    m_source.Append(R"(
 {
      if((1 + 2 * 4) < 0 or true or false) {
          print "True branch";
@@ -209,7 +209,7 @@ TEST_F(VMTest, LogicalOperatorsOr2)
 
 TEST_F(VMTest, WhileStatement)
 {
-    m_source.AppendFromConsole(R"(
+    m_source.Append(R"(
 {
      var a  = 0;
      while(a < 3) {
@@ -229,7 +229,7 @@ TEST_F(VMTest, WhileStatement)
 
 TEST_F(VMTest, ForStatement)
 {
-    m_source.AppendFromConsole(R"(
+    m_source.Append(R"(
 {
      for(var i = 0; i < 3; i = i + 1){
          print i;
@@ -243,7 +243,7 @@ TEST_F(VMTest, ForStatement)
 
 TEST_F(VMTest, Accumulation)
 {
-    m_source.AppendFromConsole(R"(
+    m_source.Append(R"(
 {
      var sum = 0;
      for(var i = 1; i <= 3; i = i + 1){
@@ -259,7 +259,7 @@ TEST_F(VMTest, Accumulation)
 
 TEST_F(VMTest, AccumulationGlobal)
 {
-    m_source.AppendFromConsole(R"(
+    m_source.Append(R"(
   var sum = 0;
 {
      for(var i = 1; i <= 3; i = i + 1){
@@ -278,7 +278,7 @@ TEST_F(VMTest, AccumulationGlobal)
 
 TEST_F(VMTest, ForStatementScopeLeak)
 {
-    m_source.AppendFromConsole(R"(
+    m_source.Append(R"(
         for(var i = 0; i < 3; i = i + 1){
             print i;
         }
@@ -286,12 +286,11 @@ TEST_F(VMTest, ForStatementScopeLeak)
 )");
     auto result = m_vm->Interpret(m_source);
     ASSERT_FALSE(result.has_value());
-    ASSERT_TRUE(result.error().type == ErrorType::RuntimeError);
 }
 
 TEST_F(VMTest, FunctionDeclaration)
 {
-    m_source.AppendFromConsole(R"(
+    m_source.Append(R"(
 
 fun MyFunction(param1, param2, param3) {
 }

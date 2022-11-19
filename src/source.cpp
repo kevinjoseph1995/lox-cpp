@@ -20,7 +20,7 @@ auto Source::ReadFromFile(std::string_view filename) -> bool
 
     return true;
 }
-auto Source::AppendFromConsole(std::string_view source_part) -> void
+auto Source::Append(std::string_view source_part) -> void
 {
     m_filename.clear();
     m_source.append(source_part);

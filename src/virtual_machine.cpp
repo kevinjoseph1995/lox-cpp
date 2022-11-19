@@ -27,7 +27,7 @@ auto VirtualMachine::Interpret(Source const& source) -> ErrorOr<VoidType>
     return this->run();
 }
 
-auto VirtualMachine::run() -> ErrorOr<VoidType>
+auto VirtualMachine::run() -> RuntimeErrorOr<VoidType>
 {
     while (true) {
         if (isAtEnd()) {
@@ -345,11 +345,10 @@ auto VirtualMachine::isAtEnd() -> bool
     return m_frames.rbegin()->instruction_pointer == currentChunk().byte_code.size();
 }
 
-auto VirtualMachine::runtimeError(std::string error_message) -> Error
+auto VirtualMachine::runtimeError(std::string error_message) -> RuntimeError
 {
     m_frames.rbegin()->instruction_pointer = currentChunk().byte_code.size();
-    return Error { .type = ErrorType::RuntimeError,
-        .error_message = std::move(error_message) };
+    return RuntimeError { std::move(error_message) };
 }
 
 auto VirtualMachine::readIndex() -> uint16_t

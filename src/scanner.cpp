@@ -5,6 +5,11 @@
 #include "scanner.h"
 #include "error.h"
 
+auto GetTokenSpan(Token const& token) -> Span
+{
+    return { token.start, token.start + token.length };
+}
+
 auto Scanner::Reset(Source const& source) -> void
 {
     m_source = &source;
@@ -13,7 +18,7 @@ auto Scanner::Reset(Source const& source) -> void
     m_line = 1;
 }
 
-auto Scanner::GetNextToken() -> ErrorOr<Token>
+auto Scanner::GetNextToken() -> ScanErrorOr<Token>
 {
     LOX_ASSERT(m_source != nullptr);
 
@@ -91,7 +96,7 @@ auto Scanner::GetNextToken() -> ErrorOr<Token>
     case '"':
         return this->string();
     default:
-        return tl::unexpected(Error { .type = ErrorType::ParseError, .error_message = fmt::format("Unidentified character: \"{}\"(index:{})", m_source->GetSource().at(m_start), m_start) });
+        return tl::unexpected(ScanError { {  fmt::format("Unidentified character: \"{}\"(index:{})", m_source->GetSource().at(m_start), m_start) }, Span { m_start, m_start } } );
     }
 }
 
@@ -143,7 +148,6 @@ auto Scanner::consumeWhitespacesAndComments() -> void
                 while (!isAtEnd() && peek() != '\n') {
                     advance();
                 }
-                ++m_line;
                 break;
             }
         }
@@ -153,11 +157,10 @@ auto Scanner::consumeWhitespacesAndComments() -> void
     }
 }
 
-auto Scanner::matchEqual() -> ErrorOr<bool>
+auto Scanner::matchEqual() -> ScanErrorOr<bool>
 {
     if (isAtEnd()) {
-        return tl::unexpected(Error {
-            .type = ErrorType::ScanError, .error_message = "Expected tokens after \"=\"" });
+        return tl::unexpected(ScanError {  { "Expected tokens after \"=\"" }, Span { static_cast<uint64_t>(m_current_index - 1), static_cast<uint64_t>(m_current_index - 1) } } );
     }
     if ('=' == m_source->GetSource().at(m_current_index)) {
         ++m_current_index;
@@ -167,11 +170,11 @@ auto Scanner::matchEqual() -> ErrorOr<bool>
     }
 }
 
-auto Scanner::string() -> ErrorOr<Token>
+auto Scanner::string() -> ScanErrorOr<Token>
 {
     if (isAtEnd()) {
-        return tl::unexpected(Error { .type = ErrorType::ScanError,
-            .error_message = "Unterminated string literal" });
+        return tl::unexpected(ScanError {
+            {  "Unterminated string literal" }, Span { m_start, m_current_index } } );
     }
     while (peek() != '"' && !isAtEnd()) {
         advance();
@@ -185,7 +188,7 @@ auto Scanner::isAtEnd() const -> bool
     return m_current_index == m_source->GetSource().length();
 }
 
-auto Scanner::number() -> ErrorOr<Token>
+auto Scanner::number() -> ScanErrorOr<Token>
 {
     while (!isAtEnd() && std::isdigit(peek())) {
         advance();
@@ -199,7 +202,7 @@ auto Scanner::number() -> ErrorOr<Token>
     return makeToken(TokenType::NUMBER);
 }
 
-auto Scanner::identifierOrKeyword() -> ErrorOr<Token>
+auto Scanner::identifierOrKeyword() -> ScanErrorOr<Token>
 {
     while (!this->isAtEnd() && (std::isalnum(m_source->GetSource().at(m_current_index)) || m_source->GetSource().at(m_current_index) == '_')) {
         advance();

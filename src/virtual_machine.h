@@ -21,19 +21,19 @@ class VirtualMachine {
 public:
     VirtualMachine(std::string* external_stream = nullptr);
 
-    [[nodiscard]] ErrorOr<VoidType> Interpret(Source const& source_code);
+    [[nodiscard]] auto Interpret(Source const& source_code) -> ErrorOr<VoidType>;
 
 private:
     [[nodiscard]] auto currentChunk() -> Chunk const&;
     [[nodiscard]] auto isAtEnd() -> bool;
-    [[nodiscard]] auto run() -> ErrorOr<VoidType>;
+    [[nodiscard]] auto run() -> RuntimeErrorOr<VoidType>;
     [[nodiscard]] auto readByte() -> uint8_t;
     [[nodiscard]] auto readConstant() -> Value;
     [[nodiscard]] auto readIndex() -> uint16_t;
     [[nodiscard]] auto popStack() -> Value;
     [[nodiscard]] auto peekStack(uint32_t index_from_top) -> Value const&;
-    [[nodiscard]] auto binaryOperation(OpCode op) -> ErrorOr<VoidType>;
-    [[nodiscard]] auto runtimeError(std::string error_message) -> Error;
+    [[nodiscard]] auto binaryOperation(OpCode op) -> RuntimeErrorOr<VoidType>;
+    [[nodiscard]] auto runtimeError(std::string error_message) -> RuntimeError;
 
 private:
     struct CallFrame {

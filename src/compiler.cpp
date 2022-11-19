@@ -87,7 +87,7 @@ Compiler::Compiler(Heap& heap, ParserState& parser_state, Compiler::Context cont
     m_locals_state.locals.emplace_back("", 0);
 }
 
-auto Compiler::CompileSource(const Source& source) -> ErrorOr<FunctionObject*>
+auto Compiler::CompileSource(const Source& source) -> CompilationErrorOr<FunctionObject*>
 {
     m_parser_state.Initialize(source);
     m_source = &source;
@@ -99,7 +99,7 @@ auto Compiler::CompileSource(const Source& source) -> ErrorOr<FunctionObject*>
     }
 
     if (m_parser_state.EncounteredError()) {
-        return tl::unexpected(Error { .type = ErrorType::ParseError, .error_message = "Parse error" });
+        return tl::unexpected(CompilationError { { "Compilation failed" } });
     }
     return endCompiler();
 }
@@ -149,7 +149,7 @@ auto Compiler::parsePrecedence(Precedence level) -> void
     m_parser_state.Advance();
     auto prefixRuleFunction = GetRule(m_parser_state.PreviousToken()->type)->prefix;
     if (prefixRuleFunction == nullptr) {
-        m_parser_state.ReportError(m_parser_state.PreviousToken()->line_number, "Expected expression");
+        m_parser_state.ReportError(m_parser_state.PreviousToken()->line_number, GetTokenSpan(*m_parser_state.PreviousToken()), "Expected expression");
         return;
     }
     bool can_assign = level <= PREC_ASSIGNMENT;
@@ -162,7 +162,7 @@ auto Compiler::parsePrecedence(Precedence level) -> void
     }
     if (can_assign and m_parser_state.Match(TokenType::EQUAL)) {
         m_parser_state.Advance(); // Move past the "="
-        m_parser_state.ReportError(m_parser_state.PreviousToken()->line_number, "Invalid assignment target");
+        m_parser_state.ReportError(m_parser_state.PreviousToken()->line_number, GetTokenSpan(*m_parser_state.PreviousToken()), "Invalid assignment target");
     }
 }
 
@@ -175,7 +175,7 @@ auto Compiler::grouping(bool) -> void
 {
     expression();
     if (!m_parser_state.Consume(TokenType::RIGHT_PAREN)) {
-        m_parser_state.ReportError(m_parser_state.CurrentToken()->line_number, "Expected \")\" at the end of a group expression");
+        m_parser_state.ReportError(m_parser_state.CurrentToken()->line_number, GetTokenSpan(*m_parser_state.CurrentToken()), "Expected \")\" at the end of a group expression");
     }
 }
 
@@ -338,14 +338,14 @@ auto Compiler::function() -> void
     function_compiler.beginScope();
     auto success = function_compiler.m_parser_state.Consume(TokenType::LEFT_PAREN);
     if (!success) {
-        function_compiler.m_parser_state.ReportError(m_parser_state.PreviousToken()->line_number, "Expected open parenthesis after function identifier");
+        function_compiler.m_parser_state.ReportError(m_parser_state.PreviousToken()->line_number, GetTokenSpan(*m_parser_state.PreviousToken()), "Expected open parenthesis after function identifier");
     }
 
     if (!function_compiler.m_parser_state.Match(TokenType::RIGHT_PAREN)) {
         do {
             ++(function_compiler.m_function->arity);
             if (function_compiler.m_function->arity > MAX_NUMBER_OF_FUNCTION_PARAMETERS) {
-                function_compiler.m_parser_state.ReportError(function_compiler.m_parser_state.PreviousToken()->line_number,
+                function_compiler.m_parser_state.ReportError(function_compiler.m_parser_state.PreviousToken()->line_number, GetTokenSpan(*m_parser_state.PreviousToken()),
                     fmt::format("Exceeded more than {} function parameters", MAX_NUMBER_OF_FUNCTION_PARAMETERS));
             }
             auto constant_index = function_compiler.parseVariable("Expected function parameter identifier");
@@ -357,7 +357,7 @@ auto Compiler::function() -> void
 
     success = function_compiler.m_parser_state.Consume(TokenType::RIGHT_PAREN);
     if (!success) {
-        function_compiler.m_parser_state.ReportError(m_parser_state.PreviousToken()->line_number, "Expected closing parenthesis after function identifier");
+        function_compiler.m_parser_state.ReportError(m_parser_state.PreviousToken()->line_number, GetTokenSpan(*m_parser_state.PreviousToken()), "Expected closing parenthesis after function identifier");
     }
     function_compiler.block();
     auto compiled_function = function_compiler.endCompiler();
@@ -372,7 +372,7 @@ auto Compiler::printStatement() -> void
     static_cast<void>(_);
     expression();
     if (!m_parser_state.Consume(TokenType::SEMICOLON)) {
-        m_parser_state.ReportError(m_parser_state.PreviousToken()->line_number, "Expected semi-colon at the end of print statement");
+        m_parser_state.ReportError(m_parser_state.PreviousToken()->line_number, GetTokenSpan(*m_parser_state.PreviousToken()), "Expected semi-colon at the end of print statement");
     } else {
         emitByte(OP_PRINT);
     }
@@ -381,7 +381,7 @@ auto Compiler::expressionStatement() -> void
 {
     expression();
     if (!m_parser_state.Consume(TokenType::SEMICOLON)) {
-        m_parser_state.ReportError(m_parser_state.PreviousToken()->line_number, "Expected semi-colon at the end of expression-statement");
+        m_parser_state.ReportError(m_parser_state.PreviousToken()->line_number, GetTokenSpan(*m_parser_state.PreviousToken()), "Expected semi-colon at the end of expression-statement");
     } else {
         emitByte(OP_POP);
     }
@@ -389,6 +389,7 @@ auto Compiler::expressionStatement() -> void
 
 auto Compiler::synchronizeError() -> void
 {
+    m_parser_state.ResetPanicState();
     while (m_parser_state.CurrentToken()->type != TokenType::TOKEN_EOF) {
         if (m_parser_state.PreviousToken()->type == TokenType::SEMICOLON) {
             // Indicates the end of the previous statement
@@ -428,7 +429,7 @@ auto Compiler::variableDeclaration() -> void
         emitByte(OP_NIL);
     }
     if (!m_parser_state.Consume(SEMICOLON)) {
-        m_parser_state.ReportError(m_parser_state.PreviousToken()->line_number, "Expected semi-colon at the end of variable declaration");
+        m_parser_state.ReportError(m_parser_state.PreviousToken()->line_number, GetTokenSpan(*m_parser_state.PreviousToken()), "Expected semi-colon at the end of variable declaration");
     }
 
     defineVariable(identifier_index_in_constant_pool.value());
@@ -489,7 +490,7 @@ auto Compiler::block() -> void
 {
     beginScope();
     if (!m_parser_state.Consume(TokenType::LEFT_BRACE)) {
-        m_parser_state.ReportError(m_parser_state.PreviousToken()->line_number, "Expected opening brace at the start of block statement");
+        m_parser_state.ReportError(m_parser_state.PreviousToken()->line_number, GetTokenSpan(*m_parser_state.PreviousToken()), "Expected opening brace at the start of block statement");
     }
     while (m_parser_state.CurrentToken()->type != TokenType::TOKEN_EOF && m_parser_state.CurrentToken()->type != RIGHT_BRACE) {
         declaration();
@@ -500,12 +501,11 @@ auto Compiler::block() -> void
     endScope();
 }
 
-auto Compiler::parseVariable(std::string_view error_message) -> ErrorOr<uint16_t>
+auto Compiler::parseVariable(std::string_view error_message) -> ParseErrorOr<uint16_t>
 {
     // Need to extract the variable name out from the token
     if (!m_parser_state.Consume(TokenType::IDENTIFIER)) {
-        m_parser_state.ReportError(m_parser_state.PreviousToken()->line_number, error_message);
-        return tl::unexpected(Error { .type = ErrorType::ParseError, .error_message = "" });
+        return tl::unexpected(ParseError { { std::string(error_message) }, GetTokenSpan(m_parser_state.PreviousToken().value()) });
     }
     declareVariable();
     if (m_locals_state.current_scope_depth > 0) {
@@ -568,7 +568,7 @@ auto Compiler::declareVariable() -> void
             break;
         }
         if (new_local_identifier_name == local.identifier_name) {
-            m_parser_state.ReportError(m_parser_state.PreviousToken()->line_number, "Already a variable with this name in this scope.");
+            m_parser_state.ReportError(m_parser_state.PreviousToken()->line_number, GetTokenSpan(*m_parser_state.PreviousToken()), "Already a variable with this name in this scope.");
             return;
         }
     }
@@ -609,7 +609,7 @@ auto Compiler::resolveVariable(std::string_view identifier_name) -> std::optiona
         return {};
     }
     if (it->local_scope_depth == -1) {
-        m_parser_state.ReportError(m_parser_state.PreviousToken()->line_number, "Can't read local variable in its own initializer.");
+        m_parser_state.ReportError(m_parser_state.PreviousToken()->line_number, GetTokenSpan(*m_parser_state.PreviousToken()), "Can't read local variable in its own initializer.");
     }
     auto index = std::distance(it, m_locals_state.locals.rend()) - 2; // TODO:  The -2 here is because the 0-index local is not observable outside the compiler. Clean this up later
     LOX_ASSERT(index >= 0);
@@ -632,7 +632,7 @@ auto Compiler::forStatement() -> void
     auto _ = m_parser_state.Consume(TokenType::FOR);
     LOX_ASSERT(_);
     if (!m_parser_state.Consume(TokenType::LEFT_PAREN)) {
-        m_parser_state.ReportError(m_parser_state.PreviousToken()->line_number, "Expected \"(\" after the for keyword");
+        m_parser_state.ReportError(m_parser_state.PreviousToken()->line_number, GetTokenSpan(*m_parser_state.PreviousToken()), "Expected \"(\" after the for keyword");
     }
     ////////////////////////////// Initializer //////////////////////////////
     if (m_parser_state.Match(TokenType::SEMICOLON)) {
@@ -653,7 +653,7 @@ auto Compiler::forStatement() -> void
         emitByte(OP_POP);
     }
     if (!m_parser_state.Consume(TokenType::SEMICOLON)) {
-        m_parser_state.ReportError(m_parser_state.PreviousToken()->line_number, "Expected \";\" after optional conditional-clause");
+        m_parser_state.ReportError(m_parser_state.PreviousToken()->line_number, GetTokenSpan(*m_parser_state.PreviousToken()), "Expected \";\" after optional conditional-clause");
     }
     /////////////////////////////////////////////////////////////////////////
     //////////////////////////// Increment clause ///////////////////////////
@@ -667,7 +667,7 @@ auto Compiler::forStatement() -> void
         patchJump(for_body_jump);
     }
     if (!m_parser_state.Consume(TokenType::RIGHT_PAREN)) {
-        m_parser_state.ReportError(m_parser_state.PreviousToken()->line_number, "Expected \")\" after optional increment-clause");
+        m_parser_state.ReportError(m_parser_state.PreviousToken()->line_number, GetTokenSpan(*m_parser_state.PreviousToken()), "Expected \")\" after optional increment-clause");
     }
     /////////////////////////////////////////////////////////////////////////
     statement();
@@ -687,11 +687,11 @@ auto Compiler::whileStatement() -> void
     auto _ = m_parser_state.Consume(TokenType::WHILE);
     LOX_ASSERT(_);
     if (!m_parser_state.Consume(TokenType::LEFT_PAREN)) {
-        m_parser_state.ReportError(m_parser_state.PreviousToken()->line_number, "Expected \"(\" after the while keyword");
+        m_parser_state.ReportError(m_parser_state.PreviousToken()->line_number, GetTokenSpan(*m_parser_state.PreviousToken()), "Expected \"(\" after the while keyword");
     }
     expression();
     if (!m_parser_state.Consume(TokenType::RIGHT_PAREN)) {
-        m_parser_state.ReportError(m_parser_state.PreviousToken()->line_number, "Expected \")\" after the while-condition");
+        m_parser_state.ReportError(m_parser_state.PreviousToken()->line_number, GetTokenSpan(*m_parser_state.PreviousToken()), "Expected \")\" after the while-condition");
     }
     auto break_destination = emitJump(OP_JUMP_IF_FALSE);
     emitByte(OP_POP);
@@ -713,11 +713,11 @@ auto Compiler::ifStatement() -> void
 {
     m_parser_state.Consume(TokenType::IF);
     if (!m_parser_state.Consume(TokenType::LEFT_PAREN)) {
-        m_parser_state.ReportError(m_parser_state.PreviousToken()->line_number, "Expected \"(\" after the if statement");
+        m_parser_state.ReportError(m_parser_state.PreviousToken()->line_number, GetTokenSpan(*m_parser_state.PreviousToken()), "Expected \"(\" after the if statement");
     }
     expression();
     if (!m_parser_state.Consume(TokenType::RIGHT_PAREN)) {
-        m_parser_state.ReportError(m_parser_state.PreviousToken()->line_number, "Expected \")\" after the if-condition");
+        m_parser_state.ReportError(m_parser_state.PreviousToken()->line_number, GetTokenSpan(*m_parser_state.PreviousToken()), "Expected \")\" after the if-condition");
     }
 
     auto jump_destination = emitJump(OP_JUMP_IF_FALSE);
@@ -748,7 +748,7 @@ auto Compiler::patchJump(uint64_t offset) -> void
     LOX_ASSERT(offset + 2 <= currentChunk()->byte_code.size());
     auto jump = currentChunk()->byte_code.size() - offset - 2;
     if (jump > MAX_JUMP_OFFSET) {
-        m_parser_state.ReportError(m_parser_state.PreviousToken()->line_number, fmt::format("Jump offset:{} is larger than supported limit: {}", jump, MAX_JUMP_OFFSET));
+        m_parser_state.ReportError(m_parser_state.PreviousToken()->line_number, GetTokenSpan(*m_parser_state.PreviousToken()), fmt::format("Jump offset:{} is larger than supported limit: {}", jump, MAX_JUMP_OFFSET));
         return;
     }
     currentChunk()->byte_code[offset] = static_cast<uint8_t>(0x00FFU & jump);
@@ -802,13 +802,13 @@ auto Compiler::argumentList() -> uint16_t
             expression();
             ++count;
             if (count > MAX_NUMBER_OF_FUNCTION_PARAMETERS) {
-                m_parser_state.ReportError(m_parser_state.PreviousToken()->line_number, "Exceeded maximum number of arguments in function call");
+                m_parser_state.ReportError(m_parser_state.PreviousToken()->line_number, GetTokenSpan(*m_parser_state.PreviousToken()), "Exceeded maximum number of arguments in function call");
             }
         } while (m_parser_state.Consume(TokenType::COMMA));
     }
 
     if (!m_parser_state.Consume(TokenType::RIGHT_PAREN)) {
-        m_parser_state.ReportError(m_parser_state.PreviousToken()->line_number, "Expected closing parenthesis at the end of call expression");
+        m_parser_state.ReportError(m_parser_state.PreviousToken()->line_number, GetTokenSpan(*m_parser_state.PreviousToken()), "Expected closing parenthesis at the end of call expression");
     }
     return static_cast<uint16_t>(count);
 }

@@ -63,20 +63,23 @@ struct Token {
     uint64_t start {};
 };
 
+auto GetTokenSpan(Token const& token) -> Span;
+
 [[maybe_unused]] [[maybe_unused]] char const* GetTokenTypeString(TokenType type);
+
 std::string FormatToken(Token const& token, std::string const* source_code);
 
 class Scanner {
 public:
     auto Reset(Source const& source_code) -> void;
-    [[nodiscard]] auto GetNextToken() -> ErrorOr<Token>;
+    [[nodiscard]] auto GetNextToken() -> ScanErrorOr<Token>;
 
 private:
-    [[nodiscard]] auto number() -> ErrorOr<Token>;
-    [[nodiscard]] auto string() -> ErrorOr<Token>;
-    [[nodiscard]] auto identifierOrKeyword() -> ErrorOr<Token>;
+    [[nodiscard]] auto number() -> ScanErrorOr<Token>;
+    [[nodiscard]] auto string() -> ScanErrorOr<Token>;
+    [[nodiscard]] auto identifierOrKeyword() -> ScanErrorOr<Token>;
     [[nodiscard]] auto peek() const -> char;
-    [[nodiscard]] auto matchEqual() -> ErrorOr<bool>;
+    [[nodiscard]] auto matchEqual() -> ScanErrorOr<bool>;
     [[nodiscard]] auto makeToken(TokenType) const -> Token;
     [[nodiscard]] auto isAtEnd() const -> bool;
 
