@@ -19,7 +19,7 @@ auto VirtualMachine::Interpret(Source const& source) -> ErrorOr<VoidType>
 
     auto compiled_function_result = m_compiler->CompileSource(source);
     if (!compiled_function_result) {
-        return std::unexpected(compiled_function_result.error());
+        return tl::unexpected(compiled_function_result.error());
     }
 
     m_frames.push_back({ .function = compiled_function_result.value(), .instruction_pointer = 0, .slot = 0 });
@@ -50,7 +50,7 @@ auto VirtualMachine::run() -> ErrorOr<VoidType>
         case OP_NEGATE: {
             Value value = popStack();
             if (!value.IsDouble()) {
-                return std::unexpected(runtimeError(fmt::format("Cannot negate non-number type, line number:{}", currentChunk().lines[m_frames.rbegin()->instruction_pointer])));
+                return tl::unexpected(runtimeError(fmt::format("Cannot negate non-number type, line number:{}", currentChunk().lines[m_frames.rbegin()->instruction_pointer])));
             }
             m_value_stack.emplace_back(-value.AsDouble());
             break;
@@ -58,28 +58,28 @@ auto VirtualMachine::run() -> ErrorOr<VoidType>
         case OP_ADD: {
             auto result = binaryOperation(OP_ADD);
             if (!result) {
-                return std::unexpected(result.error());
+                return tl::unexpected(result.error());
             }
             break;
         }
         case OP_SUBTRACT: {
             auto result = binaryOperation(OP_SUBTRACT);
             if (!result) {
-                return std::unexpected(result.error());
+                return tl::unexpected(result.error());
             }
             break;
         }
         case OP_MULTIPLY: {
             auto result = binaryOperation(OP_MULTIPLY);
             if (!result) {
-                return std::unexpected(result.error());
+                return tl::unexpected(result.error());
             }
             break;
         }
         case OP_DIVIDE: {
             auto result = binaryOperation(OP_DIVIDE);
             if (!result) {
-                return std::unexpected(result.error());
+                return tl::unexpected(result.error());
             }
             break;
         }
@@ -110,28 +110,28 @@ auto VirtualMachine::run() -> ErrorOr<VoidType>
         case OP_GREATER: {
             auto result = binaryOperation(OP_GREATER);
             if (!result) {
-                return std::unexpected(result.error());
+                return tl::unexpected(result.error());
             }
             break;
         }
         case OP_LESS: {
             auto result = binaryOperation(OP_LESS);
             if (!result) {
-                return std::unexpected(result.error());
+                return tl::unexpected(result.error());
             }
             break;
         }
         case OP_LESS_EQUAL: {
             auto result = binaryOperation(OP_LESS_EQUAL);
             if (!result) {
-                return std::unexpected(result.error());
+                return tl::unexpected(result.error());
             }
             break;
         }
         case OP_GREATER_EQUAL: {
             auto result = binaryOperation(OP_GREATER_EQUAL);
             if (!result) {
-                return std::unexpected(result.error());
+                return tl::unexpected(result.error());
             }
             break;
         }
@@ -164,7 +164,7 @@ auto VirtualMachine::run() -> ErrorOr<VoidType>
             LOX_ASSERT(identifier_name_value.IsObject() && identifier_name_value.AsObjectPtr()->GetType() == ObjectType::STRING);
             auto identifier_string_object = static_cast<StringObject*>(identifier_name_value.AsObjectPtr());
             if (m_globals.count(identifier_string_object->data) == 0) {
-                return std::unexpected(runtimeError(fmt::format("Undefined variable:{}", identifier_string_object->data)));
+                return tl::unexpected(runtimeError(fmt::format("Undefined variable:{}", identifier_string_object->data)));
             }
             m_value_stack.push_back(m_globals.at(identifier_string_object->data));
             break;
@@ -174,7 +174,7 @@ auto VirtualMachine::run() -> ErrorOr<VoidType>
             LOX_ASSERT(identifier_name_value.IsObject() && identifier_name_value.AsObjectPtr()->GetType() == ObjectType::STRING);
             auto identifier_string_object = static_cast<StringObject*>(identifier_name_value.AsObjectPtr());
             if (m_globals.count(identifier_string_object->data) == 0) {
-                return std::unexpected(runtimeError(fmt::format("Undefined variable:{}", identifier_string_object->data)));
+                return tl::unexpected(runtimeError(fmt::format("Undefined variable:{}", identifier_string_object->data)));
             }
             m_globals[identifier_string_object->data] = peekStack(0); // Over-write existing value
             break;
@@ -266,12 +266,12 @@ auto VirtualMachine::binaryOperation(OpCode op) -> ErrorOr<VoidType>
     auto binaryOpWrapper = [&](auto _operator) -> ErrorOr<VoidType> {
         Value rhs = popStack();
         if (!rhs.IsDouble()) {
-            return std::unexpected(runtimeError(fmt::format("RHS of \"{}\" is not a number type.", getOperatorString(_operator))));
+            return tl::unexpected(runtimeError(fmt::format("RHS of \"{}\" is not a number type.", getOperatorString(_operator))));
         }
 
         Value lhs = popStack();
         if (!lhs.IsDouble()) {
-            return std::unexpected(runtimeError(fmt::format("LHS of \"{}\" is not a number type.", getOperatorString(_operator))));
+            return tl::unexpected(runtimeError(fmt::format("LHS of \"{}\" is not a number type.", getOperatorString(_operator))));
         }
 
         m_value_stack.emplace_back(_operator(lhs.AsDouble(), rhs.AsDouble()));
@@ -286,11 +286,11 @@ auto VirtualMachine::binaryOperation(OpCode op) -> ErrorOr<VoidType>
 
         Value lhs = popStack();
         if (!lhs.IsObject()) {
-            return std::unexpected(runtimeError(fmt::format("LHS of \"+\" is not a string type.")));
+            return tl::unexpected(runtimeError(fmt::format("LHS of \"+\" is not a string type.")));
         }
         auto const& lhs_object = lhs.AsObject();
         if (lhs_object.GetType() != ObjectType::STRING) {
-            return std::unexpected(runtimeError(fmt::format("LHS of \"+\" is not a string type.")));
+            return tl::unexpected(runtimeError(fmt::format("LHS of \"+\" is not a string type.")));
         }
         auto new_string_object = m_heap.AllocateStringObject("");
         LOX_ASSERT(new_string_object->GetType() == ObjectType::STRING);

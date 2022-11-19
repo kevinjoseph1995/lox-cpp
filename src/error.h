@@ -5,8 +5,8 @@
 #ifndef LOX_CPP_ERROR_H
 #define LOX_CPP_ERROR_H
 
+#include "expected.hpp"
 #include "fmt/core.h"
-#include <expected>
 #include <stdio.h>
 #include <string>
 #include <variant>
@@ -39,6 +39,6 @@ static_assert(std::is_destructible_v<Error>);
 struct VoidType { };
 
 template <typename T>
-using ErrorOr = std::expected<T, Error>;
+using ErrorOr = tl::expected<T, Error>;
 
 #endif // LOX_CPP_ERROR_H

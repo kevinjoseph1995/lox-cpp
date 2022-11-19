@@ -63,35 +63,35 @@ auto Scanner::GetNextToken() -> ErrorOr<Token>
     case '!': {
         auto result = matchEqual();
         if (!result)
-            return std::unexpected(result.error());
+            return tl::unexpected(result.error());
         return result.value() ? makeToken(TokenType::BANG_EQUAL)
                               : makeToken(TokenType::BANG);
     }
     case '=': {
         auto result = matchEqual();
         if (!result)
-            return std::unexpected(result.error());
+            return tl::unexpected(result.error());
         return result.value() ? makeToken(TokenType::EQUAL_EQUAL)
                               : makeToken(TokenType::EQUAL);
     }
     case '>': {
         auto result = matchEqual();
         if (!result)
-            return std::unexpected(result.error());
+            return tl::unexpected(result.error());
         return result.value() ? makeToken(TokenType::GREATER_EQUAL)
                               : makeToken(TokenType::GREATER);
     }
     case '<': {
         auto result = matchEqual();
         if (!result)
-            return std::unexpected(result.error());
+            return tl::unexpected(result.error());
         return result.value() ? makeToken(TokenType::LESS_EQUAL)
                               : makeToken(TokenType::LESS);
     }
     case '"':
         return this->string();
     default:
-        return std::unexpected(Error { .type = ErrorType::ParseError, .error_message = fmt::format("Unidentified character: \"{}\"(index:{})", m_source->GetSource().at(m_start), m_start) });
+        return tl::unexpected(Error { .type = ErrorType::ParseError, .error_message = fmt::format("Unidentified character: \"{}\"(index:{})", m_source->GetSource().at(m_start), m_start) });
     }
 }
 
@@ -156,7 +156,7 @@ auto Scanner::consumeWhitespacesAndComments() -> void
 auto Scanner::matchEqual() -> ErrorOr<bool>
 {
     if (isAtEnd()) {
-        return std::unexpected(Error {
+        return tl::unexpected(Error {
             .type = ErrorType::ScanError, .error_message = "Expected tokens after \"=\"" });
     }
     if ('=' == m_source->GetSource().at(m_current_index)) {
@@ -170,7 +170,7 @@ auto Scanner::matchEqual() -> ErrorOr<bool>
 auto Scanner::string() -> ErrorOr<Token>
 {
     if (isAtEnd()) {
-        return std::unexpected(Error { .type = ErrorType::ScanError,
+        return tl::unexpected(Error { .type = ErrorType::ScanError,
             .error_message = "Unterminated string literal" });
     }
     while (peek() != '"' && !isAtEnd()) {

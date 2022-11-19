@@ -99,7 +99,7 @@ auto Compiler::CompileSource(const Source& source) -> ErrorOr<FunctionObject*>
     }
 
     if (m_parser_state.EncounteredError()) {
-        return std::unexpected(Error { .type = ErrorType::ParseError, .error_message = "Parse error" });
+        return tl::unexpected(Error { .type = ErrorType::ParseError, .error_message = "Parse error" });
     }
     return endCompiler();
 }
@@ -505,7 +505,7 @@ auto Compiler::parseVariable(std::string_view error_message) -> ErrorOr<uint16_t
     // Need to extract the variable name out from the token
     if (!m_parser_state.Consume(TokenType::IDENTIFIER)) {
         m_parser_state.ReportError(m_parser_state.PreviousToken()->line_number, error_message);
-        return std::unexpected(Error { .type = ErrorType::ParseError, .error_message = "" });
+        return tl::unexpected(Error { .type = ErrorType::ParseError, .error_message = "" });
     }
     declareVariable();
     if (m_locals_state.current_scope_depth > 0) {
