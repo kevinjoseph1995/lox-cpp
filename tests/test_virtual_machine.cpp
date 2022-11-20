@@ -303,3 +303,19 @@ print MyFunction;
     static constexpr auto EXPECTED_OUTPUT = "function<MyFunction, arity=3>\n";
     ASSERT_EQ(m_vm_output_stream, EXPECTED_OUTPUT);
 }
+
+TEST_F(VMTest, FunctionCall)
+{
+    m_source.Append(R"(
+
+fun MyFunction(message) {
+    print message;
+}
+var return_value = MyFunction("Hello world");
+print return_value;
+)");
+    auto result = m_vm->Interpret(m_source);
+    ASSERT_TRUE(result.has_value());
+    //    static constexpr auto EXPECTED_OUTPUT = "function<MyFunction, arity=3>\n";
+    //   ASSERT_EQ(m_vm_output_stream, EXPECTED_OUTPUT);
+}

@@ -4,6 +4,7 @@
 
 #include "virtual_machine.h"
 #include "error.h"
+#include "object.h"
 #include "value_formatter.h"
 #include <fmt/core.h>
 
@@ -22,7 +23,7 @@ auto VirtualMachine::Interpret(Source const& source) -> ErrorOr<VoidType>
         return tl::unexpected(compiled_function_result.error());
     }
 
-    m_frames.push_back({ .function = compiled_function_result.value(), .instruction_pointer = 0, .slot = 0 });
+    m_frames.emplace_back(compiled_function_result.value(), .0, 0);
 
     return this->run();
 }
@@ -41,7 +42,13 @@ auto VirtualMachine::run() -> RuntimeErrorOr<VoidType>
         auto const instruction = static_cast<OpCode>(readByte());
         switch (instruction) {
         case OP_RETURN: {
-            return VoidType {};
+            if (m_frames.size() == 1) {
+                return VoidType {};
+            }
+            auto return_value = popStack();
+            m_frames.pop_back();
+            m_value_stack.push_back(return_value);
+            break;
         }
         case OP_CONSTANT: {
             m_value_stack.push_back(readConstant());
@@ -206,7 +213,12 @@ auto VirtualMachine::run() -> RuntimeErrorOr<VoidType>
             break;
         }
         case OP_CALL: {
-            // TODO
+            auto const num_arguments = readIndex();
+            auto const callable_object = peekStack(num_arguments);
+            auto function_dispatch_status = call(callable_object, num_arguments);
+            if (!function_dispatch_status) {
+                return tl::unexpected(runtimeError(function_dispatch_status.error().error_message));
+            }
             break;
         }
         }
@@ -343,6 +355,25 @@ VirtualMachine::VirtualMachine(std::string* external_stream)
 auto VirtualMachine::isAtEnd() -> bool
 {
     return m_frames.rbegin()->instruction_pointer == currentChunk().byte_code.size();
+}
+
+auto VirtualMachine::call(Value const& callable, uint16_t num_arguments) -> RuntimeErrorOr<VoidType>
+{
+    if (!callable.IsObject()) {
+        return tl::unexpected(RuntimeError { .error_message = "Not a callable_object" });
+    }
+    auto const& callable_object = callable.AsObject();
+    if (callable_object.GetType() != ObjectType::FUNCTION) {
+        return tl::unexpected(RuntimeError { .error_message = "Not a callable_object" });
+    }
+    auto const& function_object = static_cast<FunctionObject const&>(callable_object);
+    if (function_object.arity != num_arguments) {
+        return tl::unexpected(RuntimeError { .error_message = "Number of arguments provided does not match the number of function parameters" });
+    }
+    // Setup the new call frame
+    m_frames.emplace_back(&function_object, 0, m_value_stack.size() - num_arguments - 1);
+
+    return VoidType {};
 }
 
 auto VirtualMachine::runtimeError(std::string error_message) -> RuntimeError

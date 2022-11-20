@@ -284,12 +284,33 @@ auto Compiler::declaration() -> void
         variableDeclaration();
     } else if (m_parser_state.Match(TokenType::FUN)) {
         functionDeclaration();
+    } else if (m_parser_state.Match(TokenType::RETURN)) {
+        returnStatement();
     } else {
         statement();
     }
     if (m_parser_state.InPanicState()) {
         synchronizeError();
     }
+}
+auto Compiler::returnStatement() -> void
+{
+    LOX_ASSERT(m_parser_state.Match(TokenType::RETURN));
+    m_parser_state.Consume(TokenType::RETURN);
+    if (m_context == Context::SCRIPT) {
+        m_parser_state.ReportError(m_parser_state.PreviousToken()->line_number, GetTokenSpan(*m_parser_state.PreviousToken()), "Cannot return from top-level script");
+        return;
+    }
+    if (m_parser_state.Match(TokenType::SEMICOLON)) {
+        emitByte(OP_NIL);
+    } else {
+        expression();
+    }
+    if (!m_parser_state.Consume(TokenType::SEMICOLON)) {
+        m_parser_state.ReportError(m_parser_state.PreviousToken()->line_number, GetTokenSpan(*m_parser_state.PreviousToken()), "Expected semi-colon at the end of return statement");
+        return;
+    }
+    emitByte(OP_RETURN);
 }
 
 auto Compiler::statement() -> void

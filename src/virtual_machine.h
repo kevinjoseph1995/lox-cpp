@@ -13,6 +13,7 @@
 #include "compiler.h"
 #include "error.h"
 #include "heap.h"
+#include "object.h"
 #include "source.h"
 
 using GlobalTable = std::unordered_map<std::string, Value>;
@@ -34,10 +35,17 @@ private:
     [[nodiscard]] auto peekStack(uint32_t index_from_top) -> Value const&;
     [[nodiscard]] auto binaryOperation(OpCode op) -> RuntimeErrorOr<VoidType>;
     [[nodiscard]] auto runtimeError(std::string error_message) -> RuntimeError;
+    [[nodiscard]] auto call(Value const& callable, uint16_t num_arguments) -> RuntimeErrorOr<VoidType>;
 
 private:
     struct CallFrame {
-        FunctionObject* function = nullptr;
+        CallFrame(FunctionObject const* f, uint64_t ip, uint64_t s)
+            : function(f)
+            , instruction_pointer(ip)
+            , slot(s)
+        {
+        }
+        FunctionObject const* function = nullptr;
         uint64_t instruction_pointer = 0;
         uint64_t slot = 0;
     };

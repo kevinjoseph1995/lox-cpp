@@ -101,6 +101,7 @@ private:
     auto statement() -> void;
     auto printStatement() -> void;
     auto functionDeclaration() -> void;
+    auto returnStatement() -> void;
     auto function() -> void;
     auto setFunctionName() -> void;
     auto ifStatement() -> void;
