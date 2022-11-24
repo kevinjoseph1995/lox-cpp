@@ -107,6 +107,7 @@ auto Compiler::CompileSource(const Source& source) -> CompilationErrorOr<Functio
 
 auto Compiler::endCompiler() -> FunctionObject*
 {
+    emitByte(OP_NIL);
     emitByte(OP_RETURN);
     return m_function;
 }
@@ -634,7 +635,7 @@ auto Compiler::resolveVariable(std::string_view identifier_name) -> std::optiona
     if (it->local_scope_depth == -1) {
         m_parser_state.ReportError(m_parser_state.PreviousToken()->line_number, GetTokenSpan(*m_parser_state.PreviousToken()), "Can't read local variable in its own initializer.");
     }
-    auto index = std::distance(it, m_locals_state.locals.rend()) - 2; // TODO:  The -2 here is because the 0-index local is not observable outside the compiler. Clean this up later
+    auto index = std::distance(it, m_locals_state.locals.rend()) - 2;
     LOX_ASSERT(index >= 0);
     LOX_ASSERT(index < std::numeric_limits<uint16_t>::max());
     return static_cast<uint16_t>(index);
@@ -646,7 +647,7 @@ auto Compiler::markInitialized() -> void
         return;
     }
     LOX_ASSERT(!m_locals_state.locals.empty());
-    (m_locals_state.locals.end() - 1)->local_scope_depth = m_locals_state.current_scope_depth;
+    m_locals_state.locals.back().local_scope_depth = m_locals_state.current_scope_depth;
 }
 
 auto Compiler::forStatement() -> void

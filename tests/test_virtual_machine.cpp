@@ -134,6 +134,19 @@ TEST_F(VMTest, TestLocalVaraibles2)
     ASSERT_FALSE(m_vm->Interpret(m_source).has_value());
 }
 
+TEST_F(VMTest, TestLocalVaraibles3)
+{
+    m_source.Append(R"(
+{
+    var a = 10;
+    print a;
+}
+)");
+    ASSERT_TRUE(m_vm->Interpret(m_source).has_value());
+    static constexpr auto EXPECTED_OUTPUT = "10\n";
+    ASSERT_EQ(m_vm_output_stream, EXPECTED_OUTPUT);
+}
+
 TEST_F(VMTest, IfStatement)
 {
     m_source.Append(R"(
@@ -304,18 +317,93 @@ print MyFunction;
     ASSERT_EQ(m_vm_output_stream, EXPECTED_OUTPUT);
 }
 
-TEST_F(VMTest, FunctionCall)
+TEST_F(VMTest, FunctionCall1)
 {
     m_source.Append(R"(
 
 fun MyFunction(message) {
     print message;
 }
-var return_value = MyFunction("Hello world");
-print return_value;
+MyFunction("Hello world");
 )");
     auto result = m_vm->Interpret(m_source);
     ASSERT_TRUE(result.has_value());
-    //    static constexpr auto EXPECTED_OUTPUT = "function<MyFunction, arity=3>\n";
-    //   ASSERT_EQ(m_vm_output_stream, EXPECTED_OUTPUT);
+    static constexpr auto EXPECTED_OUTPUT = "Hello world\n";
+    ASSERT_EQ(m_vm_output_stream, EXPECTED_OUTPUT);
+}
+
+TEST_F(VMTest, FunctionCall2)
+{
+    m_source.Append(R"(
+
+fun MyFunction(arg1, arg2, arg3) {
+    print arg1 + arg2 + arg3;
+}
+MyFunction(1, 0, 1);
+)");
+    auto result = m_vm->Interpret(m_source);
+    ASSERT_TRUE(result.has_value());
+    static constexpr auto EXPECTED_OUTPUT = "2\n";
+    ASSERT_EQ(m_vm_output_stream, EXPECTED_OUTPUT);
+}
+
+TEST_F(VMTest, ReturnValue1)
+{
+    m_source.Append(R"(
+
+fun MyFunction() {
+}
+print MyFunction();
+)");
+    auto result = m_vm->Interpret(m_source);
+    ASSERT_TRUE(result.has_value());
+    static constexpr auto EXPECTED_OUTPUT = "Nil\n";
+    ASSERT_EQ(m_vm_output_stream, EXPECTED_OUTPUT);
+}
+
+TEST_F(VMTest, ReturnValue2)
+{
+    m_source.Append(R"(
+
+fun MyFunction() {
+    return 1;
+}
+print MyFunction();
+)");
+    auto result = m_vm->Interpret(m_source);
+    ASSERT_TRUE(result.has_value());
+    static constexpr auto EXPECTED_OUTPUT = "1\n";
+    ASSERT_EQ(m_vm_output_stream, EXPECTED_OUTPUT);
+}
+
+TEST_F(VMTest, ReturnValue3)
+{
+    m_source.Append(R"(
+
+fun MyFunction(arg1, arg2, arg3) {
+    return arg1 + arg2 + arg3;
+}
+print MyFunction(0, 1, 2);
+)");
+    auto result = m_vm->Interpret(m_source);
+    ASSERT_TRUE(result.has_value());
+    static constexpr auto EXPECTED_OUTPUT = "3\n";
+    ASSERT_EQ(m_vm_output_stream, EXPECTED_OUTPUT);
+}
+
+TEST_F(VMTest, FunctionCallRecursion)
+{
+    m_source.Append(R"(
+fun Fib(n) {
+    if( n<= 1) {
+        return n;
+    }
+    return Fib(n-2) + Fib(n-1);
+}
+print Fib(10);
+)");
+    auto result = m_vm->Interpret(m_source);
+    ASSERT_TRUE(result.has_value());
+    static constexpr auto EXPECTED_OUTPUT = "55\n";
+    ASSERT_EQ(m_vm_output_stream, EXPECTED_OUTPUT);
 }

@@ -6,6 +6,7 @@
 #include "error.h"
 #include "object.h"
 #include "value_formatter.h"
+#include <cstdio>
 #include <fmt/core.h>
 
 // #define DEBUG_TRACE_EXECUTION
@@ -46,7 +47,15 @@ auto VirtualMachine::run() -> RuntimeErrorOr<VoidType>
                 return VoidType {};
             }
             auto return_value = popStack();
-            m_frames.pop_back();
+
+            auto num_to_pop = static_cast<int32_t>(m_frames.back().function->arity + 1);
+            while (num_to_pop > 0) {
+                auto _ = popStack();
+                static_cast<void>(_);
+                --num_to_pop;
+            }
+
+            m_frames.pop_back(); // Reset the call frame
             m_value_stack.push_back(return_value);
             break;
         }
@@ -278,12 +287,13 @@ auto VirtualMachine::binaryOperation(OpCode op) -> ErrorOr<VoidType>
     auto binaryOpWrapper = [&](auto _operator) -> ErrorOr<VoidType> {
         Value rhs = popStack();
         if (!rhs.IsDouble()) {
-            return tl::unexpected(runtimeError(fmt::format("RHS of \"{}\" is not a number type.", getOperatorString(_operator))));
+            return tl::unexpected(runtimeError(fmt::format("RHS of \"{}\" is not a number type. Is {}", getOperatorString(_operator), rhs)));
         }
 
         Value lhs = popStack();
         if (!lhs.IsDouble()) {
-            return tl::unexpected(runtimeError(fmt::format("LHS of \"{}\" is not a number type.", getOperatorString(_operator))));
+            dumpCallFrameStack();
+            return tl::unexpected(runtimeError(fmt::format("LHS of \"{}\" is not a number type. Is {}", getOperatorString(_operator), lhs)));
         }
 
         m_value_stack.emplace_back(_operator(lhs.AsDouble(), rhs.AsDouble()));
@@ -370,8 +380,11 @@ auto VirtualMachine::call(Value const& callable, uint16_t num_arguments) -> Runt
     if (function_object.arity != num_arguments) {
         return tl::unexpected(RuntimeError { .error_message = "Number of arguments provided does not match the number of function parameters" });
     }
+    // At this point the state of the stack is as follows:
+    // | | | | ... | <CALLABLE_OBJECT> | param_1 | param_2 | ... | param_n |
+
     // Setup the new call frame
-    m_frames.emplace_back(&function_object, 0, m_value_stack.size() - num_arguments - 1);
+    m_frames.emplace_back(&function_object, 0, m_value_stack.size() - num_arguments);
 
     return VoidType {};
 }
@@ -388,7 +401,16 @@ auto VirtualMachine::readIndex() -> uint16_t
     auto hsb = static_cast<uint16_t>(readByte() << 8);
     return static_cast<uint16_t>(hsb + lsb);
 }
+
 auto VirtualMachine::currentChunk() -> Chunk const&
 {
     return m_frames.rbegin()->function->chunk;
+}
+
+auto VirtualMachine::dumpCallFrameStack() -> void
+{
+    fmt::print(stderr, "Slot start: {}\n", m_frames.back().slot);
+    for (int32_t index = static_cast<int32_t>(m_value_stack.size() - 1); index >= 0; --index) {
+        fmt::print(stderr, "Index:{} | Value: {}\n", index, m_value_stack.at(static_cast<size_t>(index)));
+    }
 }

@@ -9,6 +9,20 @@
 #include "fmt/core.h"
 #include "value_formatter.h"
 
+using FunctionMap = std::unordered_map<std::string, FunctionObject const*>;
+
+static auto ExtractFunctions(Chunk const& chunk) -> FunctionMap
+{
+    FunctionMap map;
+    for (auto& val : chunk.constant_pool) {
+        if (val.IsObject() && val.AsObjectPtr()->GetType() == ObjectType::FUNCTION) {
+            auto function_object_ptr = static_cast<FunctionObject const*>(val.AsObjectPtr());
+            map.insert(std::make_pair(function_object_ptr->function_name, function_object_ptr));
+        }
+    }
+    return map;
+}
+
 class CompilerTest : public ::testing::Test {
 protected:
     void SetUp() override
@@ -24,7 +38,7 @@ protected:
 bool ValidateByteCode(std::vector<uint8_t> expected, std::vector<uint8_t> const& generated_byte_code)
 {
     if (expected.size() != generated_byte_code.size()) {
-        fmt::print(stderr, "Size mismatch\n");
+        fmt::print(stderr, "Size mismatch, Expected={} Got={}\n", expected.size(), generated_byte_code.size());
         return false;
     }
     bool success = true;
@@ -62,7 +76,14 @@ TEST_F(CompilerTest, BasicBinaryExpression1)
     auto compilation_result = m_compiler->CompileSource(m_source);
     ASSERT_TRUE(compilation_result.has_value());
     auto const& compiled_function = compilation_result.value();
-    ASSERT_TRUE(ValidateByteCode(std::vector<uint8_t> { OP_CONSTANT, 0, 0, OP_CONSTANT, 1, 0, OP_ADD, OP_POP, OP_RETURN }, compiled_function->chunk.byte_code));
+    ASSERT_TRUE(ValidateByteCode(std::vector<uint8_t> {
+                                     OP_CONSTANT, 0, 0,
+                                     OP_CONSTANT, 1, 0,
+                                     OP_ADD,
+                                     OP_POP,
+                                     OP_NIL,
+                                     OP_RETURN },
+        compiled_function->chunk.byte_code));
     ASSERT_TRUE(ValidateConstants(std::vector<Value> { 1.0, 2.0 }, compiled_function->chunk.constant_pool));
 }
 
@@ -83,6 +104,7 @@ TEST_F(CompilerTest, BasicBinaryExpression2)
                                      OP_MULTIPLY,
                                      OP_ADD,
                                      OP_POP,
+                                     OP_NIL,
                                      OP_RETURN },
         compiled_function->chunk.byte_code));
     ASSERT_TRUE(ValidateConstants(std::vector<Value> { 1.0, 2.0, 3.0, 3.0, 20.0 }, compiled_function->chunk.constant_pool));
@@ -106,6 +128,7 @@ TEST_F(CompilerTest, VaraibleDeclaration)
                                      OP_MULTIPLY,
                                      OP_ADD,
                                      OP_DEFINE_GLOBAL, 0, 0,
+                                     OP_NIL,
                                      OP_RETURN },
         compiled_function->chunk.byte_code));
     ASSERT_TRUE(ValidateConstants(std::vector<Value> { m_heap.AllocateStringObject("a"), 1.0, 2.0, 3.0, 3.0, 20.0 }, compiled_function->chunk.constant_pool));
@@ -128,7 +151,7 @@ TEST_F(CompilerTest, StringConcatenation)
                                      OP_CONSTANT, 4, 0,
                                      OP_ADD,
                                      OP_DEFINE_GLOBAL, 2, 0,
-                                     OP_RETURN },
+                                     OP_NIL, OP_RETURN },
         compiled_function->chunk.byte_code));
     ASSERT_TRUE(ValidateConstants(std::vector<Value> {
                                       m_heap.AllocateStringObject("a"),
@@ -165,6 +188,7 @@ TEST_F(CompilerTest, PrintStatements)
                                      OP_CONSTANT, 1, 0,
                                      OP_ADD,
                                      OP_PRINT,
+                                     OP_NIL,
                                      OP_RETURN },
         compiled_function->chunk.byte_code));
     ASSERT_TRUE(ValidateConstants(std::vector<Value> { 1.0, 2.0 },
@@ -188,6 +212,7 @@ TEST_F(CompilerTest, AssignmentStatements)
                                      OP_CONSTANT, 4, 0,
                                      OP_SET_GLOBAL, 3, 0,
                                      OP_POP,
+                                     OP_NIL,
                                      OP_RETURN },
         compiled_function->chunk.byte_code));
     ASSERT_TRUE(ValidateConstants(std::vector<Value> {
@@ -241,12 +266,25 @@ TEST_F(CompilerTest, LocalVariables1)
     ASSERT_TRUE(ValidateByteCode(std::vector<uint8_t> {
                                      OP_CONSTANT, 0, 0,
                                      OP_POP,
+                                     OP_NIL,
                                      OP_RETURN },
         compiled_function->chunk.byte_code));
     ASSERT_TRUE(ValidateConstants(std::vector<Value> {
                                       10.0,
                                   },
         compiled_function->chunk.constant_pool));
+}
+
+TEST_F(CompilerTest, LocalVariables2)
+{
+    m_source.Append(R"(
+{
+    var a = 10;
+    print a;
+}
+)");
+    auto compilation_result = m_compiler->CompileSource(m_source);
+    ASSERT_TRUE(compilation_result.has_value());
 }
 
 TEST_F(CompilerTest, LocalVariablesShadowing)
@@ -267,6 +305,7 @@ TEST_F(CompilerTest, LocalVariablesShadowing)
                                      OP_CONSTANT, 1, 0,
                                      OP_POP,
                                      OP_POP,
+                                     OP_NIL,
                                      OP_RETURN },
         compiled_function->chunk.byte_code));
     ASSERT_TRUE(ValidateConstants(std::vector<Value> {
@@ -299,6 +338,7 @@ TEST_F(CompilerTest, IfStatement)
                                      OP_POP,
                                      OP_CONSTANT, 1, 0,
                                      OP_PRINT,
+                                     OP_NIL,
                                      OP_RETURN },
         compiled_function->chunk.byte_code));
     ASSERT_TRUE(ValidateConstants(std::vector<Value> {
@@ -324,6 +364,7 @@ TEST_F(CompilerTest, LogicalOperatorsAnd)
                                      OP_POP,
                                      OP_TRUE,
                                      OP_PRINT,
+                                     OP_NIL,
                                      OP_RETURN },
         compiled_function->chunk.byte_code));
 }
@@ -349,6 +390,7 @@ TEST_F(CompilerTest, LogicalOperatorsOr)
                                      OP_POP,
                                      OP_FALSE,
                                      OP_PRINT,
+                                     OP_NIL,
                                      OP_RETURN },
         compiled_function->chunk.byte_code));
 }
@@ -384,6 +426,7 @@ TEST_F(CompilerTest, WhileStatement)
                                      OP_LOOP, 29, 0,
                                      OP_POP,
                                      OP_POP,
+                                     OP_NIL,
                                      OP_RETURN },
         compiled_function->chunk.byte_code));
     ASSERT_TRUE(ValidateConstants(std::vector<Value> {
@@ -425,6 +468,7 @@ TEST_F(CompilerTest, ForStatement)
                                      OP_LOOP, 21, 0,
                                      OP_POP,
                                      OP_POP,
+                                     OP_NIL,
                                      OP_RETURN },
         compiled_function->chunk.byte_code));
     ASSERT_TRUE(ValidateConstants(std::vector<Value> {
@@ -432,49 +476,6 @@ TEST_F(CompilerTest, ForStatement)
                                       3.0,
                                       1.0,
                                   },
-        compiled_function->chunk.constant_pool));
-}
-
-TEST_F(CompilerTest, FunctionDeclaration1)
-{
-    m_source.Append(R"(
-
-fun MyFunction() {
-}
-
-)");
-    auto compilation_result = m_compiler->CompileSource(m_source);
-    ASSERT_TRUE(compilation_result.has_value());
-    auto const& compiled_function = compilation_result.value();
-    ASSERT_TRUE(ValidateByteCode(std::vector<uint8_t> {
-                                     OP_CONSTANT, 1, 0,
-                                     OP_DEFINE_GLOBAL, 0, 0,
-                                     OP_RETURN },
-        compiled_function->chunk.byte_code));
-    ASSERT_TRUE(ValidateConstants(std::vector<Value> {
-                                      m_heap.AllocateStringObject("MyFunction"),
-                                      m_heap.AllocateFunctionObject("MyFunction", 0) },
-        compiled_function->chunk.constant_pool));
-}
-
-TEST_F(CompilerTest, FunctionDeclaration2)
-{
-    m_source.Append(
-        R"(fun MyFunction(a, b, c) {
-    print a + b + c;
-}
-)");
-    auto compilation_result = m_compiler->CompileSource(m_source);
-    ASSERT_TRUE(compilation_result.has_value());
-    auto const& compiled_function = compilation_result.value();
-    ASSERT_TRUE(ValidateByteCode(std::vector<uint8_t> {
-                                     OP_CONSTANT, 1, 0,
-                                     OP_DEFINE_GLOBAL, 0, 0,
-                                     OP_RETURN },
-        compiled_function->chunk.byte_code));
-    ASSERT_TRUE(ValidateConstants(std::vector<Value> {
-                                      m_heap.AllocateStringObject("MyFunction"),
-                                      m_heap.AllocateFunctionObject("MyFunction", 3) },
         compiled_function->chunk.constant_pool));
 }
 
@@ -509,6 +510,145 @@ TEST_F(CompilerTest, TestInvalidSyntax2)
                         // 6
                         // 7
 { 5 = 3 + 2;}       // 8
+)");
+    auto compilation_result = m_compiler->CompileSource(m_source);
+    ASSERT_FALSE(compilation_result.has_value());
+}
+
+TEST_F(CompilerTest, FunctionDeclaration1)
+{
+    m_source.Append(R"(
+
+fun MyFunction() {
+}
+
+)");
+    auto compilation_result = m_compiler->CompileSource(m_source);
+    ASSERT_TRUE(compilation_result.has_value());
+    auto const& compiled_function = compilation_result.value();
+    ASSERT_TRUE(ValidateByteCode(std::vector<uint8_t> {
+                                     OP_CONSTANT, 1, 0,
+                                     OP_DEFINE_GLOBAL, 0, 0,
+                                     OP_NIL,
+                                     OP_RETURN },
+        compiled_function->chunk.byte_code));
+    ASSERT_TRUE(ValidateConstants(std::vector<Value> {
+                                      m_heap.AllocateStringObject("MyFunction"),
+                                      m_heap.AllocateFunctionObject("MyFunction", 0) },
+        compiled_function->chunk.constant_pool));
+}
+
+TEST_F(CompilerTest, FunctionDeclaration2)
+{
+    m_source.Append(
+        R"(
+fun MyFunction(a, b, c) {
+    print a + b + c;
+}
+)");
+    auto compilation_result = m_compiler->CompileSource(m_source);
+    ASSERT_TRUE(compilation_result.has_value());
+    auto const& compiled_function = compilation_result.value();
+    ASSERT_TRUE(ValidateByteCode(std::vector<uint8_t> {
+                                     OP_CONSTANT, 1, 0,
+                                     OP_DEFINE_GLOBAL, 0, 0,
+                                     OP_NIL,
+                                     OP_RETURN },
+        compiled_function->chunk.byte_code));
+    ASSERT_TRUE(ValidateConstants(std::vector<Value> {
+                                      m_heap.AllocateStringObject("MyFunction"),
+                                      m_heap.AllocateFunctionObject("MyFunction", 3) },
+        compiled_function->chunk.constant_pool));
+}
+
+TEST_F(CompilerTest, FunctionCall)
+{
+    m_source.Append(R"(
+fun MyFunction(arg) {
+    print arg;
+}
+MyFunction(1);
+)");
+    auto compilation_result = m_compiler->CompileSource(m_source);
+    ASSERT_TRUE(compilation_result.has_value());
+    ASSERT_TRUE(ValidateByteCode(std::vector<uint8_t> {
+                                     OP_CONSTANT, 1, 0,
+                                     OP_DEFINE_GLOBAL, 0, 0,
+                                     OP_GET_GLOBAL, 2, 0,
+                                     OP_CONSTANT, 3, 0,
+                                     OP_CALL, 1, 0,
+                                     OP_POP,
+                                     OP_NIL,
+                                     OP_RETURN },
+        compilation_result.value()->chunk.byte_code));
+
+    auto const function_map = ExtractFunctions(compilation_result.value()->chunk);
+    LOX_ASSERT(function_map.size() == 1);
+    ASSERT_TRUE(ValidateByteCode(std::vector<uint8_t> {
+                                     OP_GET_LOCAL, 0, 0,
+                                     OP_PRINT,
+                                     OP_NIL,
+                                     OP_RETURN },
+        function_map.begin()->second->chunk.byte_code));
+}
+
+TEST_F(CompilerTest, FunctionCall2)
+{
+    m_source.Append(R"(
+fun Fib(n) {
+    if( n<= 1) {
+        return n;
+    }
+    return Fib(n-2) + Fib(n-1);
+}
+Fib(1);
+)");
+    auto compilation_result = m_compiler->CompileSource(m_source);
+    ASSERT_TRUE(compilation_result.has_value());
+    ASSERT_TRUE(ValidateByteCode(std::vector<uint8_t> {
+                                     OP_CONSTANT, 1, 0,
+                                     OP_DEFINE_GLOBAL, 0, 0,
+                                     OP_GET_GLOBAL, 2, 0,
+                                     OP_CONSTANT, 3, 0,
+                                     OP_CALL, 1, 0,
+                                     OP_POP,
+                                     OP_NIL,
+                                     OP_RETURN },
+        compilation_result.value()->chunk.byte_code));
+    auto const function_map = ExtractFunctions(compilation_result.value()->chunk);
+    LOX_ASSERT(function_map.size() == 1);
+    ASSERT_TRUE(ValidateByteCode(std::vector<uint8_t> {
+                                     OP_GET_LOCAL, 0, 0,
+                                     OP_CONSTANT, 0, 0,
+                                     OP_LESS_EQUAL,
+                                     OP_JUMP_IF_FALSE, 8, 0,
+                                     OP_POP,
+                                     OP_GET_LOCAL, 0, 0,
+                                     OP_RETURN,
+                                     OP_JUMP, 1, 0,
+                                     OP_POP,
+                                     OP_GET_GLOBAL, 1, 0,
+                                     OP_GET_LOCAL, 0, 0,
+                                     OP_CONSTANT, 2, 0,
+                                     OP_SUBTRACT,
+                                     OP_CALL, 1, 0,
+                                     OP_GET_GLOBAL, 3, 0,
+                                     OP_GET_LOCAL, 0, 0,
+                                     OP_CONSTANT, 4, 0,
+                                     OP_SUBTRACT,
+                                     OP_CALL, 1, 0,
+                                     OP_ADD,
+                                     OP_RETURN,
+                                     OP_NIL, // Technically unreachable and can be pruned
+                                     OP_RETURN },
+        function_map.begin()->second->chunk.byte_code));
+}
+
+TEST_F(CompilerTest, InvalidReturnStatement)
+{
+    m_source.Append(R"(
+var a = 1;
+return;
 )");
     auto compilation_result = m_compiler->CompileSource(m_source);
     ASSERT_FALSE(compilation_result.has_value());
