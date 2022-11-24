@@ -407,3 +407,18 @@ print Fib(10);
     static constexpr auto EXPECTED_OUTPUT = "55\n";
     ASSERT_EQ(m_vm_output_stream, EXPECTED_OUTPUT);
 }
+
+TEST_F(VMTest, FunctionCall3)
+{
+    m_source.Append(R"(
+fun concatenate(str1, str2) {
+ return str1 + str2;
+}
+
+print concatenate("Hello", "World");
+)");
+    auto result = m_vm->Interpret(m_source);
+    ASSERT_TRUE(result.has_value());
+    static constexpr auto EXPECTED_OUTPUT = "HelloWorld\n";
+    ASSERT_EQ(m_vm_output_stream, EXPECTED_OUTPUT);
+}

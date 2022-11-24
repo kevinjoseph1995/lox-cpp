@@ -2,16 +2,16 @@
 // Created by kevin on 8/11/22.
 //
 
+#include "fmt/core.h"
 #include "gtest/gtest.h"
 
 #include "chunk.h"
 #include "compiler.h"
-#include "fmt/core.h"
 #include "value_formatter.h"
 
 using FunctionMap = std::unordered_map<std::string, FunctionObject const*>;
 
-static auto ExtractFunctions(Chunk const& chunk) -> FunctionMap
+[[maybe_unused]] static auto ExtractFunctions(Chunk const& chunk) -> FunctionMap
 {
     FunctionMap map;
     for (auto& val : chunk.constant_pool) {
@@ -68,6 +68,18 @@ bool ValidateConstants(std::vector<Value> expected, std::vector<Value> const& ge
         }
     }
     return success;
+}
+
+TEST_F(CompilerTest, Comments)
+{
+    m_source.Append(R"(
+{
+      var i = 10;
+      print i; // TEST COMMENT
+}
+)");
+    auto compilation_result = m_compiler->CompileSource(m_source);
+    ASSERT_TRUE(compilation_result.has_value());
 }
 
 TEST_F(CompilerTest, BasicBinaryExpression1)
@@ -160,18 +172,6 @@ TEST_F(CompilerTest, StringConcatenation)
                                       m_heap.AllocateStringObject("a"),
                                       m_heap.AllocateStringObject("FooBar") },
         compiled_function->chunk.constant_pool));
-}
-
-TEST_F(CompilerTest, Comments)
-{
-    m_source.Append(R"(
-{
-      var i = 10;
-      print i; // TEST COMMENT
-}
-)");
-    auto compilation_result = m_compiler->CompileSource(m_source);
-    ASSERT_TRUE(compilation_result.has_value());
 }
 
 TEST_F(CompilerTest, PrintStatements)
