@@ -14,6 +14,13 @@ if (CCACHE_FOUND)
 endif (CCACHE_FOUND)
 find_program(CCACHE_FOUND ccache)
 
+if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
+  message(STATUS "Setting build type to 'RelWithDebInfo' as none was specified.")
+  set(CMAKE_BUILD_TYPE "RelWithDebInfo" CACHE STRING "Choose the type of build." FORCE)
+  # Set the possible values of build type for cmake-gui
+  set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug" "Release" "MinSizeRel" "RelWithDebInfo")
+endif()
+
 # Use mold as linker if found
 find_program(MOLD_FOUND "mold")
 IF (MOLD_FOUND)
