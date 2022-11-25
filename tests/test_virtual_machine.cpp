@@ -422,3 +422,33 @@ print concatenate("Hello", "World");
     static constexpr auto EXPECTED_OUTPUT = "HelloWorld\n";
     ASSERT_EQ(m_vm_output_stream, EXPECTED_OUTPUT);
 }
+
+TEST_F(VMTest, NativeFunction1)
+{
+    m_source.Append(R"(
+print SystemTimeNow();
+)");
+    auto result = m_vm->Interpret(m_source);
+    ASSERT_TRUE(result.has_value());
+    auto time_point_1 = std::stoll(m_vm_output_stream);
+    m_vm_output_stream.resize(m_vm_output_stream.size() - 1); // Remove the "\n"
+    m_vm_output_stream.clear();
+    result = m_vm->Interpret(m_source);
+    m_vm_output_stream.resize(m_vm_output_stream.size() - 1); // Remove the "\n"
+    ASSERT_TRUE(result.has_value());
+    auto time_point_2 = std::stoll(m_vm_output_stream);
+    ASSERT_TRUE(time_point_2 > time_point_1);
+}
+
+TEST_F(VMTest, NativeFunction2)
+{
+    m_source.Append(R"(
+var a = "Hello World";
+print Echo(a);
+print Echo(666);
+)");
+    auto result = m_vm->Interpret(m_source);
+    ASSERT_TRUE(result.has_value());
+    static constexpr auto EXPECTED_OUTPUT = "Hello World\n666\n";
+    ASSERT_EQ(m_vm_output_stream, EXPECTED_OUTPUT);
+}

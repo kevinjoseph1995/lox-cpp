@@ -2,12 +2,14 @@
 // Created by kevin on 8/6/22.
 //
 
-#include "virtual_machine.h"
-#include "error.h"
-#include "object.h"
-#include "value_formatter.h"
 #include <cstdio>
 #include <fmt/core.h>
+
+#include "error.h"
+#include "native_function.h"
+#include "object.h"
+#include "value_formatter.h"
+#include "virtual_machine.h"
 
 // #define DEBUG_TRACE_EXECUTION
 
@@ -16,15 +18,21 @@ static auto IsFalsy(Value const& value) -> bool
     return value.IsNil() || (value.IsBool() && !value.AsBool());
 }
 
+auto VirtualMachine::registerNativeFunctions() -> void
+{
+    this->m_globals["SystemTimeNow"] = m_heap.AllocateNativeFunctionObject(SystemTimeNow);
+    this->m_globals["Echo"] = m_heap.AllocateNativeFunctionObject(Echo);
+}
+
 auto VirtualMachine::Interpret(Source const& source) -> ErrorOr<VoidType>
 {
-
     auto compiled_function_result = m_compiler->CompileSource(source);
     if (!compiled_function_result) {
         return tl::unexpected(compiled_function_result.error());
     }
     auto new_closure = m_heap.AllocateClosureObject(compiled_function_result.value());
     m_frames.emplace_back(new_closure, 0, 0);
+    registerNativeFunctions();
     return this->run();
 }
 auto VirtualMachine::run() -> RuntimeErrorOr<VoidType>
@@ -373,21 +381,39 @@ auto VirtualMachine::call(Value const& callable, uint16_t num_arguments) -> Runt
     if (!callable.IsObject()) {
         return tl::unexpected(RuntimeError { .error_message = "Not a callable_object" });
     }
-    auto const callable_object_ptr = callable.AsObjectPtr();
-    if (callable_object_ptr->GetType() != ObjectType::FUNCTION) {
+    auto const object_ptr = callable.AsObjectPtr();
+    switch (object_ptr->GetType()) {
+    case ObjectType::FUNCTION: {
+        auto function_object_ptr = static_cast<FunctionObject const*>(object_ptr);
+        if (function_object_ptr->arity != num_arguments) {
+            return tl::unexpected(RuntimeError { .error_message = "Number of arguments provided does not match the number of function parameters" });
+        }
+        // At this point the state of the stack is as follows:
+        // | | | | ... | <CALLABLE_OBJECT> | param_1 | param_2 | ... | param_n |
+
+        // Set up the new call frame
+        auto new_closure = m_heap.AllocateClosureObject(function_object_ptr);
+        m_frames.emplace_back(new_closure, 0, m_value_stack.size() - num_arguments);
+        return VoidType {};
+    }
+    case ObjectType::NATIVE_FUNCTION: {
+        auto native_function_object_ptr = static_cast<NativeFunctionObject const*>(object_ptr);
+        RuntimeErrorOr<Value> return_value;
+        if (num_arguments == 0) {
+            return_value = native_function_object_ptr->native_function(num_arguments, nullptr);
+        } else {
+            auto stack_top_ptr = m_value_stack.data() + m_value_stack.size() - 1;
+            auto first_arg_ptr = stack_top_ptr - (num_arguments - 1);
+            return_value = native_function_object_ptr->native_function(num_arguments, first_arg_ptr);
+        }
+        return return_value.and_then([this](Value& value) {
+            m_value_stack.push_back(value);
+            return RuntimeErrorOr<VoidType> { VoidType {} };
+        });
+    }
+    default:
         return tl::unexpected(RuntimeError { .error_message = "Not a callable_object" });
     }
-    auto function_object_ptr = static_cast<FunctionObject const*>(callable_object_ptr);
-    if (function_object_ptr->arity != num_arguments) {
-        return tl::unexpected(RuntimeError { .error_message = "Number of arguments provided does not match the number of function parameters" });
-    }
-    // At this point the state of the stack is as follows:
-    // | | | | ... | <CALLABLE_OBJECT> | param_1 | param_2 | ... | param_n |
-
-    // Setup the new call frame
-    auto new_closure = m_heap.AllocateClosureObject(function_object_ptr);
-    m_frames.emplace_back(new_closure, 0, m_value_stack.size() - num_arguments);
-    return VoidType {};
 }
 
 auto VirtualMachine::runtimeError(std::string error_message) -> RuntimeError

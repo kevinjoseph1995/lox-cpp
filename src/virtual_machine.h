@@ -37,6 +37,7 @@ private:
     [[nodiscard]] auto runtimeError(std::string error_message) -> RuntimeError;
     [[nodiscard]] auto call(Value const& callable, uint16_t num_arguments) -> RuntimeErrorOr<VoidType>;
     [[maybe_unused]] auto dumpCallFrameStack() -> void;
+    auto registerNativeFunctions() -> void;
 
 private:
     struct CallFrame {

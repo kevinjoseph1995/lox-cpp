@@ -24,6 +24,11 @@ auto Heap::Reset() -> void
         }
         case ObjectType::CLOSURE: {
             delete static_cast<ClosureObject*>(current);
+            break;
+        }
+        case ObjectType::NATIVE_FUNCTION: {
+            delete static_cast<NativeFunctionObject*>(current);
+            break;
         }
         }
         current = next;
@@ -45,6 +50,9 @@ auto Heap::Allocate(ObjectType type) -> Object*
     }
     case ObjectType::CLOSURE:
         new_object = new ClosureObject;
+        break;
+    case ObjectType::NATIVE_FUNCTION:
+        new_object = new NativeFunctionObject;
         break;
     }
     LOX_ASSERT(new_object != nullptr);
@@ -95,4 +103,13 @@ auto Heap::AllocateClosureObject(FunctionObject const* function) -> ClosureObjec
     auto closure_object_ptr = static_cast<ClosureObject*>(object_ptr);
     closure_object_ptr->function = function;
     return closure_object_ptr;
+}
+
+auto Heap::AllocateNativeFunctionObject(NativeFunction function) -> NativeFunctionObject*
+{
+    auto* object_ptr = Allocate(ObjectType::NATIVE_FUNCTION);
+    LOX_ASSERT(object_ptr->type == ObjectType::NATIVE_FUNCTION);
+    auto native_function_object_ptr = static_cast<NativeFunctionObject*>(object_ptr);
+    native_function_object_ptr->native_function = function;
+    return native_function_object_ptr;
 }

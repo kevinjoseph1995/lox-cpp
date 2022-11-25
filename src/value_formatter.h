@@ -48,10 +48,16 @@ struct fmt::formatter<Value> {
                 auto closure_object = *static_cast<ClosureObject const*>(object_ptr);
                 return fmt::format_to(ctx.out(), "closure<{}, arity={}", closure_object.function->function_name, closure_object.function->arity);
             }
+            case ObjectType::NATIVE_FUNCTION: {
+                return fmt::format_to(ctx.out(), "native_function");
+                break;
             }
+            }
+            [[fallthrough]];
         }
-        default:
+        default: {
             LOX_ASSERT(false);
+        }
         }
     };
 };
