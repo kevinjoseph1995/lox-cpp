@@ -23,12 +23,10 @@ auto VirtualMachine::Interpret(Source const& source) -> ErrorOr<VoidType>
     if (!compiled_function_result) {
         return tl::unexpected(compiled_function_result.error());
     }
-
-    m_frames.emplace_back(compiled_function_result.value(), .0, 0);
-
+    auto new_closure = m_heap.AllocateClosureObject(compiled_function_result.value());
+    m_frames.emplace_back(new_closure, 0, 0);
     return this->run();
 }
-
 auto VirtualMachine::run() -> RuntimeErrorOr<VoidType>
 {
     while (true) {
@@ -48,7 +46,7 @@ auto VirtualMachine::run() -> RuntimeErrorOr<VoidType>
             }
             auto return_value = popStack();
 
-            auto num_to_pop = static_cast<int32_t>(m_frames.back().function->arity + 1);
+            auto num_to_pop = static_cast<int32_t>(m_frames.back().closure->function->arity + 1);
             while (num_to_pop > 0) {
                 auto _ = popStack();
                 static_cast<void>(_);
@@ -230,6 +228,9 @@ auto VirtualMachine::run() -> RuntimeErrorOr<VoidType>
             }
             break;
         }
+        case OP_CLOSURE:
+            m_value_stack.push_back(readConstant());
+            break;
         }
     }
 }
@@ -372,20 +373,20 @@ auto VirtualMachine::call(Value const& callable, uint16_t num_arguments) -> Runt
     if (!callable.IsObject()) {
         return tl::unexpected(RuntimeError { .error_message = "Not a callable_object" });
     }
-    auto const& callable_object = callable.AsObject();
-    if (callable_object.GetType() != ObjectType::FUNCTION) {
+    auto const callable_object_ptr = callable.AsObjectPtr();
+    if (callable_object_ptr->GetType() != ObjectType::FUNCTION) {
         return tl::unexpected(RuntimeError { .error_message = "Not a callable_object" });
     }
-    auto const& function_object = static_cast<FunctionObject const&>(callable_object);
-    if (function_object.arity != num_arguments) {
+    auto function_object_ptr = static_cast<FunctionObject const*>(callable_object_ptr);
+    if (function_object_ptr->arity != num_arguments) {
         return tl::unexpected(RuntimeError { .error_message = "Number of arguments provided does not match the number of function parameters" });
     }
     // At this point the state of the stack is as follows:
     // | | | | ... | <CALLABLE_OBJECT> | param_1 | param_2 | ... | param_n |
 
     // Setup the new call frame
-    m_frames.emplace_back(&function_object, 0, m_value_stack.size() - num_arguments);
-
+    auto new_closure = m_heap.AllocateClosureObject(function_object_ptr);
+    m_frames.emplace_back(new_closure, 0, m_value_stack.size() - num_arguments);
     return VoidType {};
 }
 
@@ -404,7 +405,7 @@ auto VirtualMachine::readIndex() -> uint16_t
 
 auto VirtualMachine::currentChunk() -> Chunk const&
 {
-    return m_frames.rbegin()->function->chunk;
+    return m_frames.rbegin()->closure->function->chunk;
 }
 
 auto VirtualMachine::dumpCallFrameStack() -> void

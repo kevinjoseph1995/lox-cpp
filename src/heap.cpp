@@ -5,6 +5,7 @@
 #include "heap.h"
 #include "error.h"
 #include "object.h"
+#include <stdexcept>
 #include <string_view>
 
 auto Heap::Reset() -> void
@@ -21,7 +22,10 @@ auto Heap::Reset() -> void
             delete static_cast<FunctionObject*>(current);
             break;
         }
-    }
+        case ObjectType::CLOSURE: {
+            delete static_cast<ClosureObject*>(current);
+        }
+        }
         current = next;
     }
     m_head = nullptr;
@@ -39,6 +43,9 @@ auto Heap::Allocate(ObjectType type) -> Object*
         new_object = new FunctionObject;
         break;
     }
+    case ObjectType::CLOSURE:
+        new_object = new ClosureObject;
+        break;
     }
     LOX_ASSERT(new_object != nullptr);
     LOX_ASSERT(new_object->GetType() == type);
@@ -79,4 +86,13 @@ auto Heap::AllocateFunctionObject(std::string_view function_name, uint32_t arity
     function_object_ptr->function_name = function_name;
     function_object_ptr->arity = arity;
     return function_object_ptr;
+}
+
+auto Heap::AllocateClosureObject(FunctionObject const* function) -> ClosureObject*
+{
+    auto* object_ptr = Allocate(ObjectType::CLOSURE);
+    LOX_ASSERT(object_ptr->type == ObjectType::CLOSURE);
+    auto closure_object_ptr = static_cast<ClosureObject*>(object_ptr);
+    closure_object_ptr->function = function;
+    return closure_object_ptr;
 }

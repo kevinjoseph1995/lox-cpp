@@ -44,9 +44,9 @@ struct fmt::formatter<Value> {
                 auto string_object = *static_cast<StringObject const*>(object_ptr);
                 return fmt::format_to(ctx.out(), "{}", string_object.data);
             }
-            default: {
-                LOX_ASSERT(false, "Unsupported type, cannot format");
-                std::terminate();
+            case ObjectType::CLOSURE: {
+                auto closure_object = *static_cast<ClosureObject const*>(object_ptr);
+                return fmt::format_to(ctx.out(), "closure<{}, arity={}", closure_object.function->function_name, closure_object.function->arity);
             }
             }
         }

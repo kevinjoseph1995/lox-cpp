@@ -40,13 +40,13 @@ private:
 
 private:
     struct CallFrame {
-        CallFrame(FunctionObject const* f, uint64_t ip, uint64_t s)
-            : function(f)
+        CallFrame(ClosureObject const* f, uint64_t ip, uint64_t s)
+            : closure(f)
             , instruction_pointer(ip)
             , slot(s)
         {
         }
-        FunctionObject const* function = nullptr;
+        ClosureObject const* closure = nullptr;
         uint64_t instruction_pointer = 0;
         uint64_t slot = 0;
     };

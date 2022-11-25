@@ -10,7 +10,8 @@
 
 enum class ObjectType {
     STRING,
-    FUNCTION
+    FUNCTION,
+    CLOSURE
 };
 
 class Object {
@@ -45,4 +46,11 @@ struct FunctionObject : public Object {
     Chunk chunk;
 };
 
+struct ClosureObject : Object {
+    ClosureObject()
+    {
+        type = ObjectType::CLOSURE;
+    }
+    FunctionObject const* function = nullptr;
+};
 #endif // LOX_CPP_OBJECT_H

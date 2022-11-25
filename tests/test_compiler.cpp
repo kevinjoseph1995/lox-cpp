@@ -4,6 +4,7 @@
 
 #include "fmt/core.h"
 #include "gtest/gtest.h"
+#include <optional>
 
 #include "chunk.h"
 #include "compiler.h"
@@ -527,7 +528,7 @@ fun MyFunction() {
     ASSERT_TRUE(compilation_result.has_value());
     auto const& compiled_function = compilation_result.value();
     ASSERT_TRUE(ValidateByteCode(std::vector<uint8_t> {
-                                     OP_CONSTANT, 1, 0,
+                                     OP_CLOSURE, 1, 0,
                                      OP_DEFINE_GLOBAL, 0, 0,
                                      OP_NIL,
                                      OP_RETURN },
@@ -550,7 +551,7 @@ fun MyFunction(a, b, c) {
     ASSERT_TRUE(compilation_result.has_value());
     auto const& compiled_function = compilation_result.value();
     ASSERT_TRUE(ValidateByteCode(std::vector<uint8_t> {
-                                     OP_CONSTANT, 1, 0,
+                                     OP_CLOSURE, 1, 0,
                                      OP_DEFINE_GLOBAL, 0, 0,
                                      OP_NIL,
                                      OP_RETURN },
@@ -572,7 +573,7 @@ MyFunction(1);
     auto compilation_result = m_compiler->CompileSource(m_source);
     ASSERT_TRUE(compilation_result.has_value());
     ASSERT_TRUE(ValidateByteCode(std::vector<uint8_t> {
-                                     OP_CONSTANT, 1, 0,
+                                     OP_CLOSURE, 1, 0,
                                      OP_DEFINE_GLOBAL, 0, 0,
                                      OP_GET_GLOBAL, 2, 0,
                                      OP_CONSTANT, 3, 0,
@@ -606,7 +607,7 @@ Fib(1);
     auto compilation_result = m_compiler->CompileSource(m_source);
     ASSERT_TRUE(compilation_result.has_value());
     ASSERT_TRUE(ValidateByteCode(std::vector<uint8_t> {
-                                     OP_CONSTANT, 1, 0,
+                                     OP_CLOSURE, 1, 0,
                                      OP_DEFINE_GLOBAL, 0, 0,
                                      OP_GET_GLOBAL, 2, 0,
                                      OP_CONSTANT, 3, 0,

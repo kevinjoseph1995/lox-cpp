@@ -146,6 +146,11 @@ auto Disassemble_instruction(Chunk const& chunk, uint64_t offset) -> uint64_t
         offset += 3;
         return offset;
     }
+    case OP_CLOSURE: {
+        fmt::print("{:#08x} OP_CLOSURE constant_index{}\n", offset, getIndex(chunk.byte_code[offset + 1], chunk.byte_code[offset + 2]));
+        offset += 3;
+        return offset;
+    }
     }
     LOX_ASSERT(false);
 }

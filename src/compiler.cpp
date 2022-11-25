@@ -13,6 +13,7 @@
 #include "error.h"
 #include "fmt/core.h"
 #include "scanner.h"
+#include "value.h"
 
 consteval auto GenerateParseTable() -> ParseTable
 {
@@ -385,8 +386,11 @@ auto Compiler::function() -> void
     function_compiler.block();
     auto compiled_function = function_compiler.endCompiler();
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-    addConstant(Value { compiled_function });
+    LOX_ASSERT(currentChunk() != nullptr);
+    LOX_ASSERT(currentChunk()->constant_pool.size() < MAX_NUMBER_CONSTANTS, "Exceeded the maximum number of supported constants");
+    currentChunk()->constant_pool.push_back(Value { compiled_function });
+    emitByte(OP_CLOSURE);
+    emitIndex(static_cast<uint16_t>(currentChunk()->constant_pool.size() - 1));
 }
 
 auto Compiler::printStatement() -> void
