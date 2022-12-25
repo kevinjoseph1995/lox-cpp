@@ -239,6 +239,12 @@ auto VirtualMachine::run() -> RuntimeErrorOr<VoidType>
         case OP_CLOSURE:
             m_value_stack.push_back(readConstant());
             break;
+        case OP_GET_UPVALUE:
+            LOX_ASSERT(false, "TODO");
+            break;
+        case OP_SET_UPVALUE:
+            LOX_ASSERT(false, "TODO");
+            break;
         }
     }
 }

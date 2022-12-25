@@ -76,12 +76,14 @@ static constexpr auto GetRule(TokenType type) -> ParseRule const*
     return &PARSE_TABLE[type];
 }
 
-Compiler::Compiler(Heap& heap, ParserState& parser_state, Compiler::Context context)
-    : m_context(context)
+Compiler::Compiler(Heap& heap, ParserState& parser_state, Compiler* parent_compiler)
+    : m_parent_compiler(parent_compiler)
     , m_heap(heap)
     , m_parser_state(parser_state)
+
 {
-    if (m_context == Context::FUNCTION) {
+    if (parent_compiler != nullptr) {
+        // Not top level script an is function compiler
         m_function = m_heap.AllocateFunctionObject("_", 0);
     } else {
         m_function = m_heap.AllocateFunctionObject("", 0);
@@ -299,7 +301,7 @@ auto Compiler::returnStatement() -> void
 {
     LOX_ASSERT(m_parser_state.Match(TokenType::RETURN));
     m_parser_state.Consume(TokenType::RETURN);
-    if (m_context == Context::SCRIPT) {
+    if (m_parent_compiler == nullptr) {
         m_parser_state.ReportError(m_parser_state.PreviousToken()->line_number, GetTokenSpan(*m_parser_state.PreviousToken()), "Cannot return from top-level script");
         return;
     }
@@ -354,7 +356,7 @@ auto Compiler::setFunctionName() -> void
 
 auto Compiler::function() -> void
 {
-    Compiler function_compiler(m_heap, m_parser_state, Context::FUNCTION);
+    Compiler function_compiler(m_heap, m_parser_state, this);
     ///////////////////////////////////////////////// Compile the function body ////////////////////////////////////////////////////////////////////////////////////////////
     function_compiler.m_source = this->m_source;
     function_compiler.setFunctionName();
@@ -479,7 +481,12 @@ auto Compiler::variable(bool can_assign) -> void
         set_op = OP_SET_LOCAL;
         get_op = OP_GET_LOCAL;
 
-    } else {
+    } /* else if (variable_resolution_result = resolveUpvalue(new_local_identifier_name); variable_resolution_result.has_value()) {
+         index = variable_resolution_result.value();
+         set_op = OP_SET_UPVALUE;
+         get_op = OP_GET_UPVALUE;
+     }*/
+    else {
         // Global variable
         index = identifierConstant(m_parser_state.PreviousToken().value());
         set_op = OP_SET_GLOBAL;
@@ -839,4 +846,9 @@ auto Compiler::argumentList() -> uint16_t
         m_parser_state.ReportError(m_parser_state.PreviousToken()->line_number, GetTokenSpan(*m_parser_state.PreviousToken()), "Expected closing parenthesis at the end of call expression");
     }
     return static_cast<uint16_t>(count);
+}
+auto Compiler::resolveUpvalue(std::string_view) -> std::optional<uint16_t>
+{
+    LOX_ASSERT(false, "TODO");
+    return std::optional<uint16_t>();
 }

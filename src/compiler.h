@@ -32,7 +32,7 @@ enum  Precedence {
 // clang-format on
 
 class Compiler;
-using ParseFunc = auto(Compiler::*)(bool) -> void;
+using ParseFunc = auto (Compiler::*)(bool) -> void;
 struct ParseRule {
     ParseFunc prefix;
     ParseFunc infix;
@@ -42,12 +42,8 @@ using ParseTable = std::array<ParseRule, static_cast<int>(TokenType::NUMBER_OF_T
 
 class Compiler {
 public:
-    enum class Context {
-        SCRIPT,
-        FUNCTION
-    };
     Compiler() = delete;
-    Compiler(Heap& heap, ParserState& parser_state, Context context = Context::SCRIPT);
+    Compiler(Heap& heap, ParserState& parser_state, Compiler* parent_compiler = nullptr);
     [[nodiscard]] auto CompileSource(Source const& source) -> CompilationErrorOr<FunctionObject*>;
 
 private:
@@ -55,7 +51,7 @@ private:
 
     Source const* m_source = nullptr;
     FunctionObject* m_function = nullptr;
-    Context m_context = Context::SCRIPT;
+    Compiler* m_parent_compiler = nullptr;
 
     Heap& m_heap;
     ParserState& m_parser_state;
@@ -116,6 +112,7 @@ private:
     auto declareVariable() -> void;
     auto defineVariable(uint16_t constant_pool_index) -> void;
     [[nodiscard]] auto resolveVariable(std::string_view identifier_name) -> std::optional<uint16_t>;
+    [[nodiscard]] auto resolveUpvalue(std::string_view identifier_name) -> std::optional<uint16_t>;
     auto markInitialized() -> void;
     auto argumentList() -> uint16_t;
 

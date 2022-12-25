@@ -1,5 +1,8 @@
-fun MyFunction(param1, param2) {
-
+fun invokeClosure() {
+    var to_be_captured = 10;
+    fun closure() {
+        print to_be_captured;
+    }
+    closure();
 }
-
-print MyFunction;
+invokeClosure();
