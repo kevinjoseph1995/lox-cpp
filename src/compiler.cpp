@@ -7,6 +7,7 @@
 #include <functional>
 #include <limits>
 #include <optional>
+#include <ranges>
 
 #include "chunk.h"
 #include "compiler.h"
@@ -481,11 +482,13 @@ auto Compiler::variable(bool can_assign) -> void
         set_op = OP_SET_LOCAL;
         get_op = OP_GET_LOCAL;
 
-    } /* else if (variable_resolution_result = resolveUpvalue(new_local_identifier_name); variable_resolution_result.has_value()) {
-         index = variable_resolution_result.value();
-         set_op = OP_SET_UPVALUE;
-         get_op = OP_GET_UPVALUE;
-     }*/
+    } /*
+    // TODO: Enable me once upvalues are fully supported
+      else if (variable_resolution_result = resolveUpvalue(new_local_identifier_name); variable_resolution_result.has_value()) {
+        index = variable_resolution_result.value();
+        set_op = OP_SET_UPVALUE;
+        get_op = OP_GET_UPVALUE;
+    } */
     else {
         // Global variable
         index = identifierConstant(m_parser_state.PreviousToken().value());
@@ -847,8 +850,28 @@ auto Compiler::argumentList() -> uint16_t
     }
     return static_cast<uint16_t>(count);
 }
-auto Compiler::resolveUpvalue(std::string_view) -> std::optional<uint16_t>
+auto Compiler::resolveUpvalue(std::string_view identifier_name) -> std::optional<uint16_t>
 {
-    LOX_ASSERT(false, "TODO");
-    return std::optional<uint16_t>();
+    if (m_parent_compiler == nullptr) {
+        // We are compiling top-level script. No more scopes to search in
+        return {};
+    }
+    auto local_resolution_result = m_parent_compiler->resolveVariable(identifier_name);
+    if (local_resolution_result.has_value()) {
+        return addUpvalue(local_resolution_result.value(), true);
+    }
+    return {};
+}
+auto Compiler::addUpvalue(uint16_t index, bool is_local) -> uint16_t
+{
+    auto const it = std::ranges::find_if(m_upvalues, [index, is_local](auto const& upvalue) -> bool { return upvalue.index == index && upvalue.is_local == is_local; });
+    if (it != m_upvalues.end()) {
+        // Upvalue already there
+        auto const upvalue_index = std::distance(m_upvalues.begin(), it);
+        LOX_ASSERT(m_upvalues.size() <= MAX_INDEXABLE_SIZE);
+        return static_cast<uint16_t>(upvalue_index);
+    }
+    m_upvalues.push_back(Upvalue { .index = index, .is_local = is_local });
+    LOX_ASSERT(m_upvalues.size() <= MAX_INDEXABLE_SIZE);
+    return static_cast<uint16_t>(m_upvalues.size() - 1);
 }
