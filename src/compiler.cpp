@@ -113,6 +113,8 @@ auto Compiler::endCompiler() -> FunctionObject*
 {
     emitByte(OP_NIL);
     emitByte(OP_RETURN);
+    LOX_ASSERT(m_upvalues.size() <= MAX_INDEXABLE_SIZE);
+    m_function->upvalue_count = static_cast<uint16_t>(m_upvalues.size());
     return m_function;
 }
 
@@ -392,8 +394,15 @@ auto Compiler::function() -> void
     LOX_ASSERT(currentChunk() != nullptr);
     LOX_ASSERT(currentChunk()->constant_pool.size() < MAX_NUMBER_CONSTANTS, "Exceeded the maximum number of supported constants");
     currentChunk()->constant_pool.push_back(Value { compiled_function });
+
+    // Emit OP_CLOSURE and it's operands
+    /* |OP_CLOSURE|  Function_Obj_Cont_index_LSB  |  Function_Obj_Cont_index_USB  |  i=0,Upvalue_is_local  |  i=0,Upvalue_index  | ... |  i=n-1,Upvalue_is_local  |  i=n-1,Upvalue_index  |*/
     emitByte(OP_CLOSURE);
     emitIndex(static_cast<uint16_t>(currentChunk()->constant_pool.size() - 1));
+    for (auto const& upvalue : function_compiler.m_upvalues) {
+        emitByte(static_cast<uint8_t>(upvalue.type));
+        emitIndex(upvalue.index);
+    }
 }
 
 auto Compiler::printStatement() -> void
@@ -482,14 +491,11 @@ auto Compiler::variable(bool can_assign) -> void
         set_op = OP_SET_LOCAL;
         get_op = OP_GET_LOCAL;
 
-    } /*
-    // TODO: Enable me once upvalues are fully supported
-      else if (variable_resolution_result = resolveUpvalue(new_local_identifier_name); variable_resolution_result.has_value()) {
+    } else if (variable_resolution_result = resolveUpvalue(new_local_identifier_name); variable_resolution_result.has_value()) {
         index = variable_resolution_result.value();
         set_op = OP_SET_UPVALUE;
         get_op = OP_GET_UPVALUE;
-    } */
-    else {
+    } else {
         // Global variable
         index = identifierConstant(m_parser_state.PreviousToken().value());
         set_op = OP_SET_GLOBAL;
@@ -856,22 +862,28 @@ auto Compiler::resolveUpvalue(std::string_view identifier_name) -> std::optional
         // We are compiling top-level script. No more scopes to search in
         return {};
     }
+    // Check the immediately enclosing scope if we can find the identifier
     auto local_resolution_result = m_parent_compiler->resolveVariable(identifier_name);
     if (local_resolution_result.has_value()) {
-        return addUpvalue(local_resolution_result.value(), true);
+        return addUpvalue(local_resolution_result.value(), Upvalue::Type::Local);
+    }
+    // Since we didn't find it as a local variable in the immediately enclosing scope, we recursively search the other enclosing compilers.
+    local_resolution_result = m_parent_compiler->resolveUpvalue(identifier_name);
+    if (local_resolution_result.has_value()) {
+        return addUpvalue(local_resolution_result.value(), Upvalue::Type::NotLocal);
     }
     return {};
 }
-auto Compiler::addUpvalue(uint16_t index, bool is_local) -> uint16_t
+auto Compiler::addUpvalue(uint16_t const index, Upvalue::Type const type) -> uint16_t
 {
-    auto const it = std::ranges::find_if(m_upvalues, [index, is_local](auto const& upvalue) -> bool { return upvalue.index == index && upvalue.is_local == is_local; });
+    auto const it = std::ranges::find_if(m_upvalues, [index, type](auto const& upvalue) -> bool { return upvalue.index == index && upvalue.type == type; });
     if (it != m_upvalues.end()) {
         // Upvalue already there
         auto const upvalue_index = std::distance(m_upvalues.begin(), it);
         LOX_ASSERT(m_upvalues.size() <= MAX_INDEXABLE_SIZE);
         return static_cast<uint16_t>(upvalue_index);
     }
-    m_upvalues.push_back(Upvalue { .index = index, .is_local = is_local });
+    m_upvalues.push_back(Upvalue { .type = type, .index = index });
     LOX_ASSERT(m_upvalues.size() <= MAX_INDEXABLE_SIZE);
     return static_cast<uint16_t>(m_upvalues.size() - 1);
 }

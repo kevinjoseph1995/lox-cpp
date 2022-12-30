@@ -43,8 +43,9 @@ struct FunctionObject : public Object {
         type = ObjectType::FUNCTION;
     }
     std::string function_name;
-    uint32_t arity;
+    uint32_t arity {};
     Chunk chunk;
+    uint16_t upvalue_count {};
 };
 
 using NativeFunction = std::add_pointer_t<RuntimeErrorOr<Value>(uint32_t num_arguments, Value*)>;

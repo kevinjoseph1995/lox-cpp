@@ -11,7 +11,7 @@
 #include "value_formatter.h"
 #include "virtual_machine.h"
 
-// #define DEBUG_TRACE_EXECUTION
+#define DEBUG_TRACE_EXECUTION
 
 static auto IsFalsy(Value const& value) -> bool
 {

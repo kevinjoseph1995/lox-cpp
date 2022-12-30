@@ -147,8 +147,20 @@ auto Disassemble_instruction(Chunk const& chunk, uint64_t offset) -> uint64_t
         return offset;
     }
     case OP_CLOSURE: {
-        fmt::print("{:#08x} OP_CLOSURE constant_index{}\n", offset, getIndex(chunk.byte_code[offset + 1], chunk.byte_code[offset + 2]));
+        auto const function_index_in_constant_pool = getIndex(chunk.byte_code[offset + 1], chunk.byte_code[offset + 2]);
+        fmt::print("{:#08x} OP_CLOSURE constant_index: {}\n", offset, function_index_in_constant_pool);
         offset += 3;
+        auto const& value = chunk.constant_pool.at(function_index_in_constant_pool);
+        auto object_ptr = value.AsObjectPtr();
+        LOX_ASSERT(object_ptr != nullptr);
+        LOX_ASSERT(object_ptr->GetType() == ObjectType::FUNCTION);
+        auto function_ptr = static_cast<FunctionObject const*>(object_ptr);
+        for (auto i = 0; i < function_ptr->upvalue_count; ++i) {
+            auto const is_local = static_cast<bool>(chunk.byte_code[offset]);
+            auto const upvalue_index = getIndex(chunk.byte_code[offset + 1], chunk.byte_code[offset + 2]);
+            fmt::print("{:#08x}  |   Upvalue[is_local={}, index={}] \n", offset, is_local, upvalue_index);
+            offset += 3;
+        }
         return offset;
     }
     case OP_GET_UPVALUE:

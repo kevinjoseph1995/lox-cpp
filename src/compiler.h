@@ -41,8 +41,12 @@ struct ParseRule {
 using ParseTable = std::array<ParseRule, static_cast<int>(TokenType::NUMBER_OF_TOKEN_TYPES)>;
 
 struct Upvalue {
+    enum Type : uint8_t {
+        NotLocal = 0,
+        Local,
+    };
+    Type type {};
     uint16_t index {};
-    bool is_local = false;
 };
 
 class Compiler {
@@ -120,7 +124,7 @@ private:
     auto defineVariable(uint16_t constant_pool_index) -> void;
     [[nodiscard]] auto resolveVariable(std::string_view identifier_name) -> std::optional<uint16_t>;
     [[nodiscard]] auto resolveUpvalue(std::string_view identifier_name) -> std::optional<uint16_t>;
-    [[nodiscard]] auto addUpvalue(uint16_t index, bool is_local) -> uint16_t;
+    [[nodiscard]] auto addUpvalue(uint16_t index, Upvalue::Type type) -> uint16_t;
     auto markInitialized() -> void;
     auto argumentList() -> uint16_t;
 
