@@ -52,6 +52,10 @@ struct fmt::formatter<Value> {
                 return fmt::format_to(ctx.out(), "native_function");
                 break;
             }
+            case ObjectType::UPVALUE: {
+                return fmt::format_to(ctx.out(), "upvalue_object");
+                break;
+            }
             }
             [[fallthrough]];
         }
@@ -63,4 +67,3 @@ struct fmt::formatter<Value> {
 };
 
 #endif
-

@@ -9,7 +9,7 @@
 
 #include "error.h"
 
-class Object;
+struct Object;
 
 struct NilType { };
 

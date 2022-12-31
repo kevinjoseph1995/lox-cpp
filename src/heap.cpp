@@ -30,6 +30,9 @@ auto Heap::Reset() -> void
             delete static_cast<NativeFunctionObject*>(current);
             break;
         }
+        case ObjectType::UPVALUE:
+            delete static_cast<UpvalueObject*>(current);
+            break;
         }
         current = next;
     }
@@ -53,6 +56,9 @@ auto Heap::Allocate(ObjectType type) -> Object*
         break;
     case ObjectType::NATIVE_FUNCTION:
         new_object = new NativeFunctionObject;
+        break;
+    case ObjectType::UPVALUE:
+        new_object = new UpvalueObject;
         break;
     }
     LOX_ASSERT(new_object != nullptr);
@@ -112,4 +118,12 @@ auto Heap::AllocateNativeFunctionObject(NativeFunction function) -> NativeFuncti
     auto native_function_object_ptr = static_cast<NativeFunctionObject*>(object_ptr);
     native_function_object_ptr->native_function = function;
     return native_function_object_ptr;
+}
+auto Heap::AllocateNativeUpvalueObject(Value* slot) -> UpvalueObject*
+{
+    auto* object_ptr = Allocate(ObjectType::UPVALUE);
+    LOX_ASSERT(object_ptr->type == ObjectType::UPVALUE);
+    auto upvalue_obj_ptr = static_cast<UpvalueObject*>(object_ptr);
+    upvalue_obj_ptr->location = slot;
+    return upvalue_obj_ptr;
 }

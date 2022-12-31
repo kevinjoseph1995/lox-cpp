@@ -12,10 +12,11 @@ enum class ObjectType {
     STRING,
     FUNCTION,
     CLOSURE,
-    NATIVE_FUNCTION
+    NATIVE_FUNCTION,
+    UPVALUE
 };
 
-class Object {
+struct Object {
 public:
     [[nodiscard]] auto GetType() const -> ObjectType
     {
@@ -23,7 +24,11 @@ public:
     }
 
 protected:
-    Object() = default;
+    Object() = delete;
+    Object(ObjectType type)
+        : type(type)
+    {
+    }
     friend class Heap;
     ObjectType type;
     Object* next = nullptr;
@@ -31,16 +36,16 @@ protected:
 
 struct StringObject : public Object {
     StringObject()
+        : Object(ObjectType::STRING)
     {
-        type = ObjectType::STRING;
     }
     std::string data;
 };
 
 struct FunctionObject : public Object {
     FunctionObject()
+        : Object(ObjectType::FUNCTION)
     {
-        type = ObjectType::FUNCTION;
     }
     std::string function_name;
     uint32_t arity {};
@@ -51,17 +56,27 @@ struct FunctionObject : public Object {
 using NativeFunction = std::add_pointer_t<RuntimeErrorOr<Value>(uint32_t num_arguments, Value*)>;
 struct NativeFunctionObject : public Object {
     NativeFunctionObject()
+        : Object(ObjectType::NATIVE_FUNCTION)
     {
-        type = ObjectType::NATIVE_FUNCTION;
     }
     NativeFunction native_function;
 };
 
 struct ClosureObject : Object {
     ClosureObject()
+        : Object(ObjectType::CLOSURE)
     {
-        type = ObjectType::CLOSURE;
     }
+
     FunctionObject const* function = nullptr;
+};
+
+struct UpvalueObject : Object {
+    UpvalueObject()
+        : Object(ObjectType::UPVALUE)
+    {
+    }
+
+    Value* location = nullptr;
 };
 #endif // LOX_CPP_OBJECT_H

@@ -47,11 +47,11 @@ enum OpCode : uint8_t {
     OP_CLOSURE
 };
 
-static constexpr auto MAX_INDEXABLE_SIZE = std::numeric_limits<uint16_t>::max();
-static constexpr auto MAX_NUMBER_CONSTANTS = MAX_INDEXABLE_SIZE; // Currently we can only store as many constants that can be addressed by 16 bits
-static constexpr auto MAX_NUMBER_LOCAL_VARIABLES = MAX_INDEXABLE_SIZE;
-static constexpr auto MAX_JUMP_OFFSET = MAX_INDEXABLE_SIZE;
-static constexpr auto MAX_NUMBER_OF_FUNCTION_PARAMETERS = MAX_INDEXABLE_SIZE;
+static constexpr auto MAX_INDEX_SIZE = std::numeric_limits<uint16_t>::max();
+static constexpr auto MAX_NUMBER_CONSTANTS = MAX_INDEX_SIZE; // Currently we can only store as many constants that can be addressed by 16 bits
+static constexpr auto MAX_NUMBER_LOCAL_VARIABLES = MAX_INDEX_SIZE;
+static constexpr auto MAX_JUMP_OFFSET = MAX_INDEX_SIZE;
+static constexpr auto MAX_NUMBER_OF_FUNCTION_PARAMETERS = MAX_INDEX_SIZE;
 
 struct Chunk {
     std::vector<uint8_t> byte_code;

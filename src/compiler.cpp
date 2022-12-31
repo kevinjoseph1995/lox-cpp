@@ -113,7 +113,7 @@ auto Compiler::endCompiler() -> FunctionObject*
 {
     emitByte(OP_NIL);
     emitByte(OP_RETURN);
-    LOX_ASSERT(m_upvalues.size() <= MAX_INDEXABLE_SIZE);
+    LOX_ASSERT(m_upvalues.size() <= MAX_INDEX_SIZE);
     m_function->upvalue_count = static_cast<uint16_t>(m_upvalues.size());
     return m_function;
 }
@@ -880,10 +880,10 @@ auto Compiler::addUpvalue(uint16_t const index, Upvalue::Type const type) -> uin
     if (it != m_upvalues.end()) {
         // Upvalue already there
         auto const upvalue_index = std::distance(m_upvalues.begin(), it);
-        LOX_ASSERT(m_upvalues.size() <= MAX_INDEXABLE_SIZE);
+        LOX_ASSERT(m_upvalues.size() <= MAX_INDEX_SIZE);
         return static_cast<uint16_t>(upvalue_index);
     }
     m_upvalues.push_back(Upvalue { .type = type, .index = index });
-    LOX_ASSERT(m_upvalues.size() <= MAX_INDEXABLE_SIZE);
+    LOX_ASSERT(m_upvalues.size() <= MAX_INDEX_SIZE);
     return static_cast<uint16_t>(m_upvalues.size() - 1);
 }

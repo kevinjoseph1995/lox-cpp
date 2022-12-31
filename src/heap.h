@@ -16,6 +16,7 @@ public:
     [[nodiscard]] auto AllocateFunctionObject(std::string_view function_name, uint32_t arity) -> FunctionObject*;
     [[nodiscard]] auto AllocateClosureObject(FunctionObject const* function) -> ClosureObject*;
     [[nodiscard]] auto AllocateNativeFunctionObject(NativeFunction) -> NativeFunctionObject*;
+    [[nodiscard]] auto AllocateNativeUpvalueObject(Value*) -> UpvalueObject*;
 
 private:
     auto insertAtHead(Object* new_node) -> void;
