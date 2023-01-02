@@ -5,8 +5,9 @@
 #ifndef LOX_CPP_OBJECT_H
 #define LOX_CPP_OBJECT_H
 
-#include "chunk.h"
 #include <string>
+
+#include "chunk.h"
 
 enum class ObjectType {
     STRING,
@@ -62,21 +63,20 @@ struct NativeFunctionObject : public Object {
     NativeFunction native_function;
 };
 
-struct ClosureObject : Object {
-    ClosureObject()
-        : Object(ObjectType::CLOSURE)
-    {
-    }
-
-    FunctionObject const* function = nullptr;
-};
-
 struct UpvalueObject : Object {
     UpvalueObject()
         : Object(ObjectType::UPVALUE)
     {
     }
-
+    uint16_t stack_index = 0;
     Value* location = nullptr;
+};
+struct ClosureObject : Object {
+    ClosureObject()
+        : Object(ObjectType::CLOSURE)
+    {
+    }
+    std::vector<UpvalueObject*> upvalues;
+    FunctionObject const* function = nullptr;
 };
 #endif // LOX_CPP_OBJECT_H

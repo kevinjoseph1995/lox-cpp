@@ -69,6 +69,7 @@ private:
         struct Local {
             std::string_view identifier_name; // Underlying string is owned by the source
             int32_t local_scope_depth = 0; // Set to -1 after declaring a local and gets set to the actual scope when defining the variable
+            bool is_captured = false;
             Local() = default;
             Local(std::string_view identifier_name, int32_t local_scope_depth)
                 : identifier_name(identifier_name)

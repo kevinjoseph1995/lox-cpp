@@ -33,6 +33,7 @@ private:
     [[nodiscard]] auto readIndex() -> uint16_t;
     [[nodiscard]] auto popStack() -> Value;
     [[nodiscard]] auto peekStack(uint32_t index_from_top) -> Value const&;
+    [[nodiscard]] auto captureUpvalue(uint16_t index) -> UpvalueObject*;
     [[nodiscard]] auto binaryOperation(OpCode op) -> RuntimeErrorOr<VoidType>;
     [[nodiscard]] auto runtimeError(std::string error_message) -> RuntimeError;
     [[nodiscard]] auto call(Value const& callable, uint16_t num_arguments) -> RuntimeErrorOr<VoidType>;

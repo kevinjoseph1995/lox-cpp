@@ -119,11 +119,10 @@ auto Heap::AllocateNativeFunctionObject(NativeFunction function) -> NativeFuncti
     native_function_object_ptr->native_function = function;
     return native_function_object_ptr;
 }
-auto Heap::AllocateNativeUpvalueObject(Value* slot) -> UpvalueObject*
+auto Heap::AllocateNativeUpvalueObject() -> UpvalueObject*
 {
     auto* object_ptr = Allocate(ObjectType::UPVALUE);
     LOX_ASSERT(object_ptr->type == ObjectType::UPVALUE);
     auto upvalue_obj_ptr = static_cast<UpvalueObject*>(object_ptr);
-    upvalue_obj_ptr->location = slot;
     return upvalue_obj_ptr;
 }

@@ -11,7 +11,7 @@
 #include "value_formatter.h"
 #include "virtual_machine.h"
 
-#define DEBUG_TRACE_EXECUTION
+// #define DEBUG_TRACE_EXECUTION
 
 static auto IsFalsy(Value const& value) -> bool
 {
@@ -236,14 +236,38 @@ auto VirtualMachine::run() -> RuntimeErrorOr<VoidType>
             }
             break;
         }
-        case OP_CLOSURE:
-            m_value_stack.push_back(readConstant());
+        case OP_CLOSURE: {
+            auto value = readConstant();
+            LOX_ASSERT(value.IsObject());
+            auto object_ptr = value.AsObjectPtr();
+            LOX_ASSERT(object_ptr->GetType() == ObjectType::FUNCTION);
+            auto function_ptr = static_cast<FunctionObject*>(object_ptr);
+            auto closure = m_heap.AllocateClosureObject(function_ptr);
+            for (auto i = 0; i < function_ptr->upvalue_count; ++i) {
+                auto const is_local = static_cast<bool>(readByte());
+                auto const index = readIndex();
+                if (is_local) {
+                    closure->upvalues.push_back(captureUpvalue(static_cast<uint16_t>(m_frames.back().slot) + index));
+                } else {
+                    closure->upvalues.push_back(closure->upvalues.at(index));
+                }
+            }
+            m_value_stack.push_back(closure);
             break;
-        case OP_GET_UPVALUE:
-            LOX_ASSERT(false, "TODO");
+        }
+        case OP_GET_UPVALUE: {
+            auto upvalue_index = readIndex();
+            auto& upvalue = m_frames.back().closure->upvalues.at(upvalue_index);
+            m_value_stack.push_back(m_value_stack.at(upvalue->stack_index));
             break;
-        case OP_SET_UPVALUE:
-            LOX_ASSERT(false, "TODO");
+        }
+        case OP_SET_UPVALUE: {
+            auto upvalue_index = readIndex();
+            auto& upvalue = m_frames.back().closure->upvalues.at(upvalue_index);
+            m_value_stack.at(upvalue->stack_index) = peekStack(0);
+            break;
+        }
+        case OP_CLOSE_UPVALUE:
             break;
         }
     }
@@ -389,8 +413,9 @@ auto VirtualMachine::call(Value const& callable, uint16_t num_arguments) -> Runt
     }
     auto const object_ptr = callable.AsObjectPtr();
     switch (object_ptr->GetType()) {
-    case ObjectType::FUNCTION: {
-        auto function_object_ptr = static_cast<FunctionObject const*>(object_ptr);
+    case ObjectType::CLOSURE: {
+        auto closure_object = static_cast<ClosureObject const*>(object_ptr);
+        auto function_object_ptr = closure_object->function;
         if (function_object_ptr->arity != num_arguments) {
             return tl::unexpected(RuntimeError { .error_message = "Number of arguments provided does not match the number of function parameters" });
         }
@@ -398,8 +423,7 @@ auto VirtualMachine::call(Value const& callable, uint16_t num_arguments) -> Runt
         // | | | | ... | <CALLABLE_OBJECT> | param_1 | param_2 | ... | param_n |
 
         // Set up the new call frame
-        auto new_closure = m_heap.AllocateClosureObject(function_object_ptr);
-        m_frames.emplace_back(new_closure, 0, m_value_stack.size() - num_arguments);
+        m_frames.emplace_back(closure_object, 0, m_value_stack.size() - num_arguments);
         return VoidType {};
     }
     case ObjectType::NATIVE_FUNCTION: {
@@ -446,4 +470,12 @@ auto VirtualMachine::dumpCallFrameStack() -> void
     for (int32_t index = static_cast<int32_t>(m_value_stack.size() - 1); index >= 0; --index) {
         fmt::print(stderr, "Index:{} | Value: {}\n", index, m_value_stack.at(static_cast<size_t>(index)));
     }
+}
+
+auto VirtualMachine::captureUpvalue(uint16_t slot_index) -> UpvalueObject*
+{
+    LOX_ASSERT(slot_index < m_value_stack.size());
+    auto upvalue_object = m_heap.AllocateNativeUpvalueObject();
+    upvalue_object->stack_index = slot_index;
+    return upvalue_object;
 }

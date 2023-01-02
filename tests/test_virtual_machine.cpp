@@ -313,7 +313,7 @@ print MyFunction;
 )");
     auto result = m_vm->Interpret(m_source);
     ASSERT_TRUE(result.has_value());
-    static constexpr auto EXPECTED_OUTPUT = "function<MyFunction, arity=3>\n";
+    static constexpr auto EXPECTED_OUTPUT = "closure<MyFunction, arity=3>\n";
     ASSERT_EQ(m_vm_output_stream, EXPECTED_OUTPUT);
 }
 

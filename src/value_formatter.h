@@ -46,7 +46,7 @@ struct fmt::formatter<Value> {
             }
             case ObjectType::CLOSURE: {
                 auto closure_object = *static_cast<ClosureObject const*>(object_ptr);
-                return fmt::format_to(ctx.out(), "closure<{}, arity={}", closure_object.function->function_name, closure_object.function->arity);
+                return fmt::format_to(ctx.out(), "closure<{}, arity={}>", closure_object.function->function_name, closure_object.function->arity);
             }
             case ObjectType::NATIVE_FUNCTION: {
                 return fmt::format_to(ctx.out(), "native_function");
