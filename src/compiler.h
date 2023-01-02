@@ -40,15 +40,6 @@ struct ParseRule {
 };
 using ParseTable = std::array<ParseRule, static_cast<int>(TokenType::NUMBER_OF_TOKEN_TYPES)>;
 
-struct Upvalue {
-    enum Type : uint8_t {
-        NotLocal = 0,
-        Local,
-    };
-    Type type {};
-    uint16_t index {};
-};
-
 class Compiler {
 public:
     Compiler() = delete;
@@ -86,6 +77,17 @@ private:
         std::vector<Local> locals;
     } m_locals_state;
 
+    struct Upvalue {
+        enum Type : uint8_t {
+            NotLocal = 0,
+            Local, // An upvalue is local if the associated variable associated
+                   // is found in the directly enclosing function/closure.
+        };
+        Type type {};
+        uint16_t index {}; // The relative offset to the found variable.
+        // At runtime this offset will tell us how many slots
+        // to skip over on the stack to get to the variable of interest.
+    };
     std::vector<Upvalue> m_upvalues {};
 
 private:

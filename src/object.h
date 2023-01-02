@@ -69,7 +69,6 @@ struct UpvalueObject : Object {
     {
     }
     uint16_t stack_index = 0;
-    Value* location = nullptr;
 };
 struct ClosureObject : Object {
     ClosureObject()

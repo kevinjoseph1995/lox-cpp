@@ -654,7 +654,7 @@ auto Compiler::resolveVariable(std::string_view identifier_name) -> std::optiona
         return local.identifier_name == identifier_name;
     });
     if (it == m_locals_state.locals.rend()) {
-        // We don't actually report an error as the identifier could be referring to a global variable
+        // We don't actually report an error as the identifier could be referring to a global variable or could be captured from enclosing functions
         return {};
     }
     if (it->local_scope_depth == -1) {
