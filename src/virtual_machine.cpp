@@ -267,8 +267,10 @@ auto VirtualMachine::run() -> RuntimeErrorOr<VoidType>
             m_value_stack.at(upvalue->stack_index) = peekStack(0);
             break;
         }
-        case OP_CLOSE_UPVALUE:
+        case OP_CLOSE_UPVALUE: {
+            LOX_ASSERT(false, "TODO");
             break;
+        }
         }
     }
 }
