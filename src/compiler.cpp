@@ -870,7 +870,7 @@ auto Compiler::resolveUpvalue(std::string_view identifier_name) -> std::optional
     // Check the immediately enclosing scope if we can find the identifier
     auto local_resolution_result = m_parent_compiler->resolveVariable(identifier_name);
     if (local_resolution_result.has_value()) {
-        m_locals_state.locals.at(local_resolution_result.value()).is_captured = true;
+        m_parent_compiler->m_locals_state.locals.at(local_resolution_result.value()).is_captured = true;
         return addUpvalue(local_resolution_result.value(), Upvalue::Type::Local);
     }
     // Since we didn't find it as a local variable in the immediately enclosing scope, we recursively search the other enclosing compilers.

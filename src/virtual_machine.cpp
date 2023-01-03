@@ -258,13 +258,13 @@ auto VirtualMachine::run() -> RuntimeErrorOr<VoidType>
         case OP_GET_UPVALUE: {
             auto upvalue_index = readIndex();
             auto& upvalue = m_frames.back().closure->upvalues.at(upvalue_index);
-            m_value_stack.push_back(m_value_stack.at(upvalue->stack_index));
+            m_value_stack.push_back(m_value_stack.at(upvalue->GetStackIndex()));
             break;
         }
         case OP_SET_UPVALUE: {
             auto upvalue_index = readIndex();
             auto& upvalue = m_frames.back().closure->upvalues.at(upvalue_index);
-            m_value_stack.at(upvalue->stack_index) = peekStack(0);
+            m_value_stack.at(upvalue->GetStackIndex()) = peekStack(0);
             break;
         }
         case OP_CLOSE_UPVALUE: {
@@ -478,6 +478,6 @@ auto VirtualMachine::captureUpvalue(uint16_t slot_index) -> UpvalueObject*
 {
     LOX_ASSERT(slot_index < m_value_stack.size());
     auto upvalue_object = m_heap.AllocateNativeUpvalueObject();
-    upvalue_object->stack_index = slot_index;
+    upvalue_object->SetStackIndex(slot_index);
     return upvalue_object;
 }

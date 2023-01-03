@@ -5,9 +5,13 @@
 #ifndef LOX_CPP_OBJECT_H
 #define LOX_CPP_OBJECT_H
 
+#include <cstdint>
 #include <string>
+#include <variant>
 
 #include "chunk.h"
+#include "error.h"
+#include "value.h"
 
 enum class ObjectType {
     STRING,
@@ -68,7 +72,36 @@ struct UpvalueObject : Object {
         : Object(ObjectType::UPVALUE)
     {
     }
-    uint16_t stack_index = 0;
+    void Close(Value const& value)
+    {
+        m_data = value;
+    }
+    bool IsClosed() const
+    {
+        return std::holds_alternative<Value>(m_data);
+    }
+    Value GetClosedValue()
+    {
+        LOX_ASSERT(IsClosed());
+        return *std::get_if<Value>(&m_data);
+    }
+    void SetClosedValue(Value const& value)
+    {
+        LOX_ASSERT(IsClosed());
+        m_data = value;
+    }
+    uint16_t GetStackIndex() const
+    {
+        LOX_ASSERT(!IsClosed());
+        return *std::get_if<uint16_t>(&m_data);
+    }
+    void SetStackIndex(uint16_t stack_index)
+    {
+        m_data = stack_index;
+    }
+
+private:
+    std::variant<Value, uint16_t> m_data;
 };
 struct ClosureObject : Object {
     ClosureObject()
