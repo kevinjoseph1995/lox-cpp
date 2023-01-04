@@ -4,6 +4,7 @@
 
 #include <cstdio>
 #include <fmt/core.h>
+#include <ranges>
 
 #include "error.h"
 #include "native_function.h"
@@ -258,17 +259,21 @@ auto VirtualMachine::run() -> RuntimeErrorOr<VoidType>
         case OP_GET_UPVALUE: {
             auto upvalue_index = readIndex();
             auto& upvalue = m_frames.back().closure->upvalues.at(upvalue_index);
-            m_value_stack.push_back(m_value_stack.at(upvalue->GetStackIndex()));
+            m_value_stack.push_back(upvalue->GetClosedValue());
             break;
         }
         case OP_SET_UPVALUE: {
             auto upvalue_index = readIndex();
             auto& upvalue = m_frames.back().closure->upvalues.at(upvalue_index);
-            m_value_stack.at(upvalue->GetStackIndex()) = peekStack(0);
+            upvalue->SetClosedValue(peekStack(0));
             break;
         }
         case OP_CLOSE_UPVALUE: {
-            LOX_ASSERT(false, "TODO");
+            auto index = m_value_stack.size() - 1;
+            LOX_ASSERT(index <= MAX_INDEX_SIZE);
+            closeUpvalues(static_cast<uint16_t>(index));
+            auto _ = popStack();
+            static_cast<void>(_);
             break;
         }
         }
@@ -476,8 +481,32 @@ auto VirtualMachine::dumpCallFrameStack() -> void
 
 auto VirtualMachine::captureUpvalue(uint16_t slot_index) -> UpvalueObject*
 {
+    // Check if the upvalue is in our list
+    auto it = m_open_upvalues.begin();
+    auto prev_it = it;
+    for (; it != m_open_upvalues.end(); std::advance(it, 1)) {
+        auto open_upvalue = *it;
+        if (open_upvalue->GetStackIndex() < slot_index) {
+            break;
+        }
+        prev_it = it;
+    }
+    if (it != m_open_upvalues.end() && (*it)->GetStackIndex() == slot_index) {
+        return *it;
+    }
     LOX_ASSERT(slot_index < m_value_stack.size());
     auto upvalue_object = m_heap.AllocateNativeUpvalueObject();
     upvalue_object->SetStackIndex(slot_index);
+
+    m_open_upvalues.insert(prev_it, upvalue_object);
+
     return upvalue_object;
+}
+auto VirtualMachine::closeUpvalues(uint16_t stack_index) -> void
+{
+    auto it = m_open_upvalues.begin();
+    while (it != m_open_upvalues.end() && (*it)->GetStackIndex() >= stack_index) {
+        (*it)->Close(m_value_stack.at(stack_index));
+        ++it;
+    }
 }

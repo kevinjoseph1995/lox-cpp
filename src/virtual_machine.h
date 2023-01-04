@@ -5,6 +5,7 @@
 #ifndef LOX_CPP_VIRTUAL_MACHINE_H
 #define LOX_CPP_VIRTUAL_MACHINE_H
 #include <cstdint>
+#include <list>
 #include <memory>
 #include <stack>
 #include <unordered_map>
@@ -37,6 +38,7 @@ private:
     [[nodiscard]] auto binaryOperation(OpCode op) -> RuntimeErrorOr<VoidType>;
     [[nodiscard]] auto runtimeError(std::string error_message) -> RuntimeError;
     [[nodiscard]] auto call(Value const& callable, uint16_t num_arguments) -> RuntimeErrorOr<VoidType>;
+    auto closeUpvalues(uint16_t stack_index) -> void;
     [[maybe_unused]] auto dumpCallFrameStack() -> void;
     auto registerNativeFunctions() -> void;
 
@@ -61,6 +63,7 @@ private:
     Heap m_heap {};
     std::vector<Value> m_value_stack;
     GlobalTable m_globals;
+    std::list<UpvalueObject*> m_open_upvalues;
 };
 
 #endif // LOX_CPP_VIRTUAL_MACHINE_H
