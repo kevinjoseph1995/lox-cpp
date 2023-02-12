@@ -67,7 +67,7 @@ struct NativeFunctionObject : public Object {
     NativeFunction native_function;
 };
 
-struct UpvalueObject : Object {
+struct UpvalueObject : public Object {
     UpvalueObject()
         : Object(ObjectType::UPVALUE)
     {
