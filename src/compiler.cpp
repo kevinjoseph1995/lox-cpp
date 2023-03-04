@@ -87,7 +87,7 @@ Compiler::Compiler(Heap& heap, ParserState& parser_state, Compiler* parent_compi
         // Not top level script an is function compiler
         m_function = m_heap.AllocateFunctionObject("_", 0);
     } else {
-        m_function = m_heap.AllocateFunctionObject("", 0);
+        m_function = m_heap.AllocateFunctionObject("TOP_LEVEL_SCRIPT", 0);
     }
     m_locals_state.locals.emplace_back("", 0);
 }
@@ -112,7 +112,8 @@ auto Compiler::CompileSource(const Source& source) -> CompilationErrorOr<Functio
 auto Compiler::endCompiler() -> FunctionObject*
 {
     emitByte(OP_NIL);
-    emitByte(OP_RETURN);
+    emitByte(OP_RETURN); // This return wouldn't be executed in the case we already emitted a return.
+    // However this return handles the case where functions don't have explicit return types and also the top-level script
     LOX_ASSERT(m_upvalues.size() <= MAX_INDEX_SIZE);
     m_function->upvalue_count = static_cast<uint16_t>(m_upvalues.size());
     return m_function;
@@ -325,7 +326,9 @@ auto Compiler::statement() -> void
     if (m_parser_state.Match(TokenType::PRINT)) {
         printStatement();
     } else if (m_parser_state.Match(TokenType::LEFT_BRACE)) {
+        beginScope();
         block();
+        endScope();
     } else if (m_parser_state.Match(TokenType::IF)) {
         ifStatement();
     } else if (m_parser_state.Match(TokenType::WHILE)) {
@@ -532,7 +535,6 @@ auto Compiler::emitIndex(uint16_t index) -> void
 
 auto Compiler::block() -> void
 {
-    beginScope();
     if (!m_parser_state.Consume(TokenType::LEFT_BRACE)) {
         m_parser_state.ReportError(m_parser_state.PreviousToken()->line_number, GetTokenSpan(*m_parser_state.PreviousToken()), "Expected opening brace at the start of block statement");
     }
@@ -542,7 +544,6 @@ auto Compiler::block() -> void
     if (!m_parser_state.Consume(TokenType::RIGHT_BRACE)) {
         return;
     }
-    endScope();
 }
 
 auto Compiler::parseVariable(std::string_view error_message) -> ParseErrorOr<uint16_t>
@@ -870,7 +871,7 @@ auto Compiler::resolveUpvalue(std::string_view identifier_name) -> std::optional
     // Check the immediately enclosing scope if we can find the identifier
     auto local_resolution_result = m_parent_compiler->resolveVariable(identifier_name);
     if (local_resolution_result.has_value()) {
-        m_parent_compiler->m_locals_state.locals.at(local_resolution_result.value()).is_captured = true;
+        m_parent_compiler->m_locals_state.locals.at(local_resolution_result.value() + 1).is_captured = true;
         return addUpvalue(local_resolution_result.value(), Upvalue::Type::Local);
     }
     // Since we didn't find it as a local variable in the immediately enclosing scope, we recursively search the other enclosing compilers.
@@ -892,4 +893,11 @@ auto Compiler::addUpvalue(uint16_t const index, Upvalue::Type const type) -> uin
     m_upvalues.push_back(Upvalue { .type = type, .index = index });
     LOX_ASSERT(m_upvalues.size() <= MAX_INDEX_SIZE);
     return static_cast<uint16_t>(m_upvalues.size() - 1);
+}
+
+auto Compiler::DumpCompiledChunk() const -> void
+{
+    fmt::print(stderr, "############ FUNCTION NAME | {} | START ############\n", m_function->function_name);
+    Disassemble_chunk(m_function->chunk);
+    fmt::print(stderr, "############ FUNCTION NAME | {} | END ############\n", m_function->function_name);
 }

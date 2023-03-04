@@ -55,6 +55,8 @@ auto VirtualMachine::run() -> RuntimeErrorOr<VoidType>
             }
             auto return_value = popStack();
 
+            // Discarding the call frame
+            // TODO: Close upvalues
             auto num_to_pop = static_cast<int32_t>(m_frames.back().closure->function->arity + 1);
             while (num_to_pop > 0) {
                 auto _ = popStack();
@@ -264,7 +266,7 @@ auto VirtualMachine::run() -> RuntimeErrorOr<VoidType>
         }
         case OP_SET_UPVALUE: {
             auto upvalue_index = readIndex();
-            auto& upvalue = m_frames.back().closure->upvalues.at(upvalue_index);
+            auto* const upvalue = m_frames.back().closure->upvalues.at(upvalue_index);
             upvalue->SetClosedValue(peekStack(0));
             break;
         }

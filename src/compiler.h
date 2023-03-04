@@ -45,6 +45,7 @@ public:
     Compiler() = delete;
     Compiler(Heap& heap, ParserState& parser_state, Compiler* parent_compiler = nullptr);
     [[nodiscard]] auto CompileSource(Source const& source) -> CompilationErrorOr<FunctionObject*>;
+    [[maybe_unused]] auto DumpCompiledChunk() const -> void;
 
 private:
     // Compiler state

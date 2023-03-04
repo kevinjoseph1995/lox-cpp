@@ -80,7 +80,7 @@ struct UpvalueObject : public Object {
     {
         return std::holds_alternative<Value>(m_data);
     }
-    Value GetClosedValue()
+    Value GetClosedValue() const
     {
         LOX_ASSERT(IsClosed());
         return *std::get_if<Value>(&m_data);
@@ -103,6 +103,7 @@ struct UpvalueObject : public Object {
 private:
     std::variant<Value, uint16_t> m_data;
 };
+
 struct ClosureObject : Object {
     ClosureObject()
         : Object(ObjectType::CLOSURE)
