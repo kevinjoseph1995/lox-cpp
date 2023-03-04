@@ -1,10 +1,17 @@
-fun outer() {
-  var x = "before";
-  fun inner() {
-    x = "assigned";
+{
+  var a = 1;
+  fun f() {
+    print a;
   }
-  print x;
-  return inner;
+  var b = 2;
+  fun g() {
+    print b;
+  }
+  var c = 3;
+  fun h() {
+    print c;
+  }
+  f();
+  g();
+  h();
 }
-var captured_inner_function = outer();
-// captured_inner_function();

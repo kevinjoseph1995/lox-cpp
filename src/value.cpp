@@ -81,6 +81,9 @@ auto Value::operator==(Value const& other) const -> bool
         return *std::get_if<bool>(this) == *std::get_if<bool>(&other);
     } else if (this->IsDouble()) {
         return std::abs(*std::get_if<double>(this) - *std::get_if<double>(&other)) < std::numeric_limits<double>::epsilon();
+    } else if (this->IsNil()) {
+        // Implicitly means that "other" is also Nil as we already checked if the variant index is the same above.
+        return true;
     } else if (this->IsObject()) {
         switch (this->AsObject().GetType()) {
         case ObjectType::STRING: {

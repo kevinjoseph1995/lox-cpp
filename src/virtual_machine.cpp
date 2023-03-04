@@ -4,6 +4,7 @@
 
 #include <cstdio>
 #include <fmt/core.h>
+#include <iterator>
 #include <ranges>
 
 #include "error.h"
@@ -56,7 +57,6 @@ auto VirtualMachine::run() -> RuntimeErrorOr<VoidType>
             auto return_value = popStack();
 
             // Discarding the call frame
-            // TODO: Close upvalues
             auto num_to_pop = static_cast<int32_t>(m_frames.back().closure->function->arity + 1);
             while (num_to_pop > 0) {
                 auto _ = popStack();
@@ -260,14 +260,22 @@ auto VirtualMachine::run() -> RuntimeErrorOr<VoidType>
         }
         case OP_GET_UPVALUE: {
             auto upvalue_index = readIndex();
-            auto& upvalue = m_frames.back().closure->upvalues.at(upvalue_index);
-            m_value_stack.push_back(upvalue->GetClosedValue());
+            auto* const upvalue = m_frames.back().closure->upvalues.at(upvalue_index);
+            if (upvalue->IsClosed()) {
+                m_value_stack.push_back(upvalue->GetClosedValue());
+            } else {
+                m_value_stack.push_back(m_value_stack.at(upvalue->GetStackIndex()));
+            }
             break;
         }
         case OP_SET_UPVALUE: {
             auto upvalue_index = readIndex();
             auto* const upvalue = m_frames.back().closure->upvalues.at(upvalue_index);
-            upvalue->SetClosedValue(peekStack(0));
+            if (upvalue->IsClosed()) {
+                upvalue->SetClosedValue(peekStack(0));
+            } else {
+                m_value_stack.at(upvalue->GetStackIndex()) = peekStack(0);
+            }
             break;
         }
         case OP_CLOSE_UPVALUE: {
@@ -508,7 +516,9 @@ auto VirtualMachine::closeUpvalues(uint16_t stack_index) -> void
 {
     auto it = m_open_upvalues.begin();
     while (it != m_open_upvalues.end() && (*it)->GetStackIndex() >= stack_index) {
-        (*it)->Close(m_value_stack.at(stack_index));
-        ++it;
+        (*it)->Close(m_value_stack.at((*it)->GetStackIndex()));
+        auto next = std::next(it);
+        m_open_upvalues.erase(it);
+        it = next;
     }
 }
