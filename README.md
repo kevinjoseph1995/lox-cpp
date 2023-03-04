@@ -5,7 +5,7 @@ Work in progress
 - [x] Conditionals
 - [x] Loops
 - [x] Functions
-- [ ] Closures
+- [x] Closures
 - [ ] Garbage Collection
 - [ ] Classes and Instances
 - [ ] Methods and Initializers
