@@ -12,13 +12,16 @@
 
 using FunctionMap = std::unordered_map<std::string, FunctionObject const*>;
 
-[[maybe_unused]] static auto ExtractFunctions(Chunk const& chunk) -> FunctionMap
+[[maybe_unused]] [[nodiscard]] static auto ExtractFunctions(Chunk const& chunk) -> FunctionMap
 {
     FunctionMap map;
     for (auto& val : chunk.constant_pool) {
         if (val.IsObject() && val.AsObjectPtr()->GetType() == ObjectType::FUNCTION) {
             auto function_object_ptr = static_cast<FunctionObject const*>(val.AsObjectPtr());
             map.insert(std::make_pair(function_object_ptr->function_name, function_object_ptr));
+            for (auto const& pair : ExtractFunctions(function_object_ptr->chunk)) {
+                map.insert(pair);
+            }
         }
     }
     return map;
@@ -653,4 +656,69 @@ return;
 )");
     auto compilation_result = m_compiler->CompileSource(m_source);
     ASSERT_FALSE(compilation_result.has_value());
+}
+
+TEST_F(CompilerTest, CaptureLocal)
+{
+    m_source.Append(R"(
+fun outer() {
+  var x = "outside";
+  fun inner() {
+    print x;
+    x = "set from inside";
+  }
+  inner();
+  print x;
+}
+outer();
+)");
+    auto const compilation_result = m_compiler->CompileSource(m_source);
+    ASSERT_TRUE(compilation_result.has_value());
+    ASSERT_TRUE(ValidateByteCode(std::vector<uint8_t> {
+                                     OP_CLOSURE, 1, 0,
+                                     OP_DEFINE_GLOBAL, 0, 0,
+                                     OP_GET_GLOBAL, 2, 0,
+                                     OP_CALL, 0, 0,
+                                     OP_POP,
+                                     OP_NIL,
+                                     OP_RETURN },
+        compilation_result.value()->chunk.byte_code));
+    ASSERT_TRUE(ValidateConstants(std::vector<Value> {
+                                      m_heap.AllocateStringObject("outer"),
+                                      m_heap.AllocateFunctionObject("outer", 0),
+                                      m_heap.AllocateStringObject("outer"),
+                                  },
+        compilation_result.value()->chunk.constant_pool));
+
+    auto const function_map
+        = ExtractFunctions(compilation_result.value()->chunk);
+
+    ASSERT_TRUE(ValidateByteCode(std::vector<uint8_t> {
+                                     OP_CONSTANT, 0, 0,
+                                     OP_CLOSURE, 1 /*Function_Obj_Cont_index_LSB*/, 0 /*Function_Obj_Cont_index_USB*/, 1 /*Is local*/, 0 /*Upvalue_index_LSB*/, 0 /*Upvalue_index_USB*/,
+                                     OP_GET_LOCAL, 1, 0,
+                                     OP_CALL, 0, 0,
+                                     OP_POP,
+                                     OP_GET_LOCAL, 0, 0,
+                                     OP_PRINT,
+                                     OP_NIL,
+                                     OP_RETURN },
+        function_map.at("outer")->chunk.byte_code));
+    ASSERT_TRUE(ValidateConstants(std::vector<Value> {
+                                      m_heap.AllocateStringObject("outside"),
+                                      m_heap.AllocateFunctionObject("inner", 0) },
+        function_map.at("outer")->chunk.constant_pool));
+
+    ASSERT_TRUE(ValidateByteCode(std::vector<uint8_t> {
+                                     OP_GET_UPVALUE, 0, 0,
+                                     OP_PRINT,
+                                     OP_CONSTANT, 0, 0,
+                                     OP_SET_UPVALUE, 0, 0,
+                                     OP_POP,
+                                     OP_NIL,
+                                     OP_RETURN },
+        function_map.at("inner")->chunk.byte_code));
+    ASSERT_TRUE(ValidateConstants(std::vector<Value> {
+                                      m_heap.AllocateStringObject("set from inside") },
+        function_map.at("inner")->chunk.constant_pool));
 }
