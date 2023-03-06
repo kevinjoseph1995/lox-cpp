@@ -1,17 +1,8 @@
 {
-  var a = 1;
-  fun f() {
-    print a;
+  var t0 = SystemTimeNow();
+  for(var i = 0; i < 1000; i = i + 1) {
+    print i;
   }
-  var b = 2;
-  fun g() {
-    print b;
-  }
-  var c = 3;
-  fun h() {
-    print c;
-  }
-  f();
-  g();
-  h();
+  var t1 = SystemTimeNow();
+  print (t1 - t0) / 1000;
 }

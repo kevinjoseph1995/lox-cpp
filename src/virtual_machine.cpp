@@ -453,7 +453,13 @@ auto VirtualMachine::call(Value const& callable, uint16_t num_arguments) -> Runt
             auto first_arg_ptr = stack_top_ptr - (num_arguments - 1);
             return_value = native_function_object_ptr->native_function(num_arguments, first_arg_ptr);
         }
-        return return_value.and_then([this](Value& value) {
+        return return_value.and_then([this, num_arguments](Value& value) {
+            auto num_to_pop = static_cast<int32_t>(num_arguments + 1); // Reset the call stack | . | . | ... | Native Function Object | Arg1 | Arg 2 | ... | ArgN |
+            while (num_to_pop > 0) {
+                auto _ = popStack();
+                static_cast<void>(_);
+                --num_to_pop;
+            }
             m_value_stack.push_back(value);
             return RuntimeErrorOr<VoidType> { VoidType {} };
         });
