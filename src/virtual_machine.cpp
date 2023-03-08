@@ -252,7 +252,7 @@ auto VirtualMachine::run() -> RuntimeErrorOr<VoidType>
                 if (is_local) {
                     closure->upvalues.push_back(captureUpvalue(static_cast<uint16_t>(m_frames.back().slot) + index));
                 } else {
-                    closure->upvalues.push_back(closure->upvalues.at(index));
+                    closure->upvalues.push_back(m_frames.back().closure->upvalues.at(index));
                 }
             }
             m_value_stack.push_back(closure);

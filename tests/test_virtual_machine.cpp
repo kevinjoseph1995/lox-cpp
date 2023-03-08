@@ -584,12 +584,61 @@ var global;
         }
     }
   }
-  
+
 }
 global();
 )");
     auto result = m_vm->Interpret(m_source);
     ASSERT_TRUE(result.has_value());
     static constexpr auto EXPECTED_OUTPUT = "3\n3\n";
+    ASSERT_EQ(m_vm_output_stream, EXPECTED_OUTPUT);
+}
+
+TEST_F(VMTest, CaptureLocal6)
+{
+    m_source.Append(R"(
+fun function1() {
+    var a = 10;
+    fun function2() {
+        fun function3() {
+            print a;
+        }
+        return function3;
+    }
+    return function2;
+}
+
+var function2 = function1();
+var function3 = function2();
+function3();
+)");
+    auto result = m_vm->Interpret(m_source);
+    ASSERT_TRUE(result.has_value());
+    static constexpr auto EXPECTED_OUTPUT = "10\n";
+    ASSERT_EQ(m_vm_output_stream, EXPECTED_OUTPUT);
+}
+
+TEST_F(VMTest, CaptureLocal7)
+{
+    m_source.Append(R"(
+var global;
+fun function1() {
+    var a = 10;
+    fun function2() {
+        fun function3() {
+            print a;
+        }
+        global = function3;
+    }
+    return function2;
+}
+
+var function2 = function1();
+function2();
+global();
+)");
+    auto result = m_vm->Interpret(m_source);
+    ASSERT_TRUE(result.has_value());
+    static constexpr auto EXPECTED_OUTPUT = "10\n";
     ASSERT_EQ(m_vm_output_stream, EXPECTED_OUTPUT);
 }

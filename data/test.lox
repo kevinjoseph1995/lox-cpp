@@ -1,8 +1,14 @@
-{
-  var t0 = SystemTimeNow();
-  for(var i = 0; i < 1000; i = i + 1) {
-    print i;
-  }
-  var t1 = SystemTimeNow();
-  print (t1 - t0) / 1000;
+fun function1() {
+    var a = 10;
+    fun function2() {
+        fun function3() {
+            print a;
+        }
+        return function3;
+    }
+    return function2;
 }
+
+var function2 = function1();
+var function3 = function2();
+function3();
