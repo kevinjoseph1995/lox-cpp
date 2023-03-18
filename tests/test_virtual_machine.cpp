@@ -642,3 +642,26 @@ global();
     static constexpr auto EXPECTED_OUTPUT = "10\n";
     ASSERT_EQ(m_vm_output_stream, EXPECTED_OUTPUT);
 }
+
+TEST_F(VMTest, CaptureLocal8)
+{
+    m_source.Append(R"(
+var global;
+{
+    var a = 10;
+    {
+        {
+            fun function() {
+                print a;
+            }
+            global = function;
+        }
+    }
+}
+global();
+)");
+    auto result = m_vm->Interpret(m_source);
+    ASSERT_TRUE(result.has_value());
+    static constexpr auto EXPECTED_OUTPUT = "10\n";
+    ASSERT_EQ(m_vm_output_stream, EXPECTED_OUTPUT);
+}
