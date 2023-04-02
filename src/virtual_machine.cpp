@@ -2,6 +2,7 @@
 // Created by kevin on 8/6/22.
 //
 
+#include <__expected/unexpected.h>
 #include <cstdio>
 #include <fmt/core.h>
 #include <iterator>
@@ -30,7 +31,7 @@ auto VirtualMachine::Interpret(Source const& source) -> ErrorOr<VoidType>
 {
     auto compiled_function_result = m_compiler->CompileSource(source);
     if (!compiled_function_result) {
-        return tl::unexpected(compiled_function_result.error());
+        return std::unexpected(compiled_function_result.error());
     }
     auto new_closure = m_heap.AllocateClosureObject(compiled_function_result.value());
     m_frames.emplace_back(new_closure, 0, 0);
@@ -75,7 +76,7 @@ auto VirtualMachine::run() -> RuntimeErrorOr<VoidType>
         case OP_NEGATE: {
             Value value = popStack();
             if (!value.IsDouble()) {
-                return tl::unexpected(runtimeError(fmt::format("Cannot negate non-number type, line number:{}", currentChunk().lines[m_frames.rbegin()->instruction_pointer])));
+                return std::unexpected(runtimeError(fmt::format("Cannot negate non-number type, line number:{}", currentChunk().lines[m_frames.rbegin()->instruction_pointer])));
             }
             m_value_stack.emplace_back(-value.AsDouble());
             break;
@@ -83,28 +84,28 @@ auto VirtualMachine::run() -> RuntimeErrorOr<VoidType>
         case OP_ADD: {
             auto result = binaryOperation(OP_ADD);
             if (!result) {
-                return tl::unexpected(result.error());
+                return std::unexpected(result.error());
             }
             break;
         }
         case OP_SUBTRACT: {
             auto result = binaryOperation(OP_SUBTRACT);
             if (!result) {
-                return tl::unexpected(result.error());
+                return std::unexpected(result.error());
             }
             break;
         }
         case OP_MULTIPLY: {
             auto result = binaryOperation(OP_MULTIPLY);
             if (!result) {
-                return tl::unexpected(result.error());
+                return std::unexpected(result.error());
             }
             break;
         }
         case OP_DIVIDE: {
             auto result = binaryOperation(OP_DIVIDE);
             if (!result) {
-                return tl::unexpected(result.error());
+                return std::unexpected(result.error());
             }
             break;
         }
@@ -135,28 +136,28 @@ auto VirtualMachine::run() -> RuntimeErrorOr<VoidType>
         case OP_GREATER: {
             auto result = binaryOperation(OP_GREATER);
             if (!result) {
-                return tl::unexpected(result.error());
+                return std::unexpected(result.error());
             }
             break;
         }
         case OP_LESS: {
             auto result = binaryOperation(OP_LESS);
             if (!result) {
-                return tl::unexpected(result.error());
+                return std::unexpected(result.error());
             }
             break;
         }
         case OP_LESS_EQUAL: {
             auto result = binaryOperation(OP_LESS_EQUAL);
             if (!result) {
-                return tl::unexpected(result.error());
+                return std::unexpected(result.error());
             }
             break;
         }
         case OP_GREATER_EQUAL: {
             auto result = binaryOperation(OP_GREATER_EQUAL);
             if (!result) {
-                return tl::unexpected(result.error());
+                return std::unexpected(result.error());
             }
             break;
         }
@@ -189,7 +190,7 @@ auto VirtualMachine::run() -> RuntimeErrorOr<VoidType>
             LOX_ASSERT(identifier_name_value.IsObject() && identifier_name_value.AsObjectPtr()->GetType() == ObjectType::STRING);
             auto identifier_string_object = static_cast<StringObject*>(identifier_name_value.AsObjectPtr());
             if (m_globals.count(identifier_string_object->data) == 0) {
-                return tl::unexpected(runtimeError(fmt::format("Undefined variable:{}", identifier_string_object->data)));
+                return std::unexpected(runtimeError(fmt::format("Undefined variable:{}", identifier_string_object->data)));
             }
             m_value_stack.push_back(m_globals.at(identifier_string_object->data));
             break;
@@ -199,7 +200,7 @@ auto VirtualMachine::run() -> RuntimeErrorOr<VoidType>
             LOX_ASSERT(identifier_name_value.IsObject() && identifier_name_value.AsObjectPtr()->GetType() == ObjectType::STRING);
             auto identifier_string_object = static_cast<StringObject*>(identifier_name_value.AsObjectPtr());
             if (m_globals.count(identifier_string_object->data) == 0) {
-                return tl::unexpected(runtimeError(fmt::format("Undefined variable:{}", identifier_string_object->data)));
+                return std::unexpected(runtimeError(fmt::format("Undefined variable:{}", identifier_string_object->data)));
             }
             m_globals[identifier_string_object->data] = peekStack(0); // Over-write existing value
             break;
@@ -235,7 +236,7 @@ auto VirtualMachine::run() -> RuntimeErrorOr<VoidType>
             auto const callable_object = peekStack(num_arguments);
             auto function_dispatch_status = call(callable_object, num_arguments);
             if (!function_dispatch_status) {
-                return tl::unexpected(runtimeError(function_dispatch_status.error().error_message));
+                return std::unexpected(runtimeError(function_dispatch_status.error().error_message));
             }
             break;
         }
@@ -343,13 +344,13 @@ auto VirtualMachine::binaryOperation(OpCode op) -> ErrorOr<VoidType>
     auto binaryOpWrapper = [&](auto _operator) -> ErrorOr<VoidType> {
         Value rhs = popStack();
         if (!rhs.IsDouble()) {
-            return tl::unexpected(runtimeError(fmt::format("RHS of \"{}\" is not a number type. Is {}", getOperatorString(_operator), rhs)));
+            return std::unexpected(runtimeError(fmt::format("RHS of \"{}\" is not a number type. Is {}", getOperatorString(_operator), rhs)));
         }
 
         Value lhs = popStack();
         if (!lhs.IsDouble()) {
             dumpCallFrameStack();
-            return tl::unexpected(runtimeError(fmt::format("LHS of \"{}\" is not a number type. Is {}", getOperatorString(_operator), lhs)));
+            return std::unexpected(runtimeError(fmt::format("LHS of \"{}\" is not a number type. Is {}", getOperatorString(_operator), lhs)));
         }
 
         m_value_stack.emplace_back(_operator(lhs.AsDouble(), rhs.AsDouble()));
@@ -364,11 +365,11 @@ auto VirtualMachine::binaryOperation(OpCode op) -> ErrorOr<VoidType>
 
         Value lhs = popStack();
         if (!lhs.IsObject()) {
-            return tl::unexpected(runtimeError(fmt::format("LHS of \"+\" is not a string type.")));
+            return std::unexpected(runtimeError(fmt::format("LHS of \"+\" is not a string type.")));
         }
         auto const& lhs_object = lhs.AsObject();
         if (lhs_object.GetType() != ObjectType::STRING) {
-            return tl::unexpected(runtimeError(fmt::format("LHS of \"+\" is not a string type.")));
+            return std::unexpected(runtimeError(fmt::format("LHS of \"+\" is not a string type.")));
         }
         auto new_string_object = m_heap.AllocateStringObject("");
         LOX_ASSERT(new_string_object->GetType() == ObjectType::STRING);
@@ -426,7 +427,7 @@ auto VirtualMachine::isAtEnd() -> bool
 auto VirtualMachine::call(Value const& callable, uint16_t num_arguments) -> RuntimeErrorOr<VoidType>
 {
     if (!callable.IsObject()) {
-        return tl::unexpected(RuntimeError { .error_message = "Not a callable_object" });
+        return std::unexpected(RuntimeError { .error_message = "Not a callable_object" });
     }
     auto const object_ptr = callable.AsObjectPtr();
     switch (object_ptr->GetType()) {
@@ -434,7 +435,7 @@ auto VirtualMachine::call(Value const& callable, uint16_t num_arguments) -> Runt
         auto closure_object = static_cast<ClosureObject const*>(object_ptr);
         auto function_object_ptr = closure_object->function;
         if (function_object_ptr->arity != num_arguments) {
-            return tl::unexpected(RuntimeError { .error_message = "Number of arguments provided does not match the number of function parameters" });
+            return std::unexpected(RuntimeError { .error_message = "Number of arguments provided does not match the number of function parameters" });
         }
         // At this point the state of the stack is as follows:
         // | | | | ... | <CALLABLE_OBJECT> | param_1 | param_2 | ... | param_n |
@@ -453,19 +454,27 @@ auto VirtualMachine::call(Value const& callable, uint16_t num_arguments) -> Runt
             auto first_arg_ptr = stack_top_ptr - (num_arguments - 1);
             return_value = native_function_object_ptr->native_function(num_arguments, first_arg_ptr);
         }
-        return return_value.and_then([this, num_arguments](Value& value) {
-            auto num_to_pop = static_cast<int32_t>(num_arguments + 1); // Reset the call stack | . | . | ... | Native Function Object | Arg1 | Arg 2 | ... | ArgN |
-            while (num_to_pop > 0) {
-                auto _ = popStack();
-                static_cast<void>(_);
-                --num_to_pop;
-            }
-            m_value_stack.push_back(value);
-            return RuntimeErrorOr<VoidType> { VoidType {} };
-        });
+        // This is ugly and the perfect candidate for std::expected::and_then
+        // P2505R1 Monadic Functions for std::expected
+        // https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2022/p2505r1.html
+        // TODO: Move to the and_then when it becomes available in the standard library
+        return return_value.has_value()
+               ? /* Error-less branch*/
+               [this, num_arguments, value = return_value.value()]() -> RuntimeErrorOr<VoidType> {
+                   auto num_to_pop = static_cast<int32_t>(num_arguments + 1); // Reset the call stack | . | . | ... | Native Function Object | Arg1 | Arg 2 | ... | ArgN |
+                   while (num_to_pop > 0) {
+                       auto _ = popStack();
+                       static_cast<void>(_);
+                       --num_to_pop;
+                   }
+                   m_value_stack.push_back(value);
+                   return VoidType {};
+               }()
+               : /* Error branch*/
+               std::unexpected(return_value.error()) /*Error*/;
     }
     default:
-        return tl::unexpected(RuntimeError { .error_message = "Not a callable_object" });
+        return std::unexpected(RuntimeError { .error_message = "Not a callable_object" });
     }
 }
 

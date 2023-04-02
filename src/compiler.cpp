@@ -104,7 +104,7 @@ auto Compiler::CompileSource(const Source& source) -> CompilationErrorOr<Functio
     }
 
     if (m_parser_state.EncounteredError()) {
-        return tl::unexpected(CompilationError { { "Compilation failed" } });
+        return std::unexpected(CompilationError { { "Compilation failed" } });
     }
     return endCompiler();
 }
@@ -550,7 +550,7 @@ auto Compiler::parseVariable(std::string_view error_message) -> ParseErrorOr<uin
 {
     // Need to extract the variable name out from the token
     if (!m_parser_state.Consume(TokenType::IDENTIFIER)) {
-        return tl::unexpected(ParseError { { std::string(error_message) }, GetTokenSpan(m_parser_state.PreviousToken().value()) });
+        return std::unexpected(ParseError { { std::string(error_message) }, GetTokenSpan(m_parser_state.PreviousToken().value()) });
     }
     declareVariable();
     if (m_locals_state.current_scope_depth > 0) {

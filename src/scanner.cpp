@@ -68,35 +68,35 @@ auto Scanner::GetNextToken() -> ScanErrorOr<Token>
     case '!': {
         auto result = matchEqual();
         if (!result)
-            return tl::unexpected(result.error());
+            return std::unexpected(result.error());
         return result.value() ? makeToken(TokenType::BANG_EQUAL)
                               : makeToken(TokenType::BANG);
     }
     case '=': {
         auto result = matchEqual();
         if (!result)
-            return tl::unexpected(result.error());
+            return std::unexpected(result.error());
         return result.value() ? makeToken(TokenType::EQUAL_EQUAL)
                               : makeToken(TokenType::EQUAL);
     }
     case '>': {
         auto result = matchEqual();
         if (!result)
-            return tl::unexpected(result.error());
+            return std::unexpected(result.error());
         return result.value() ? makeToken(TokenType::GREATER_EQUAL)
                               : makeToken(TokenType::GREATER);
     }
     case '<': {
         auto result = matchEqual();
         if (!result)
-            return tl::unexpected(result.error());
+            return std::unexpected(result.error());
         return result.value() ? makeToken(TokenType::LESS_EQUAL)
                               : makeToken(TokenType::LESS);
     }
     case '"':
         return this->string();
     default:
-        return tl::unexpected(ScanError { {  fmt::format("Unidentified character: \"{}\"(index:{})", m_source->GetSource().at(m_start), m_start) }, Span { m_start, m_start } } );
+        return std::unexpected(ScanError { { fmt::format("Unidentified character: \"{}\"(index:{})", m_source->GetSource().at(m_start), m_start) }, Span { m_start, m_start } });
     }
 }
 
@@ -160,7 +160,7 @@ auto Scanner::consumeWhitespacesAndComments() -> void
 auto Scanner::matchEqual() -> ScanErrorOr<bool>
 {
     if (isAtEnd()) {
-        return tl::unexpected(ScanError {  { "Expected tokens after \"=\"" }, Span { static_cast<uint64_t>(m_current_index - 1), static_cast<uint64_t>(m_current_index - 1) } } );
+        return std::unexpected(ScanError { { "Expected tokens after \"=\"" }, Span { static_cast<uint64_t>(m_current_index - 1), static_cast<uint64_t>(m_current_index - 1) } });
     }
     if ('=' == m_source->GetSource().at(m_current_index)) {
         ++m_current_index;
@@ -173,8 +173,8 @@ auto Scanner::matchEqual() -> ScanErrorOr<bool>
 auto Scanner::string() -> ScanErrorOr<Token>
 {
     if (isAtEnd()) {
-        return tl::unexpected(ScanError {
-            {  "Unterminated string literal" }, Span { m_start, m_current_index } } );
+        return std::unexpected(ScanError {
+            { "Unterminated string literal" }, Span { m_start, m_current_index } });
     }
     while (peek() != '"' && !isAtEnd()) {
         advance();

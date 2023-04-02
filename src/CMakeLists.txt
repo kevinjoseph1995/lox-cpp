@@ -8,7 +8,6 @@ add_library(lox_compiler STATIC
         value.cpp
         error.cpp
         parser_state.cpp
-        expected.hpp
         native_function.cpp)
 target_include_directories(lox_compiler PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(lox_compiler fmt)
