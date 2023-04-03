@@ -60,10 +60,14 @@ private:
     std::unique_ptr<Compiler> m_compiler = nullptr;
     std::string* const m_external_stream = nullptr;
 
-    Heap m_heap {};
     std::vector<Value> m_value_stack;
     GlobalTable m_globals;
     std::list<UpvalueObject*> m_open_upvalues;
+    // Make sure the heap is the last object that's destroyed as it's the owner of all lox Objects
+    std::unique_ptr<Heap> m_heap { nullptr };
+    // This is an unfortuante intertwining dependency that's being injected. TODO: Refactor this
+    // Basically the heap is owned by the virtual machine but the heap can access the innards of the the virtual machine.
+    friend class Heap;
 };
 
 #endif // LOX_CPP_VIRTUAL_MACHINE_H

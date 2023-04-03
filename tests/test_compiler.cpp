@@ -4,11 +4,14 @@
 
 #include "fmt/core.h"
 #include "gtest/gtest.h"
+#include <memory>
 #include <optional>
 
 #include "chunk.h"
 #include "compiler.h"
+#include "heap.h"
 #include "value_formatter.h"
+#include "virtual_machine.h"
 
 using FunctionMap = std::unordered_map<std::string, FunctionObject const*>;
 
@@ -31,12 +34,15 @@ class CompilerTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        m_compiler = std::make_unique<Compiler>(m_heap, m_parser_state);
+        m_heap = std::make_unique<Heap>(m_dummy_vm);
+        m_compiler
+            = std::make_unique<Compiler>(*m_heap, m_parser_state);
     }
     std::unique_ptr<Compiler> m_compiler;
-    Heap m_heap;
+    std::unique_ptr<Heap> m_heap;
     Source m_source;
     ParserState m_parser_state;
+    VirtualMachine m_dummy_vm;
 };
 
 bool ValidateByteCode(std::vector<uint8_t> expected, std::vector<uint8_t> const& generated_byte_code)
@@ -147,7 +153,7 @@ TEST_F(CompilerTest, VaraibleDeclaration)
                                      OP_NIL,
                                      OP_RETURN },
         compiled_function->chunk.byte_code));
-    ASSERT_TRUE(ValidateConstants(std::vector<Value> { m_heap.AllocateStringObject("a"), 1.0, 2.0, 3.0, 3.0, 20.0 }, compiled_function->chunk.constant_pool));
+    ASSERT_TRUE(ValidateConstants(std::vector<Value> { m_heap->AllocateStringObject("a"), 1.0, 2.0, 3.0, 3.0, 20.0 }, compiled_function->chunk.constant_pool));
 }
 
 TEST_F(CompilerTest, StringConcatenation)
@@ -170,11 +176,11 @@ TEST_F(CompilerTest, StringConcatenation)
                                      OP_NIL, OP_RETURN },
         compiled_function->chunk.byte_code));
     ASSERT_TRUE(ValidateConstants(std::vector<Value> {
-                                      m_heap.AllocateStringObject("a"),
-                                      m_heap.AllocateStringObject("Hello world"),
-                                      m_heap.AllocateStringObject("b"),
-                                      m_heap.AllocateStringObject("a"),
-                                      m_heap.AllocateStringObject("FooBar") },
+                                      m_heap->AllocateStringObject("a"),
+                                      m_heap->AllocateStringObject("Hello world"),
+                                      m_heap->AllocateStringObject("b"),
+                                      m_heap->AllocateStringObject("a"),
+                                      m_heap->AllocateStringObject("FooBar") },
         compiled_function->chunk.constant_pool));
 }
 
@@ -220,11 +226,11 @@ TEST_F(CompilerTest, AssignmentStatements)
                                      OP_RETURN },
         compiled_function->chunk.byte_code));
     ASSERT_TRUE(ValidateConstants(std::vector<Value> {
-                                      m_heap.AllocateStringObject("a"),
+                                      m_heap->AllocateStringObject("a"),
                                       10.0,
-                                      m_heap.AllocateStringObject("a"),
-                                      m_heap.AllocateStringObject("a"),
-                                      m_heap.AllocateStringObject("Hello World") },
+                                      m_heap->AllocateStringObject("a"),
+                                      m_heap->AllocateStringObject("a"),
+                                      m_heap->AllocateStringObject("Hello World") },
         compiled_function->chunk.constant_pool));
 }
 
@@ -248,12 +254,12 @@ TEST_F(CompilerTest, InvalidBinaryOp)
     ASSERT_TRUE(compilation_result.has_value());
     auto const& compiled_function = compilation_result.value();
     ASSERT_TRUE(ValidateConstants(std::vector<Value> {
-                                      m_heap.AllocateStringObject("a"),
+                                      m_heap->AllocateStringObject("a"),
                                       10.0,
-                                      m_heap.AllocateStringObject("b"),
-                                      m_heap.AllocateStringObject("String"),
-                                      m_heap.AllocateStringObject("a"),
-                                      m_heap.AllocateStringObject("b") },
+                                      m_heap->AllocateStringObject("b"),
+                                      m_heap->AllocateStringObject("String"),
+                                      m_heap->AllocateStringObject("a"),
+                                      m_heap->AllocateStringObject("b") },
         compiled_function->chunk.constant_pool));
 }
 
@@ -314,7 +320,7 @@ TEST_F(CompilerTest, LocalVariablesShadowing)
         compiled_function->chunk.byte_code));
     ASSERT_TRUE(ValidateConstants(std::vector<Value> {
                                       10.0,
-                                      m_heap.AllocateStringObject("Hello World"),
+                                      m_heap->AllocateStringObject("Hello World"),
                                   },
         compiled_function->chunk.constant_pool));
 }
@@ -346,8 +352,8 @@ TEST_F(CompilerTest, IfStatement)
                                      OP_RETURN },
         compiled_function->chunk.byte_code));
     ASSERT_TRUE(ValidateConstants(std::vector<Value> {
-                                      m_heap.AllocateStringObject("If-branch"),
-                                      m_heap.AllocateStringObject("Jumped here"),
+                                      m_heap->AllocateStringObject("If-branch"),
+                                      m_heap->AllocateStringObject("Jumped here"),
                                   },
         compiled_function->chunk.constant_pool));
 }
@@ -537,8 +543,8 @@ fun MyFunction() {
                                      OP_RETURN },
         compiled_function->chunk.byte_code));
     ASSERT_TRUE(ValidateConstants(std::vector<Value> {
-                                      m_heap.AllocateStringObject("MyFunction"),
-                                      m_heap.AllocateFunctionObject("MyFunction", 0) },
+                                      m_heap->AllocateStringObject("MyFunction"),
+                                      m_heap->AllocateFunctionObject("MyFunction", 0) },
         compiled_function->chunk.constant_pool));
 }
 
@@ -560,8 +566,8 @@ fun MyFunction(a, b, c) {
                                      OP_RETURN },
         compiled_function->chunk.byte_code));
     ASSERT_TRUE(ValidateConstants(std::vector<Value> {
-                                      m_heap.AllocateStringObject("MyFunction"),
-                                      m_heap.AllocateFunctionObject("MyFunction", 3) },
+                                      m_heap->AllocateStringObject("MyFunction"),
+                                      m_heap->AllocateFunctionObject("MyFunction", 3) },
         compiled_function->chunk.constant_pool));
 }
 
@@ -684,9 +690,9 @@ outer();
                                      OP_RETURN },
         compilation_result.value()->chunk.byte_code));
     ASSERT_TRUE(ValidateConstants(std::vector<Value> {
-                                      m_heap.AllocateStringObject("outer"),
-                                      m_heap.AllocateFunctionObject("outer", 0),
-                                      m_heap.AllocateStringObject("outer"),
+                                      m_heap->AllocateStringObject("outer"),
+                                      m_heap->AllocateFunctionObject("outer", 0),
+                                      m_heap->AllocateStringObject("outer"),
                                   },
         compilation_result.value()->chunk.constant_pool));
 
@@ -705,8 +711,8 @@ outer();
                                      OP_RETURN },
         function_map.at("outer")->chunk.byte_code));
     ASSERT_TRUE(ValidateConstants(std::vector<Value> {
-                                      m_heap.AllocateStringObject("outside"),
-                                      m_heap.AllocateFunctionObject("inner", 0) },
+                                      m_heap->AllocateStringObject("outside"),
+                                      m_heap->AllocateFunctionObject("inner", 0) },
         function_map.at("outer")->chunk.constant_pool));
 
     ASSERT_TRUE(ValidateByteCode(std::vector<uint8_t> {
@@ -719,6 +725,6 @@ outer();
                                      OP_RETURN },
         function_map.at("inner")->chunk.byte_code));
     ASSERT_TRUE(ValidateConstants(std::vector<Value> {
-                                      m_heap.AllocateStringObject("set from inside") },
+                                      m_heap->AllocateStringObject("set from inside") },
         function_map.at("inner")->chunk.constant_pool));
 }

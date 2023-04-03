@@ -1,14 +1,14 @@
 //
 // Created by kevin on 8/6/22.
 //
-
-#include <__expected/unexpected.h>
 #include <cstdio>
 #include <fmt/core.h>
 #include <iterator>
+#include <memory>
 #include <ranges>
 
 #include "error.h"
+#include "heap.h"
 #include "native_function.h"
 #include "object.h"
 #include "value_formatter.h"
@@ -23,8 +23,8 @@ static auto IsFalsy(Value const& value) -> bool
 
 auto VirtualMachine::registerNativeFunctions() -> void
 {
-    this->m_globals["SystemTimeNow"] = m_heap.AllocateNativeFunctionObject(SystemTimeNow);
-    this->m_globals["Echo"] = m_heap.AllocateNativeFunctionObject(Echo);
+    this->m_globals["SystemTimeNow"] = m_heap->AllocateNativeFunctionObject(SystemTimeNow);
+    this->m_globals["Echo"] = m_heap->AllocateNativeFunctionObject(Echo);
 }
 
 auto VirtualMachine::Interpret(Source const& source) -> ErrorOr<VoidType>
@@ -33,7 +33,7 @@ auto VirtualMachine::Interpret(Source const& source) -> ErrorOr<VoidType>
     if (!compiled_function_result) {
         return std::unexpected(compiled_function_result.error());
     }
-    auto new_closure = m_heap.AllocateClosureObject(compiled_function_result.value());
+    auto new_closure = m_heap->AllocateClosureObject(compiled_function_result.value());
     m_frames.emplace_back(new_closure, 0, 0);
     registerNativeFunctions();
     return this->run();
@@ -246,7 +246,7 @@ auto VirtualMachine::run() -> RuntimeErrorOr<VoidType>
             auto object_ptr = value.AsObjectPtr();
             LOX_ASSERT(object_ptr->GetType() == ObjectType::FUNCTION);
             auto function_ptr = static_cast<FunctionObject*>(object_ptr);
-            auto closure = m_heap.AllocateClosureObject(function_ptr);
+            auto closure = m_heap->AllocateClosureObject(function_ptr);
             for (auto i = 0; i < function_ptr->upvalue_count; ++i) {
                 auto const is_local = static_cast<bool>(readByte());
                 auto const index = readIndex();
@@ -371,7 +371,7 @@ auto VirtualMachine::binaryOperation(OpCode op) -> ErrorOr<VoidType>
         if (lhs_object.GetType() != ObjectType::STRING) {
             return std::unexpected(runtimeError(fmt::format("LHS of \"+\" is not a string type.")));
         }
-        auto new_string_object = m_heap.AllocateStringObject("");
+        auto new_string_object = m_heap->AllocateStringObject("");
         LOX_ASSERT(new_string_object->GetType() == ObjectType::STRING);
         new_string_object->data.append(static_cast<StringObject const*>(&lhs_object)->data);
         new_string_object->data.append(static_cast<StringObject const*>(&rhs_object)->data);
@@ -417,7 +417,8 @@ auto VirtualMachine::binaryOperation(OpCode op) -> ErrorOr<VoidType>
 VirtualMachine::VirtualMachine(std::string* external_stream)
     : m_external_stream(external_stream)
 {
-    m_compiler = std::make_unique<Compiler>(m_heap, m_parser_state);
+    m_heap = std::make_unique<Heap>(*this);
+    m_compiler = std::make_unique<Compiler>(*m_heap, m_parser_state);
 }
 auto VirtualMachine::isAtEnd() -> bool
 {
@@ -520,7 +521,7 @@ auto VirtualMachine::captureUpvalue(uint16_t slot_index) -> UpvalueObject*
         return *it;
     }
     LOX_ASSERT(slot_index < m_value_stack.size());
-    auto upvalue_object = m_heap.AllocateNativeUpvalueObject();
+    auto upvalue_object = m_heap->AllocateNativeUpvalueObject();
     upvalue_object->SetStackIndex(slot_index);
 
     m_open_upvalues.insert(prev_it, upvalue_object);

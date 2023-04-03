@@ -28,6 +28,11 @@ public:
         return type;
     }
 
+    void markObjectAsReachable()
+    {
+        marked = true;
+    }
+
 protected:
     Object() = delete;
     Object(ObjectType type)
@@ -37,6 +42,7 @@ protected:
     friend class Heap;
     ObjectType type;
     Object* next = nullptr;
+    bool marked = false;
 };
 
 struct StringObject : public Object {
