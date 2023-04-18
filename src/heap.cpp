@@ -134,6 +134,10 @@ auto Heap::insertAtHead(Object* new_node) -> void
 auto Heap::collectGarbage() -> void
 {
     GCDebugLog("Begining garbage collection");
+    /*
+     * TODO
+     */
+    GCDebugLog("Garbage collection complete");
 }
 
 auto Heap::freeObject(Object* object) -> void

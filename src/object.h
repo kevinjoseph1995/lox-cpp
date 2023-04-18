@@ -22,7 +22,6 @@ enum class ObjectType {
 };
 
 struct Object {
-public:
     [[nodiscard]] auto GetType() const -> ObjectType
     {
         return type;
@@ -33,14 +32,15 @@ public:
         marked = true;
     }
 
-protected:
     Object() = delete;
+
     Object(ObjectType type)
         : type(type)
     {
     }
+
     friend class Heap;
-    ObjectType type;
+    ObjectType type {};
     Object* next = nullptr;
     bool marked = false;
 };
@@ -58,9 +58,9 @@ struct FunctionObject : public Object {
         : Object(ObjectType::FUNCTION)
     {
     }
-    std::string function_name;
+    std::string function_name {};
     uint32_t arity {};
-    Chunk chunk;
+    Chunk chunk {};
     uint16_t upvalue_count {};
 };
 
@@ -70,7 +70,7 @@ struct NativeFunctionObject : public Object {
         : Object(ObjectType::NATIVE_FUNCTION)
     {
     }
-    NativeFunction native_function;
+    NativeFunction native_function { nullptr };
 };
 
 struct UpvalueObject : public Object {
@@ -107,7 +107,7 @@ struct UpvalueObject : public Object {
     }
 
 private:
-    std::variant<Value, uint16_t> m_data;
+    std::variant<Value, uint16_t> m_data {};
 };
 
 struct ClosureObject : Object {
@@ -115,7 +115,7 @@ struct ClosureObject : Object {
         : Object(ObjectType::CLOSURE)
     {
     }
-    std::vector<UpvalueObject*> upvalues;
+    std::vector<UpvalueObject*> upvalues {};
     FunctionObject const* function = nullptr;
 };
 #endif // LOX_CPP_OBJECT_H

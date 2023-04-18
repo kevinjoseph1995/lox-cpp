@@ -3,7 +3,6 @@
 #ifndef LOX_CPP_VALUE_FORMATTER_H
 #define LOX_CPP_VALUE_FORMATTER_H
 
-#include <exception>
 #include <fmt/core.h>
 
 #include "object.h"
