@@ -5,13 +5,12 @@
 #ifndef LOX_CPP_OBJECT_H
 #define LOX_CPP_OBJECT_H
 
-#include <cstdint>
-#include <string>
-#include <variant>
-
 #include "chunk.h"
 #include "error.h"
 #include "value.h"
+#include <cstdint>
+#include <string>
+#include <variant>
 
 enum class ObjectType {
     STRING,
@@ -27,9 +26,11 @@ struct Object {
         return type;
     }
 
-    void markObjectAsReachable()
+    inline void markObjectAsReachable()
     {
-        marked = true;
+        GCDebugLog("Marking object at:{} as reachable", static_cast<void*>(this));
+        marked
+            = true;
     }
 
     Object() = delete;

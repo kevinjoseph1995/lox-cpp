@@ -165,4 +165,11 @@ auto Heap::markRoots() -> void
             value.AsObject().markObjectAsReachable();
         }
     }
+
+    // Mark all globals as reachable
+    for (auto& [_, global_value] : m_vm.m_globals) {
+        if (global_value.IsObject()) {
+            global_value.AsObject().markObjectAsReachable();
+        }
+    }
 }
