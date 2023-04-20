@@ -14,20 +14,6 @@
 #include <string_view>
 #include <utility>
 
-#define STRESS_TEST_GC 1
-#define DEBUG_GC_LOGGING 1
-
-template <typename... T>
-static inline void GCDebugLog(fmt::format_string<T...> fmt, T&&... args)
-{
-#ifdef DEBUG_GC_LOGGING
-    fmt::print("[GC][Debug]: ");
-    fmt::print(fmt, std::forward<T>(args)...);
-    fmt::print("\n");
-    fflush(stdout);
-#endif
-}
-
 Heap::~Heap()
 {
     reset();

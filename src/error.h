@@ -25,6 +25,16 @@ auto PrintAssertionMessage(const char* file, int line, const char* function_name
         }                                                                                   \
     } while (0)
 
+template <typename... T>
+static inline void GCDebugLog(fmt::format_string<T...> fmt [[maybe_unused]], T&&... args [[maybe_unused]])
+{
+#ifdef DEBUG_GC_LOGGING
+    fmt::print("[GC][Debug]: ");
+    fmt::print(fmt, std::forward<T>(args)...);
+    fmt::print("\n");
+    fflush(stdout);
+#endif
+}
 struct Error {
     std::string error_message;
 };
