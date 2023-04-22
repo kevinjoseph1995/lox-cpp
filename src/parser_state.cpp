@@ -4,7 +4,7 @@
 #include "parser_state.h"
 #include <cstdint>
 
-auto ParserState::Initialize(const Source& source) -> void
+auto ParserState::Initialize(Source const& source) -> void
 {
     m_source = &source;
     m_scanner.Reset(source);
@@ -64,7 +64,7 @@ auto ParserState::ReportError(uint64_t const line_number, Span const& span, std:
     auto error_line_prefix = fmt::format("{} |", line_number);
     auto line = std::string_view(m_source->GetSource().data() + line_start, line_end - line_start);
     auto error_message_prefix = std::string(error_line_prefix.length() + 1, ' ');
-    fmt::print(stderr, "{}{}\n{}[{}]\n", error_line_prefix, line, error_message_prefix,error_string);
+    fmt::print(stderr, "{}{}\n{}[{}]\n", error_line_prefix, line, error_message_prefix, error_string);
 }
 
 bool ParserState::Match(TokenType type) const

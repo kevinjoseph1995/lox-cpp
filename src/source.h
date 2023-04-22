@@ -5,8 +5,8 @@
 #ifndef LOX_CPP_SOURCE_H
 #define LOX_CPP_SOURCE_H
 
-#include <string>
 #include "error.h"
+#include <string>
 
 class Source {
 public:
@@ -32,7 +32,7 @@ public:
         return m_filename;
     }
 
-    [[nodiscard]] auto GetFilename() -> const char*
+    [[nodiscard]] auto GetFilename() -> char const*
     {
         LOX_ASSERT(!m_filename.empty());
         return m_filename.c_str();
