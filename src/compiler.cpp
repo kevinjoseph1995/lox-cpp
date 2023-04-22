@@ -65,7 +65,7 @@ consteval auto GenerateParseTable() -> ParseTable
 
 static constexpr auto PARSE_TABLE = GenerateParseTable();
 
-[[maybe_unused]] static auto PrintTokens(std::vector<Token> const& tokens, const std::string* source) -> void
+[[maybe_unused]] static auto PrintTokens(std::vector<Token> const& tokens, std::string const* source) -> void
 {
     for (auto token : tokens) {
         fmt::print("{}\n", FormatToken(token, source));
@@ -92,7 +92,7 @@ Compiler::Compiler(Heap& heap, ParserState& parser_state, Compiler* parent_compi
     m_locals_state.locals.emplace_back("", 0);
 }
 
-auto Compiler::CompileSource(const Source& source) -> CompilationErrorOr<FunctionObject*>
+auto Compiler::CompileSource(Source const& source) -> CompilationErrorOr<FunctionObject*>
 {
     m_parser_state.Initialize(source);
     m_source = &source;
@@ -508,7 +508,7 @@ auto Compiler::variable(bool can_assign) -> void
     if (can_assign and m_parser_state.Match(TokenType::EQUAL)) {
         // Look-ahead one token if we find an "=" then this is an assignment
         m_parser_state.Advance(); // Move past the "="
-        expression(); // Emit the instructions for the expression that would be evaluated to the value that this identifier must be assigned with.
+        expression();             // Emit the instructions for the expression that would be evaluated to the value that this identifier must be assigned with.
         emitByte(set_op);
         emitIndex(index);
     } else {
@@ -517,7 +517,7 @@ auto Compiler::variable(bool can_assign) -> void
     }
 }
 
-auto Compiler::identifierConstant(const Token& token) -> uint16_t
+auto Compiler::identifierConstant(Token const& token) -> uint16_t
 {
     LOX_ASSERT(token.type == TokenType::IDENTIFIER);
     auto string_object_ptr = m_heap.AllocateStringObject(m_source->GetSource().substr(token.start, token.length));
@@ -712,7 +712,7 @@ auto Compiler::forStatement() -> void
         auto increment_start = currentChunk()->byte_code.size();
         expression();
         emitByte(OP_POP);
-        emitLoop(loop_start); // Loop back to the start of the condition
+        emitLoop(loop_start);         // Loop back to the start of the condition
         loop_start = increment_start; // Adjust the loop start to jump to the evaluation of the increment expression after the end of the for body
         patchJump(for_body_jump);
     }
@@ -812,7 +812,7 @@ auto Compiler::and_(bool can_assign) -> void
     LOX_ASSERT(m_parser_state.PreviousToken()->type == TokenType::AND);
     // We've already parsed the LHS expression
     auto jump_destination = emitJump(OP_JUMP_IF_FALSE);
-    emitByte(OP_POP); // To pop the LHS value of the stack as we know it's "true"ish
+    emitByte(OP_POP);                      // To pop the LHS value of the stack as we know it's "true"ish
     parsePrecedence(Precedence::PREC_AND); // Consume all the tokens according to the current precedence level emitting op-codes for the RHS expression
     patchJump(jump_destination);
 }
@@ -826,7 +826,7 @@ auto Compiler::or_(bool can_assign) -> void
     auto false_destination = emitJump(OP_JUMP_IF_FALSE);
     auto true_destination = emitJump(OP_JUMP);
     patchJump(false_destination);
-    emitByte(OP_POP); // To pop the LHS value of the stack as we know it's "false"ish
+    emitByte(OP_POP);                     // To pop the LHS value of the stack as we know it's "false"ish
     parsePrecedence(Precedence::PREC_OR); // Consume all the tokens according to the current precedence level emitting op-codes for the RHS expression
     patchJump(true_destination);
 }

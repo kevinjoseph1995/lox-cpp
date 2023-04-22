@@ -14,9 +14,9 @@ struct Object;
 struct NilType { };
 
 struct Value : public std::variant<NilType, double, bool, Object*> {
-    template <typename T>
+    template<typename T>
     Value(T&& value)
-        : std::variant<NilType, double, bool, Object*>(static_cast<const variant>(std::forward<T>(value)))
+        : std::variant<NilType, double, bool, Object*>(static_cast<variant const>(std::forward<T>(value)))
     {
     }
     Value()

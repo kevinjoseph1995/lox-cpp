@@ -89,8 +89,8 @@ private:
 private:
     Source const* m_source = nullptr;
     uint64_t m_current_index = 0; // Current scanner index
-    uint64_t m_start = 0; // Start of the current token under consideration
-    uint64_t m_line = 0; // Current line number
+    uint64_t m_start = 0;         // Start of the current token under consideration
+    uint64_t m_line = 0;          // Current line number
 };
 
 #endif // LOX_CPP_SCANNER_H

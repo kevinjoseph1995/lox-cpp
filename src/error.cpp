@@ -5,7 +5,7 @@
 #include "error.h"
 #include <exception>
 
-void PrintAssertionMessage(const char* file, int line, const char* function_name, const char* message)
+void PrintAssertionMessage(char const* file, int line, char const* function_name, char const* message)
 {
     if (message == nullptr) {
         fmt::print(stderr, "Assertion failed at {}:{} in {}", file, line, function_name);

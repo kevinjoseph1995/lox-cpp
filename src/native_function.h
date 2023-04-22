@@ -4,7 +4,7 @@
 
 #include "value.h"
 #ifndef LOX_CPP_NATIVE_FUNCTION_H
-#define LOX_CPP_NATIVE_FUNCTION_H
+#    define LOX_CPP_NATIVE_FUNCTION_H
 
 #endif // LOX_CPP_NATIVE_FUNCTION_H
 

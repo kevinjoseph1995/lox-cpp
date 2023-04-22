@@ -8,15 +8,15 @@
 #include "object.h"
 #include "value.h"
 
-template <>
+template<>
 struct fmt::formatter<Value> {
-    template <typename ParseContext>
+    template<typename ParseContext>
     constexpr auto parse(ParseContext& ctx)
     {
         return ctx.begin();
     }
 
-    template <typename FormatContext>
+    template<typename FormatContext>
     auto format(Value const& value, FormatContext& ctx)
     {
         switch (value.index()) {

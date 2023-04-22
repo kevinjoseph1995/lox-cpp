@@ -12,7 +12,7 @@
 #include <string>
 #include <variant>
 
-auto PrintAssertionMessage(const char* file, int line, const char* function_name, const char* message = nullptr) -> void;
+auto PrintAssertionMessage(char const* file, int line, char const* function_name, char const* message = nullptr) -> void;
 
 // TODO: Print stack-trace here, research available solutions
 // Look into: https://github.com/bombela/backward-cpp/blob/master/backward.hpp
@@ -25,7 +25,7 @@ auto PrintAssertionMessage(const char* file, int line, const char* function_name
         }                                                                                   \
     } while (0)
 
-template <typename... T>
+template<typename... T>
 static inline void GCDebugLog(fmt::format_string<T...> fmt [[maybe_unused]], T&&... args [[maybe_unused]])
 {
 #ifdef DEBUG_GC_LOGGING
@@ -56,21 +56,21 @@ static_assert(std::is_destructible_v<Error>);
 
 struct VoidType { };
 
-template <typename T>
+template<typename T>
 using ScanErrorOr = std::expected<T, ScanError>;
 
-template <typename T>
+template<typename T>
 using ParseErrorOr = std::expected<T, ParseError>;
 
 using CompilationError = Error;
-template <typename T>
+template<typename T>
 using CompilationErrorOr = std::expected<T, CompilationError>;
 
 using RuntimeError = Error;
-template <typename T>
+template<typename T>
 using RuntimeErrorOr = std::expected<T, RuntimeError>;
 
-template <typename T>
+template<typename T>
 using ErrorOr = std::expected<T, Error>;
 
 #endif // LOX_CPP_ERROR_H
