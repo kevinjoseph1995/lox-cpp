@@ -156,43 +156,42 @@ auto Heap::freeObject(Object* object) -> void
     }
 }
 
-auto MarkCompilerRoots(Compiler& compiler) -> void
-{
-    compiler.m_function->MarkObjectAsReachable();
-    while (compiler.m_parent_compiler != nullptr) {
-        MarkCompilerRoots(*compiler.m_parent_compiler);
-    }
-}
-
 auto Heap::markRoots() -> void
 {
+    auto markRoot = [&](Object* object_ptr) -> void {
+        LOX_ASSERT(object_ptr != nullptr, "Failed Precondition");
+        object_ptr->MarkObjectAsReachable();
+        m_greyedObjects.push_back(object_ptr);
+    };
 
     // Mark all the values on the stack as reachable
     for (auto& value : m_vm.m_value_stack) {
         if (value.IsObject()) {
-            value.AsObject().MarkObjectAsReachable();
+            markRoot(value.AsObjectPtr());
         }
     }
 
     // Mark all globals as reachable
     for (auto& [_, global_value] : m_vm.m_globals) {
         if (global_value.IsObject()) {
-            global_value.AsObject().MarkObjectAsReachable();
+            markRoot(global_value.AsObjectPtr());
         }
     }
 
     // Mark the call frame closures
     for (auto& call_frame : m_vm.m_frames) {
-        ClosureObject const* const closure = call_frame.closure;
-        LOX_ASSERT(closure != nullptr);
-        closure->MarkObjectAsReachable();
+        markRoot(call_frame.closure);
     }
 
     // Mark open upvalues
     for (auto& upvalue : m_vm.m_open_upvalues) {
-        upvalue->MarkObjectAsReachable();
+        markRoot(upvalue);
     }
 
-    LOX_ASSERT(m_vm.m_compiler != nullptr);
-    MarkCompilerRoots(*m_vm.m_compiler);
+    // Mark all the roots for objects that originate during the compilation phase
+    auto current_compiler = m_vm.m_compiler.get();
+    while (current_compiler != nullptr) {
+        markRoot(current_compiler->m_function);
+        current_compiler = current_compiler->m_parent_compiler;
+    }
 }

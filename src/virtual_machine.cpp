@@ -233,7 +233,7 @@ auto VirtualMachine::run() -> RuntimeErrorOr<VoidType>
         }
         case OP_CALL: {
             auto const num_arguments = readIndex();
-            auto const callable_object = peekStack(num_arguments);
+            auto callable_object = peekStack(num_arguments);
             auto function_dispatch_status = call(callable_object, num_arguments);
             if (!function_dispatch_status) {
                 return std::unexpected(runtimeError(function_dispatch_status.error().error_message));
@@ -425,7 +425,7 @@ auto VirtualMachine::isAtEnd() -> bool
     return m_frames.rbegin()->instruction_pointer == currentChunk().byte_code.size();
 }
 
-auto VirtualMachine::call(Value const& callable, uint16_t num_arguments) -> RuntimeErrorOr<VoidType>
+auto VirtualMachine::call(Value& callable, uint16_t num_arguments) -> RuntimeErrorOr<VoidType>
 {
     if (!callable.IsObject()) {
         return std::unexpected(RuntimeError { .error_message = "Not a callable_object" });
@@ -433,7 +433,7 @@ auto VirtualMachine::call(Value const& callable, uint16_t num_arguments) -> Runt
     auto const object_ptr = callable.AsObjectPtr();
     switch (object_ptr->GetType()) {
     case ObjectType::CLOSURE: {
-        auto closure_object = static_cast<ClosureObject const*>(object_ptr);
+        auto closure_object = static_cast<ClosureObject*>(object_ptr);
         auto function_object_ptr = closure_object->function;
         if (function_object_ptr->arity != num_arguments) {
             return std::unexpected(RuntimeError { .error_message = "Number of arguments provided does not match the number of function parameters" });

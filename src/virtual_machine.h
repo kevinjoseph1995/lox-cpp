@@ -37,20 +37,20 @@ private:
     [[nodiscard]] auto captureUpvalue(uint16_t index) -> UpvalueObject*;
     [[nodiscard]] auto binaryOperation(OpCode op) -> RuntimeErrorOr<VoidType>;
     [[nodiscard]] auto runtimeError(std::string error_message) -> RuntimeError;
-    [[nodiscard]] auto call(Value const& callable, uint16_t num_arguments) -> RuntimeErrorOr<VoidType>;
+    [[nodiscard]] auto call(Value& callable, uint16_t num_arguments) -> RuntimeErrorOr<VoidType>;
     auto closeUpvalues(uint16_t stack_index) -> void;
     [[maybe_unused]] auto dumpCallFrameStack() -> void;
     auto registerNativeFunctions() -> void;
 
 private:
     struct CallFrame {
-        CallFrame(ClosureObject const* f, uint64_t ip, uint64_t s)
+        CallFrame(ClosureObject* f, uint64_t ip, uint64_t s)
             : closure(f)
             , instruction_pointer(ip)
             , slot(s)
         {
         }
-        ClosureObject const* closure = nullptr;
+        ClosureObject* closure = nullptr;
         uint64_t instruction_pointer = 0;
         uint64_t slot = 0;
     };

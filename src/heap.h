@@ -6,6 +6,7 @@
 #define LOX_CPP_HEAP_H
 
 #include "object.h"
+#include <vector>
 
 class VirtualMachine;
 
@@ -34,6 +35,7 @@ protected:
 protected:
     Object* m_head = nullptr;
     VirtualMachine& m_vm;
+    std::vector<Object*> m_greyedObjects {}; // Refer 26.4.1 : The tricolor abstraction from https://craftinginterpreters.com/garbage-collection.html#tracing-object-references
 };
 
 #endif // LOX_CPP_HEAP_H
