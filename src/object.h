@@ -26,11 +26,10 @@ struct Object {
         return type;
     }
 
-    inline void markObjectAsReachable()
+    inline void MarkObjectAsReachable() const
     {
-        GCDebugLog("Marking object at:{} as reachable", static_cast<void*>(this));
-        marked
-            = true;
+        GCDebugLog("Marking object at:{} as reachable", static_cast<void const*>(this));
+        marked = true;
     }
 
     Object() = delete;
@@ -43,7 +42,7 @@ struct Object {
     friend class Heap;
     ObjectType type {};
     Object* next = nullptr;
-    bool marked = false;
+    mutable bool marked = false;
 };
 
 struct StringObject : public Object {
@@ -111,7 +110,7 @@ private:
     std::variant<Value, uint16_t> m_data {};
 };
 
-struct ClosureObject : Object {
+struct ClosureObject : public Object {
     ClosureObject()
         : Object(ObjectType::CLOSURE)
     {

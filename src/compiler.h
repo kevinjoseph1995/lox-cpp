@@ -48,8 +48,11 @@ public:
     [[maybe_unused]] auto DumpCompiledChunk() const -> void;
 
 private:
-    // Compiler state
+    // Private friend that's allows our heap the reclaim objects dynamically
+    // created on the heap by the compiler we give it.
+    friend auto MarkCompilerRoots(Compiler& compiler) -> void;
 
+    // Compiler state
     Source const* m_source = nullptr;
     FunctionObject* m_function = nullptr;
     Compiler* m_parent_compiler = nullptr;

@@ -156,20 +156,43 @@ auto Heap::freeObject(Object* object) -> void
     }
 }
 
+auto MarkCompilerRoots(Compiler& compiler) -> void
+{
+    compiler.m_function->MarkObjectAsReachable();
+    while (compiler.m_parent_compiler != nullptr) {
+        MarkCompilerRoots(*compiler.m_parent_compiler);
+    }
+}
+
 auto Heap::markRoots() -> void
 {
 
     // Mark all the values on the stack as reachable
     for (auto& value : m_vm.m_value_stack) {
         if (value.IsObject()) {
-            value.AsObject().markObjectAsReachable();
+            value.AsObject().MarkObjectAsReachable();
         }
     }
 
     // Mark all globals as reachable
     for (auto& [_, global_value] : m_vm.m_globals) {
         if (global_value.IsObject()) {
-            global_value.AsObject().markObjectAsReachable();
+            global_value.AsObject().MarkObjectAsReachable();
         }
     }
+
+    // Mark the call frame closures
+    for (auto& call_frame : m_vm.m_frames) {
+        ClosureObject const* const closure = call_frame.closure;
+        LOX_ASSERT(closure != nullptr);
+        closure->MarkObjectAsReachable();
+    }
+
+    // Mark open upvalues
+    for (auto& upvalue : m_vm.m_open_upvalues) {
+        upvalue->MarkObjectAsReachable();
+    }
+
+    LOX_ASSERT(m_vm.m_compiler != nullptr);
+    MarkCompilerRoots(*m_vm.m_compiler);
 }
