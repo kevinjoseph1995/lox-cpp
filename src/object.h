@@ -20,6 +20,31 @@ enum class ObjectType {
     UPVALUE
 };
 
+template<>
+struct fmt::formatter<ObjectType> {
+    template<typename ParseContext>
+    constexpr auto parse(ParseContext& ctx)
+    {
+        return ctx.begin();
+    }
+    template<typename FormatContext>
+    auto format(ObjectType const& value, FormatContext& ctx)
+    {
+        switch (value) {
+        case ObjectType::STRING:
+            return fmt::format_to(ctx.out(), "ObjectType::STRING");
+        case ObjectType::FUNCTION:
+            return fmt::format_to(ctx.out(), "ObjectType::FUNCTION");
+        case ObjectType::CLOSURE:
+            return fmt::format_to(ctx.out(), "ObjectType::CLOSURE");
+        case ObjectType::NATIVE_FUNCTION:
+            return fmt::format_to(ctx.out(), "ObjectType::NATIVE_FUNCTION");
+        case ObjectType::UPVALUE:
+            return fmt::format_to(ctx.out(), "ObjectType::UPVALUE");
+        }
+    }
+};
+
 struct Object {
     [[nodiscard]] auto GetType() const -> ObjectType
     {
@@ -28,7 +53,7 @@ struct Object {
 
     inline void MarkObjectAsReachable() const
     {
-        GCDebugLog("Marking object at:{} as reachable", static_cast<void const*>(this));
+        GCDebugLog("Marking object(type={}) at:{} as reachable", type, static_cast<void const*>(this));
         marked = true;
     }
 

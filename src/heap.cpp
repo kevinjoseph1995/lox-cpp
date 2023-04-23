@@ -79,18 +79,23 @@ auto Heap::allocateObject(ObjectType type) -> Object*
 #ifdef STRESS_TEST_GC
     collectGarbage();
 #endif
-
+    ++m_number_of_heap_objects_allocated;
     return insertAtHead([type]() -> Object* {
         switch (type) {
         case ObjectType::STRING:
+            GCDebugLog("Heap::allocateObject ObjectType::STRING");
             return new StringObject;
         case ObjectType::FUNCTION:
+            GCDebugLog("Heap::allocateObject ObjectType::FUNCTION");
             return new FunctionObject;
         case ObjectType::CLOSURE:
+            GCDebugLog("Heap::allocateObject ObjectType::CLOSURE");
             return new ClosureObject;
         case ObjectType::NATIVE_FUNCTION:
+            GCDebugLog("Heap::allocateObject ObjectType::NATIVE_FUNCTION");
             return new NativeFunctionObject;
         case ObjectType::UPVALUE:
+            GCDebugLog("Heap::allocateObject ObjectType::UPVALUE");
             return new UpvalueObject;
         }
     }());
@@ -110,7 +115,7 @@ auto Heap::insertAtHead(Object* new_node) -> Object*
 
 auto Heap::collectGarbage() -> void
 {
-    GCDebugLog("[START]collectGarbage");
+    GCDebugLog("[START]collectGarbage | Total number of allocated objects:{}", m_number_of_heap_objects_allocated);
     markRoots();
     traceObjects();
     sweep();
@@ -147,6 +152,8 @@ auto Heap::sweep() -> void
 
 auto Heap::freeObject(Object* object) -> void
 {
+    LOX_ASSERT(m_number_of_heap_objects_allocated > 0, "Precondition failed");
+    --m_number_of_heap_objects_allocated;
     switch (object->type) {
     case ObjectType::STRING: {
         GCDebugLog("Freeing object of type STRING");
@@ -179,7 +186,7 @@ auto Heap::markRoot(Object* object_ptr) -> void
 {
     LOX_ASSERT(object_ptr != nullptr, "Failed Precondition");
     object_ptr->MarkObjectAsReachable();
-    m_greyedObjects.push_back(object_ptr);
+    m_greyed_objects.push_back(object_ptr);
 }
 
 auto Heap::markRoot(Value value) -> void
@@ -224,9 +231,9 @@ auto Heap::markRoots() -> void
 auto Heap::traceObjects() -> void
 {
     GCDebugLog("[START]traceObjects");
-    while (not m_greyedObjects.empty()) {
-        auto* object = m_greyedObjects.back();
-        m_greyedObjects.pop_back();
+    while (not m_greyed_objects.empty()) {
+        auto* object = m_greyed_objects.back();
+        m_greyed_objects.pop_back();
         blackenObject(object);
     }
     GCDebugLog("[END]traceObjects");

@@ -832,6 +832,7 @@ auto Compiler::or_(bool can_assign) -> void
 }
 auto Compiler::currentChunk() -> Chunk*
 {
+    LOX_ASSERT(m_function != nullptr);
     return &m_function->chunk;
 }
 
