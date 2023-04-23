@@ -49,7 +49,7 @@ auto Heap::AllocateFunctionObject(std::string_view function_name, uint32_t arity
     return function_object_ptr;
 }
 
-auto Heap::AllocateClosureObject(FunctionObject const* function) -> ClosureObject*
+auto Heap::AllocateClosureObject(FunctionObject* function) -> ClosureObject*
 {
     auto* object_ptr = allocateObject(ObjectType::CLOSURE);
     LOX_ASSERT(object_ptr->type == ObjectType::CLOSURE);
@@ -80,33 +80,23 @@ auto Heap::allocateObject(ObjectType type) -> Object*
     collectGarbage();
 #endif
 
-    Object* new_object = nullptr;
-    switch (type) {
-    case ObjectType::STRING: {
-        new_object = new StringObject;
-        break;
-    }
-    case ObjectType::FUNCTION: {
-        new_object = new FunctionObject;
-        break;
-    }
-    case ObjectType::CLOSURE:
-        new_object = new ClosureObject;
-        break;
-    case ObjectType::NATIVE_FUNCTION:
-        new_object = new NativeFunctionObject;
-        break;
-    case ObjectType::UPVALUE:
-        new_object = new UpvalueObject;
-        break;
-    }
-    LOX_ASSERT(new_object != nullptr);
-    LOX_ASSERT(new_object->GetType() == type);
-    insertAtHead(new_object);
-    return new_object;
+    return insertAtHead([type]() -> Object* {
+        switch (type) {
+        case ObjectType::STRING:
+            return new StringObject;
+        case ObjectType::FUNCTION:
+            return new FunctionObject;
+        case ObjectType::CLOSURE:
+            return new ClosureObject;
+        case ObjectType::NATIVE_FUNCTION:
+            return new NativeFunctionObject;
+        case ObjectType::UPVALUE:
+            return new UpvalueObject;
+        }
+    }());
 }
 
-auto Heap::insertAtHead(Object* new_node) -> void
+auto Heap::insertAtHead(Object* new_node) -> Object*
 {
     LOX_ASSERT(new_node != nullptr);
     if (m_head == nullptr) {
@@ -115,15 +105,44 @@ auto Heap::insertAtHead(Object* new_node) -> void
         new_node->next = m_head;
         m_head = new_node;
     }
+    return new_node;
 }
 
 auto Heap::collectGarbage() -> void
 {
-    GCDebugLog("Begining garbage collection");
-    /*
-     * TODO
-     */
-    GCDebugLog("Garbage collection complete");
+    GCDebugLog("[START]collectGarbage");
+    markRoots();
+    traceObjects();
+    sweep();
+    GCDebugLog("[END]collectGarbage");
+}
+
+auto Heap::sweep() -> void
+{
+    GCDebugLog("[START] sweep");
+    auto currentObject = m_head;
+    auto previousObject = static_cast<Object*>(nullptr);
+    while (currentObject != nullptr) {
+        // Iterate over our linked list of objects
+        if (currentObject->marked) {
+            // Has been marked reachable, carry on
+            currentObject->marked = false;
+            previousObject = currentObject;
+            currentObject = currentObject->next;
+        } else {
+            // Not marked as reachable, we must free this object
+            auto* unreachable = currentObject;
+            currentObject = currentObject->next;
+            if (previousObject != nullptr) {
+                previousObject->next = unreachable->next;
+            } else {
+                m_head = unreachable->next;
+            }
+            freeObject(unreachable);
+        }
+    }
+
+    GCDebugLog("[END] sweep");
 }
 
 auto Heap::freeObject(Object* object) -> void
@@ -156,26 +175,31 @@ auto Heap::freeObject(Object* object) -> void
     }
 }
 
+auto Heap::markRoot(Object* object_ptr) -> void
+{
+    LOX_ASSERT(object_ptr != nullptr, "Failed Precondition");
+    object_ptr->MarkObjectAsReachable();
+    m_greyedObjects.push_back(object_ptr);
+}
+
+auto Heap::markRoot(Value value) -> void
+{
+    if (value.IsObject() && !value.AsObject().marked) {
+        markRoot(value.AsObjectPtr());
+    }
+}
+
 auto Heap::markRoots() -> void
 {
-    auto markRoot = [&](Object* object_ptr) -> void {
-        LOX_ASSERT(object_ptr != nullptr, "Failed Precondition");
-        object_ptr->MarkObjectAsReachable();
-        m_greyedObjects.push_back(object_ptr);
-    };
-
+    GCDebugLog("[START]markRoots");
     // Mark all the values on the stack as reachable
     for (auto& value : m_vm.m_value_stack) {
-        if (value.IsObject()) {
-            markRoot(value.AsObjectPtr());
-        }
+        markRoot(value);
     }
 
     // Mark all globals as reachable
     for (auto& [_, global_value] : m_vm.m_globals) {
-        if (global_value.IsObject()) {
-            markRoot(global_value.AsObjectPtr());
-        }
+        markRoot(global_value);
     }
 
     // Mark the call frame closures
@@ -194,4 +218,50 @@ auto Heap::markRoots() -> void
         markRoot(current_compiler->m_function);
         current_compiler = current_compiler->m_parent_compiler;
     }
+    GCDebugLog("[END]markRoots");
+}
+
+auto Heap::traceObjects() -> void
+{
+    GCDebugLog("[START]traceObjects");
+    while (not m_greyedObjects.empty()) {
+        auto* object = m_greyedObjects.back();
+        m_greyedObjects.pop_back();
+        blackenObject(object);
+    }
+    GCDebugLog("[END]traceObjects");
+}
+
+auto Heap::blackenObject(Object* object) -> void
+{
+    GCDebugLog("[START]blackenObject");
+    LOX_ASSERT(object != nullptr);
+    switch (object->type) {
+    case ObjectType::STRING:
+    case ObjectType::NATIVE_FUNCTION:
+        break; // No outgoing references nothing to do
+    case ObjectType::UPVALUE: {
+        auto upvalue = static_cast<UpvalueObject*>(object);
+        if (upvalue->IsClosed()) {
+            markRoot(upvalue->GetClosedValue());
+        }
+        break;
+    }
+    case ObjectType::FUNCTION: {
+        auto function = static_cast<FunctionObject*>(object);
+        for (auto& constant : function->chunk.constant_pool) {
+            markRoot(constant);
+        }
+        break;
+    }
+    case ObjectType::CLOSURE: {
+        auto closure = static_cast<ClosureObject*>(object);
+        markRoot(closure->function);
+        for (auto* upvalue : closure->upvalues) {
+            markRoot(upvalue);
+        }
+        break;
+    }
+    }
+    GCDebugLog("[END]blackenObject");
 }

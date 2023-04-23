@@ -19,7 +19,7 @@ public:
     ~Heap();
     [[nodiscard]] auto AllocateStringObject(std::string_view) -> StringObject*;
     [[nodiscard]] auto AllocateFunctionObject(std::string_view function_name, uint32_t arity) -> FunctionObject*;
-    [[nodiscard]] auto AllocateClosureObject(FunctionObject const* function) -> ClosureObject*;
+    [[nodiscard]] auto AllocateClosureObject(FunctionObject* function) -> ClosureObject*;
     [[nodiscard]] auto AllocateNativeFunctionObject(NativeFunction) -> NativeFunctionObject*;
     [[nodiscard]] auto AllocateNativeUpvalueObject() -> UpvalueObject*;
 
@@ -27,13 +27,19 @@ protected:
     auto reset() -> void;
     [[nodiscard]] auto allocateObject(ObjectType) -> Object*;
     auto freeObject(Object* object) -> void;
-    auto insertAtHead(Object* new_node) -> void;
+    auto insertAtHead(Object* new_node) -> Object*;
     // GC related member functions
     auto collectGarbage() -> void;
     auto markRoots() -> void;
+    auto markRoot(Object* object_ptr) -> void;
+    auto markRoot(Value value) -> void;
+    auto traceObjects() -> void;
+    auto blackenObject(Object* object) -> void;
+    auto sweep() -> void;
 
 protected:
-    Object* m_head = nullptr;
+    Object* m_head
+        = nullptr;
     VirtualMachine& m_vm;
     std::vector<Object*> m_greyedObjects {}; // Refer 26.4.1 : The tricolor abstraction from https://craftinginterpreters.com/garbage-collection.html#tracing-object-references
 };

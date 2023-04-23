@@ -116,6 +116,6 @@ struct ClosureObject : public Object {
     {
     }
     std::vector<UpvalueObject*> upvalues {};
-    FunctionObject const* function = nullptr;
+    FunctionObject* function = nullptr;
 };
 #endif // LOX_CPP_OBJECT_H

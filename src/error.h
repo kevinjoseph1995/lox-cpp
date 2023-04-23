@@ -19,7 +19,7 @@ auto PrintAssertionMessage(char const* file, int line, char const* function_name
 #define unlikely(x) __builtin_expect(!!(x), 0)
 #define LOX_ASSERT(expr, ...)                                                               \
     do {                                                                                    \
-        if (unlikely(!(expr))) {                                                            \
+        if ((!(expr))) [[unlikely]] {                                                       \
             PrintAssertionMessage(__FILE__, __LINE__, __func__ __VA_OPT__(, ) __VA_ARGS__); \
             __builtin_trap();                                                               \
         }                                                                                   \
@@ -29,7 +29,7 @@ template<typename... T>
 static inline void GCDebugLog(fmt::format_string<T...> fmt [[maybe_unused]], T&&... args [[maybe_unused]])
 {
 #ifdef DEBUG_GC_LOGGING
-    fmt::print("[GC][Debug]: ");
+    fmt::print("[GC][Debug]");
     fmt::print(fmt, std::forward<T>(args)...);
     fmt::print("\n");
     fflush(stdout);
