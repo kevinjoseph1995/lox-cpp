@@ -9,19 +9,18 @@
 #include <vector>
 
 class VirtualMachine;
+class Compiler;
 
 class Heap {
 public:
-    Heap(VirtualMachine& vm)
-        : m_vm(vm)
-    {
-    }
+    Heap(VirtualMachine& vm);
     ~Heap();
     [[nodiscard]] auto AllocateStringObject(std::string_view) -> StringObject*;
     [[nodiscard]] auto AllocateFunctionObject(std::string_view function_name, uint32_t arity) -> FunctionObject*;
     [[nodiscard]] auto AllocateClosureObject(FunctionObject* function) -> ClosureObject*;
     [[nodiscard]] auto AllocateNativeFunctionObject(NativeFunction) -> NativeFunctionObject*;
     [[nodiscard]] auto AllocateNativeUpvalueObject() -> UpvalueObject*;
+    auto SetCompilerContext(Compiler* current_compiler) -> void;
 
 protected:
     auto reset() -> void;
@@ -38,6 +37,7 @@ protected:
     auto sweep() -> void;
 
 protected:
+    Compiler* m_current_compiler = nullptr; // Set the current function that's being compiled
     uint64_t m_number_of_heap_objects_allocated = 0;
     Object* m_head = nullptr;
     VirtualMachine& m_vm;

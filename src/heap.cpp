@@ -14,6 +14,12 @@
 #include <string_view>
 #include <utility>
 
+Heap::Heap(VirtualMachine& vm)
+    : m_current_compiler(vm.m_compiler.get())
+    , m_vm(vm)
+{
+}
+
 Heap::~Heap()
 {
     reset();

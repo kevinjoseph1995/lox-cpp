@@ -460,7 +460,7 @@ auto VirtualMachine::call(Value& callable, uint16_t num_arguments) -> RuntimeErr
         // https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2022/p2505r1.html
         // TODO: Move to the and_then when it becomes available in the standard library
         return return_value.has_value()
-               ?                                                              /* Error-less branch*/
+               ? /* Error-less branch*/
                [this, num_arguments, value = return_value.value()]() -> RuntimeErrorOr<VoidType> {
                    auto num_to_pop = static_cast<int32_t>(num_arguments + 1); // Reset the call stack | . | . | ... | Native Function Object | Arg1 | Arg 2 | ... | ArgN |
                    while (num_to_pop > 0) {
