@@ -6,7 +6,7 @@ Work in progress
 - [x] Loops
 - [x] Functions
 - [x] Closures
-- [ ] Garbage Collection
+- [x] Garbage Collection
 - [ ] Classes and Instances
 - [ ] Methods and Initializers
 - [ ] Superclasses
