@@ -37,6 +37,7 @@ protected:
         m_heap = std::make_unique<Heap>(m_dummy_vm);
         m_compiler
             = std::make_unique<Compiler>(*m_heap, m_parser_state);
+        m_heap->SetCompilerContext(m_compiler.get());
     }
     std::unique_ptr<Compiler> m_compiler;
     std::unique_ptr<Heap> m_heap;

@@ -15,8 +15,7 @@
 #include <utility>
 
 Heap::Heap(VirtualMachine& vm)
-    : m_current_compiler(vm.m_compiler.get())
-    , m_vm(vm)
+    : m_vm(vm)
 {
 }
 
@@ -226,7 +225,7 @@ auto Heap::markRoots() -> void
     }
 
     // Mark all the roots for objects that originate during the compilation phase
-    auto current_compiler = m_vm.m_compiler.get();
+    auto current_compiler = m_current_compiler;
     while (current_compiler != nullptr) {
         markRoot(current_compiler->m_function);
         current_compiler = current_compiler->m_parent_compiler;
@@ -277,4 +276,24 @@ auto Heap::blackenObject(Object* object) -> void
     }
     }
     GCDebugLog("[END]blackenObject");
+}
+
+auto Heap::SetCompilerContext(Compiler* compiler) -> void
+{
+    m_current_compiler = compiler;
+}
+
+HeapContextManager::HeapContextManager(Heap& heap, Compiler* current, Compiler* new_compiler)
+    : m_heap(heap)
+    , m_current(current)
+{
+    LOX_ASSERT(current != nullptr);
+    LOX_ASSERT(new_compiler != nullptr);
+    m_heap.SetCompilerContext(new_compiler);
+}
+
+HeapContextManager::~HeapContextManager()
+{
+    // Restore the original compiler
+    m_heap.SetCompilerContext(m_current);
 }

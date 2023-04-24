@@ -5,6 +5,7 @@
 #ifndef LOX_CPP_HEAP_H
 #define LOX_CPP_HEAP_H
 
+#include "error.h"
 #include "object.h"
 #include <vector>
 
@@ -42,6 +43,16 @@ protected:
     Object* m_head = nullptr;
     VirtualMachine& m_vm;
     std::vector<Object*> m_greyed_objects {}; // Refer 26.4.1 : The tricolor abstraction from https://craftinginterpreters.com/garbage-collection.html#tracing-object-references
+};
+
+class HeapContextManager {
+public:
+    HeapContextManager(Heap& heap, Compiler* current, Compiler* new_compiler);
+    ~HeapContextManager();
+
+private:
+    Heap& m_heap;
+    Compiler* m_current = nullptr;
 };
 
 #endif // LOX_CPP_HEAP_H

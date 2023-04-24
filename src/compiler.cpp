@@ -13,6 +13,7 @@
 #include "compiler.h"
 #include "error.h"
 #include "fmt/core.h"
+#include "heap.h"
 #include "scanner.h"
 #include "value.h"
 
@@ -366,6 +367,7 @@ auto Compiler::function() -> void
     ///////////////////////////////////////////////// Compile the function body ////////////////////////////////////////////////////////////////////////////////////////////
     function_compiler.m_source = this->m_source;
     function_compiler.setFunctionName();
+    HeapContextManager heap_context_manager(m_heap, this, &function_compiler);
 
     function_compiler.beginScope();
     auto success = function_compiler.m_parser_state.Consume(TokenType::LEFT_PAREN);
@@ -391,7 +393,9 @@ auto Compiler::function() -> void
     if (!success) {
         function_compiler.m_parser_state.ReportError(m_parser_state.PreviousToken()->line_number, GetTokenSpan(*m_parser_state.PreviousToken()), "Expected closing parenthesis after function identifier");
     }
+
     function_compiler.block();
+
     auto compiled_function = function_compiler.endCompiler();
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     LOX_ASSERT(currentChunk() != nullptr);

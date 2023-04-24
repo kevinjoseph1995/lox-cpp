@@ -1,3 +1,2 @@
-fun outer() {
-  "outside";
-}
+ var a = "Hello world";
+ var b = a + "FooBar";

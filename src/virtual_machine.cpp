@@ -419,6 +419,7 @@ VirtualMachine::VirtualMachine(std::string* external_stream)
 {
     m_heap = std::make_unique<Heap>(*this);
     m_compiler = std::make_unique<Compiler>(*m_heap, m_parser_state);
+    m_heap->SetCompilerContext(m_compiler.get());
 }
 auto VirtualMachine::isAtEnd() -> bool
 {
