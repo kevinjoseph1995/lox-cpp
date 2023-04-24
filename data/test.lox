@@ -1,2 +1,9 @@
- var a = "Hello world";
- var b = a + "FooBar";
+fun make_adder() {
+  var a = 5;
+  fun adder(i) {
+    return a + i;
+  }
+  return adder;
+}
+var add5 = make_adder();
+print add5(1);
