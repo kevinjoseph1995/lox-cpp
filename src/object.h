@@ -10,6 +10,7 @@
 #include "value.h"
 #include <cstdint>
 #include <string>
+#include <string_view>
 #include <variant>
 
 enum class ObjectType {
@@ -75,6 +76,11 @@ struct StringObject : public Object {
         : Object(ObjectType::STRING)
     {
     }
+    StringObject(std::string_view d)
+        : Object(ObjectType::STRING)
+        , data(d)
+    {
+    }
     std::string data;
 };
 
@@ -83,6 +89,13 @@ struct FunctionObject : public Object {
         : Object(ObjectType::FUNCTION)
     {
     }
+    FunctionObject(std::string_view fn_name, uint32_t a)
+        : Object(ObjectType::FUNCTION)
+        , function_name(fn_name)
+        , arity(a)
+    {
+    }
+
     std::string function_name {};
     uint32_t arity {};
     Chunk chunk {};

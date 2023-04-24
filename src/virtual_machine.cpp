@@ -246,16 +246,18 @@ auto VirtualMachine::run() -> RuntimeErrorOr<VoidType>
             auto object_ptr = value.AsObjectPtr();
             LOX_ASSERT(object_ptr->GetType() == ObjectType::FUNCTION);
             auto function_ptr = static_cast<FunctionObject*>(object_ptr);
-            auto closure = m_heap->AllocateClosureObject(function_ptr);
+            std::vector<UpvalueObject*> upvalues;
             for (auto i = 0; i < function_ptr->upvalue_count; ++i) {
                 auto const is_local = static_cast<bool>(readByte());
                 auto const index = readIndex();
                 if (is_local) {
-                    closure->upvalues.push_back(captureUpvalue(static_cast<uint16_t>(m_frames.back().slot) + index));
+                    upvalues.push_back(captureUpvalue(static_cast<uint16_t>(m_frames.back().slot) + index));
                 } else {
-                    closure->upvalues.push_back(m_frames.back().closure->upvalues.at(index));
+                    upvalues.push_back(m_frames.back().closure->upvalues.at(index));
                 }
             }
+            auto closure = m_heap->AllocateClosureObject(function_ptr);
+            closure->upvalues = std::move(upvalues);
             m_value_stack.push_back(closure);
             break;
         }

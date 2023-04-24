@@ -10,9 +10,11 @@
 #include "chunk.h"
 #include "compiler.h"
 #include "heap.h"
+#include "object.h"
 #include "value_formatter.h"
 #include "virtual_machine.h"
 
+using namespace std::literals;
 using FunctionMap = std::unordered_map<std::string, FunctionObject const*>;
 
 [[maybe_unused]] [[nodiscard]] static auto ExtractFunctions(Chunk const& chunk) -> FunctionMap
@@ -176,12 +178,15 @@ TEST_F(CompilerTest, StringConcatenation)
                                      OP_DEFINE_GLOBAL, 2, 0,
                                      OP_NIL, OP_RETURN },
         compiled_function->chunk.byte_code));
+    auto string_objects = std::vector<StringObject> {
+        "a"sv, "Hello world"sv, "b"sv, "a"sv, "FooBar"sv
+    };
     ASSERT_TRUE(ValidateConstants(std::vector<Value> {
-                                      m_heap->AllocateStringObject("a"),
-                                      m_heap->AllocateStringObject("Hello world"),
-                                      m_heap->AllocateStringObject("b"),
-                                      m_heap->AllocateStringObject("a"),
-                                      m_heap->AllocateStringObject("FooBar") },
+                                      &string_objects[0],
+                                      &string_objects[1],
+                                      &string_objects[2],
+                                      &string_objects[3],
+                                      &string_objects[4] },
         compiled_function->chunk.constant_pool));
 }
 
@@ -226,12 +231,15 @@ TEST_F(CompilerTest, AssignmentStatements)
                                      OP_NIL,
                                      OP_RETURN },
         compiled_function->chunk.byte_code));
+    auto string_objects = std::vector<StringObject> {
+        "a"sv, "Hello World"sv
+    };
     ASSERT_TRUE(ValidateConstants(std::vector<Value> {
-                                      m_heap->AllocateStringObject("a"),
+                                      &string_objects[0],
                                       10.0,
-                                      m_heap->AllocateStringObject("a"),
-                                      m_heap->AllocateStringObject("a"),
-                                      m_heap->AllocateStringObject("Hello World") },
+                                      &string_objects[0],
+                                      &string_objects[0],
+                                      &string_objects[1] },
         compiled_function->chunk.constant_pool));
 }
 
@@ -254,13 +262,17 @@ TEST_F(CompilerTest, InvalidBinaryOp)
     auto compilation_result = m_compiler->CompileSource(m_source);
     ASSERT_TRUE(compilation_result.has_value());
     auto const& compiled_function = compilation_result.value();
+    auto string_objects = std::vector<StringObject> {
+        "a"sv, "b"sv, "String"sv
+    };
     ASSERT_TRUE(ValidateConstants(std::vector<Value> {
-                                      m_heap->AllocateStringObject("a"),
+                                      &string_objects[0],
                                       10.0,
-                                      m_heap->AllocateStringObject("b"),
-                                      m_heap->AllocateStringObject("String"),
-                                      m_heap->AllocateStringObject("a"),
-                                      m_heap->AllocateStringObject("b") },
+                                      &string_objects[1],
+                                      &string_objects[2],
+                                      &string_objects[0],
+                                      &string_objects[1],
+                                  },
         compiled_function->chunk.constant_pool));
 }
 
@@ -352,9 +364,12 @@ TEST_F(CompilerTest, IfStatement)
                                      OP_NIL,
                                      OP_RETURN },
         compiled_function->chunk.byte_code));
+    auto string_objects = std::vector<StringObject> {
+        "If-branch"sv, "Jumped here"sv, "String"sv
+    };
     ASSERT_TRUE(ValidateConstants(std::vector<Value> {
-                                      m_heap->AllocateStringObject("If-branch"),
-                                      m_heap->AllocateStringObject("Jumped here"),
+                                      &string_objects[0],
+                                      &string_objects[1],
                                   },
         compiled_function->chunk.constant_pool));
 }
@@ -543,9 +558,16 @@ fun MyFunction() {
                                      OP_NIL,
                                      OP_RETURN },
         compiled_function->chunk.byte_code));
+    auto string_object = StringObject {
+        "MyFunction"sv,
+    };
+    auto function_object = FunctionObject {
+        "MyFunction"sv,
+        0
+    };
     ASSERT_TRUE(ValidateConstants(std::vector<Value> {
-                                      m_heap->AllocateStringObject("MyFunction"),
-                                      m_heap->AllocateFunctionObject("MyFunction", 0) },
+                                      &string_object,
+                                      &function_object },
         compiled_function->chunk.constant_pool));
 }
 
@@ -566,9 +588,16 @@ fun MyFunction(a, b, c) {
                                      OP_NIL,
                                      OP_RETURN },
         compiled_function->chunk.byte_code));
+    auto string_object = StringObject {
+        "MyFunction"sv,
+    };
+    auto function_object = FunctionObject {
+        "MyFunction"sv,
+        3
+    };
     ASSERT_TRUE(ValidateConstants(std::vector<Value> {
-                                      m_heap->AllocateStringObject("MyFunction"),
-                                      m_heap->AllocateFunctionObject("MyFunction", 3) },
+                                      &string_object,
+                                      &function_object },
         compiled_function->chunk.constant_pool));
 }
 
@@ -690,13 +719,22 @@ outer();
                                      OP_NIL,
                                      OP_RETURN },
         compilation_result.value()->chunk.byte_code));
-    ASSERT_TRUE(ValidateConstants(std::vector<Value> {
-                                      m_heap->AllocateStringObject("outer"),
-                                      m_heap->AllocateFunctionObject("outer", 0),
-                                      m_heap->AllocateStringObject("outer"),
-                                  },
-        compilation_result.value()->chunk.constant_pool));
+    {
+        auto string_object = StringObject {
+            "outer"sv,
+        };
+        auto function_object = FunctionObject {
+            "outer"sv,
+            0
+        };
 
+        ASSERT_TRUE(ValidateConstants(std::vector<Value> {
+                                          &string_object,
+                                          &function_object,
+                                          &string_object,
+                                      },
+            compilation_result.value()->chunk.constant_pool));
+    }
     auto const function_map
         = ExtractFunctions(compilation_result.value()->chunk);
 
@@ -711,10 +749,19 @@ outer();
                                      OP_NIL,
                                      OP_RETURN },
         function_map.at("outer")->chunk.byte_code));
-    ASSERT_TRUE(ValidateConstants(std::vector<Value> {
-                                      m_heap->AllocateStringObject("outside"),
-                                      m_heap->AllocateFunctionObject("inner", 0) },
-        function_map.at("outer")->chunk.constant_pool));
+    {
+        auto string_object = StringObject {
+            "outside"sv,
+        };
+        auto function_object = FunctionObject {
+            "inner"sv,
+            0
+        };
+        ASSERT_TRUE(ValidateConstants(std::vector<Value> {
+                                          &string_object,
+                                          &function_object },
+            function_map.at("outer")->chunk.constant_pool));
+    }
 
     ASSERT_TRUE(ValidateByteCode(std::vector<uint8_t> {
                                      OP_GET_UPVALUE, 0, 0,
@@ -725,7 +772,13 @@ outer();
                                      OP_NIL,
                                      OP_RETURN },
         function_map.at("inner")->chunk.byte_code));
-    ASSERT_TRUE(ValidateConstants(std::vector<Value> {
-                                      m_heap->AllocateStringObject("set from inside") },
-        function_map.at("inner")->chunk.constant_pool));
+
+    {
+        auto string_object = StringObject {
+            "set from inside"sv,
+        };
+        ASSERT_TRUE(ValidateConstants(std::vector<Value> {
+                                          &string_object },
+            function_map.at("inner")->chunk.constant_pool));
+    }
 }
