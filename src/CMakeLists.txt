@@ -1,18 +1,8 @@
 # C++ standard
 set(CMAKE_CXX_STANDARD 23)
 
-
-if(NOT DEBUG_GC_LOGGING)
-        set(DEBUG_GC_LOGGING "ON" CACHE STRING "Enable Garbage collection logging" FORCE)
-        # Set the possible values of build type for cmake-gui
-        set_property(CACHE DEBUG_GC_LOGGING PROPERTY STRINGS "ON" "OFF")
-endif()
-
-if(NOT STRESS_TEST_GC)
-        set(STRESS_TEST_GC "ON" CACHE STRING "Stress test garbage collector" FORCE)
-        # Set the possible values of build type for cmake-gui
-        set_property(CACHE STRESS_TEST_GC PROPERTY STRINGS "ON" "OFF")
-endif()
+option(DEBUG_GC_LOGGING "Enable Garbage collection logging" ON)
+option(STRESS_TEST_GC "Stress test garbage collector" ON)
 
 add_library(lox_compiler STATIC
         chunk.cpp

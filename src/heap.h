@@ -7,6 +7,7 @@
 
 #include "error.h"
 #include "object.h"
+#include <cstdint>
 #include <vector>
 
 class VirtualMachine;
@@ -40,6 +41,8 @@ protected:
 protected:
     Compiler* m_current_compiler = nullptr; // Set the current function that's being compiled
     uint64_t m_number_of_heap_objects_allocated = 0;
+    uint64_t m_bytes_allocated = 0;
+    uint64_t m_next_collection_threhold = 1024U; // 1KB
     Object* m_head = nullptr;
     VirtualMachine& m_vm;
     std::vector<Object*> m_greyed_objects {}; // Refer 26.4.1 : The tricolor abstraction from https://craftinginterpreters.com/garbage-collection.html#tracing-object-references

@@ -14,6 +14,8 @@
 #include <string_view>
 #include <utility>
 
+static constexpr auto HEAP_GROW_FACTOR = 2;
+
 Heap::Heap(VirtualMachine& vm)
     : m_vm(vm)
 {
@@ -41,6 +43,7 @@ auto Heap::AllocateStringObject(std::string_view string_data) -> StringObject*
     LOX_ASSERT(object_ptr->type == ObjectType::STRING);
     auto string_object_ptr = static_cast<StringObject*>(object_ptr);
     string_object_ptr->data = string_data;
+    m_bytes_allocated += sizeof(StringObject);
     return string_object_ptr;
 }
 
@@ -51,6 +54,7 @@ auto Heap::AllocateFunctionObject(std::string_view function_name, uint32_t arity
     auto function_object_ptr = static_cast<FunctionObject*>(object_ptr);
     function_object_ptr->function_name = function_name;
     function_object_ptr->arity = arity;
+    m_bytes_allocated += sizeof(FunctionObject);
     return function_object_ptr;
 }
 
@@ -60,6 +64,7 @@ auto Heap::AllocateClosureObject(FunctionObject* function) -> ClosureObject*
     LOX_ASSERT(object_ptr->type == ObjectType::CLOSURE);
     auto closure_object_ptr = static_cast<ClosureObject*>(object_ptr);
     closure_object_ptr->function = function;
+    m_bytes_allocated += sizeof(ClosureObject);
     return closure_object_ptr;
 }
 
@@ -69,6 +74,7 @@ auto Heap::AllocateNativeFunctionObject(NativeFunction function) -> NativeFuncti
     LOX_ASSERT(object_ptr->type == ObjectType::NATIVE_FUNCTION);
     auto native_function_object_ptr = static_cast<NativeFunctionObject*>(object_ptr);
     native_function_object_ptr->native_function = function;
+    m_bytes_allocated += sizeof(NativeFunctionObject);
     return native_function_object_ptr;
 }
 auto Heap::AllocateNativeUpvalueObject() -> UpvalueObject*
@@ -76,6 +82,7 @@ auto Heap::AllocateNativeUpvalueObject() -> UpvalueObject*
     auto* object_ptr = allocateObject(ObjectType::UPVALUE);
     LOX_ASSERT(object_ptr->type == ObjectType::UPVALUE);
     auto upvalue_obj_ptr = static_cast<UpvalueObject*>(object_ptr);
+    m_bytes_allocated += sizeof(UpvalueObject);
     return upvalue_obj_ptr;
 }
 
@@ -83,6 +90,10 @@ auto Heap::allocateObject(ObjectType type) -> Object*
 {
 #ifdef STRESS_TEST_GC
     collectGarbage();
+#else
+    if (m_bytes_allocated > m_next_collection_threhold) {
+        collectGarbage();
+    }
 #endif
     ++m_number_of_heap_objects_allocated;
     return insertAtHead([type]() -> Object* {
@@ -124,6 +135,7 @@ auto Heap::collectGarbage() -> void
     markRoots();
     traceObjects();
     sweep();
+    m_next_collection_threhold = HEAP_GROW_FACTOR * m_next_collection_threhold;
     GCDebugLog("[END]collectGarbage");
 }
 
@@ -163,26 +175,31 @@ auto Heap::freeObject(Object* object) -> void
     case ObjectType::STRING: {
         GCDebugLog("Freeing object of type STRING");
         delete static_cast<StringObject*>(object);
+        m_bytes_allocated -= sizeof(StringObject);
         break;
     }
     case ObjectType::FUNCTION: {
         GCDebugLog("Freeing object of type FUNCTION");
         delete static_cast<FunctionObject*>(object);
+        m_bytes_allocated -= sizeof(FunctionObject);
         break;
     }
     case ObjectType::CLOSURE: {
         GCDebugLog("Freeing object of type CLOSURE");
         delete static_cast<ClosureObject*>(object);
+        m_bytes_allocated -= sizeof(ClosureObject);
         break;
     }
     case ObjectType::NATIVE_FUNCTION: {
         GCDebugLog("Freeing object of type NATIVE_FUNCTION");
         delete static_cast<NativeFunctionObject*>(object);
+        m_bytes_allocated -= sizeof(NativeFunctionObject);
         break;
     }
     case ObjectType::UPVALUE:
         GCDebugLog("Freeing object of type UPVALUE");
         delete static_cast<UpvalueObject*>(object);
+        m_bytes_allocated -= sizeof(UpvalueObject);
         break;
     }
 }
