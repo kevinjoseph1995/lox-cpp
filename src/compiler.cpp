@@ -777,7 +777,7 @@ auto Compiler::ifStatement() -> void
 
     auto jump_destination = emitJump(OP_JUMP_IF_FALSE);
     emitByte(OP_POP);
-    statement();
+    declaration();
 
     auto else_destination = emitJump(OP_JUMP);
     patchJump(jump_destination);
