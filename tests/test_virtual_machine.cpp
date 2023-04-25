@@ -423,6 +423,41 @@ print concatenate("Hello", "World");
     ASSERT_EQ(m_vm_output_stream, EXPECTED_OUTPUT);
 }
 
+TEST_F(VMTest, RuntimeError1)
+{
+    m_source.Append(R"(
+fun f(a, b) {
+  print a;
+  print b;
+}
+
+f(1, 2, 3, 4); // expect runtime error: Expected 2 arguments but got 4.
+)");
+    auto result = m_vm->Interpret(m_source);
+    ASSERT_TRUE(!result.has_value());
+}
+
+TEST_F(VMTest, RuntimeError2)
+{
+    m_source.Append(R"(
+{
+  fun isEven(n) {
+    if (n == 0) return true;
+    return isOdd(n - 1); // expect runtime error: Undefined variable 'isOdd'.
+  }
+
+  fun isOdd(n) {
+    if (n == 0) return false;
+    return isEven(n - 1);
+  }
+
+  isEven(4);
+}
+)");
+    auto result = m_vm->Interpret(m_source);
+    ASSERT_TRUE(!result.has_value());
+}
+
 TEST_F(VMTest, NativeFunction1)
 {
     m_source.Append(R"(
@@ -684,5 +719,65 @@ print add5(3);
     auto result = m_vm->Interpret(m_source);
     ASSERT_TRUE(result.has_value());
     static constexpr auto EXPECTED_OUTPUT = "6\n7\n8\n";
+    ASSERT_EQ(m_vm_output_stream, EXPECTED_OUTPUT);
+}
+
+TEST_F(VMTest, CaptureLocal10)
+{
+    m_source.Append(R"(
+var a = "global";
+
+{
+  fun assign() {
+    a = "assigned";
+  }
+
+  var a = "inner";
+  assign();
+  print a; // expect: inner
+}
+
+print a; // expect: assigned
+)");
+    auto result = m_vm->Interpret(m_source);
+    ASSERT_TRUE(result.has_value());
+    static constexpr auto EXPECTED_OUTPUT = "inner\nassigned\n";
+    ASSERT_EQ(m_vm_output_stream, EXPECTED_OUTPUT);
+}
+
+TEST_F(VMTest, CaptureLocal11)
+{
+    m_source.Append(R"(
+var f;
+var g;
+
+{
+  var local = "local";
+  fun f_() {
+    print local;
+    local = "after f";
+    print local;
+  }
+  f = f_;
+
+  fun g_() {
+    print local;
+    local = "after g";
+    print local;
+  }
+  g = g_;
+}
+
+f();
+// expect: local
+// expect: after f
+
+g();
+// expect: after f
+// expect: after g
+)");
+    auto result = m_vm->Interpret(m_source);
+    ASSERT_TRUE(result.has_value());
+    static constexpr auto EXPECTED_OUTPUT = "local\nafter f\nafter f\nafter g\n";
     ASSERT_EQ(m_vm_output_stream, EXPECTED_OUTPUT);
 }

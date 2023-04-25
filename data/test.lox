@@ -1,22 +1,27 @@
-// fun outer() {
-//   var x = "outside";
-//   fun inner() {
-//     print x;
-//     x = "set from inside";
-//   }
-//   inner();
-//   print x;
-// }
-// outer();
+var f;
+var g;
 
-fun make_adder() {
-  var a = 5;
-  fun adder(i) {
-    return a + i;
+{
+  var local = "local";
+  fun f_() {
+    print local;
+    local = "after f";
+    print local;
   }
-  return adder;
+  f = f_;
+
+  fun g_() {
+    print local;
+    local = "after g";
+    print local;
+  }
+  g = g_;
 }
-var add5 = make_adder();
-print add5(1);
-print add5(2);
-print add5(3);
+
+f();
+// expect: local
+// expect: after f
+
+g();
+// expect: after f
+// expect: after g

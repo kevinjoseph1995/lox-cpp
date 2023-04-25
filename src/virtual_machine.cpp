@@ -515,7 +515,7 @@ auto VirtualMachine::captureUpvalue(uint16_t slot_index) -> UpvalueObject*
     auto prev_it = it;
     for (; it != m_open_upvalues.end(); std::advance(it, 1)) {
         auto open_upvalue = *it;
-        if (open_upvalue->GetStackIndex() < slot_index) {
+        if (open_upvalue->GetStackIndex() <= slot_index) {
             break;
         }
         prev_it = it;
