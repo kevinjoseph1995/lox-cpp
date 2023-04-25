@@ -665,3 +665,24 @@ global();
     static constexpr auto EXPECTED_OUTPUT = "10\n";
     ASSERT_EQ(m_vm_output_stream, EXPECTED_OUTPUT);
 }
+
+TEST_F(VMTest, CaptureLocal9)
+{
+    m_source.Append(R"(
+fun make_adder() {
+  var a = 5;
+  fun adder(i) {
+    return a + i;
+  }
+  return adder;
+}
+var add5 = make_adder();
+print add5(1);
+print add5(2);
+print add5(3);
+)");
+    auto result = m_vm->Interpret(m_source);
+    ASSERT_TRUE(result.has_value());
+    static constexpr auto EXPECTED_OUTPUT = "6\n7\n8\n";
+    ASSERT_EQ(m_vm_output_stream, EXPECTED_OUTPUT);
+}

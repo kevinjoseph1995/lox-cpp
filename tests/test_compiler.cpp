@@ -737,7 +737,6 @@ outer();
     }
     auto const function_map
         = ExtractFunctions(compilation_result.value()->chunk);
-
     ASSERT_TRUE(ValidateByteCode(std::vector<uint8_t> {
                                      OP_CONSTANT, 0, 0,
                                      OP_CLOSURE, 1 /*Function_Obj_Cont_index_LSB*/, 0 /*Function_Obj_Cont_index_USB*/, 1 /*Is local*/, 0 /*Upvalue_index_LSB*/, 0 /*Upvalue_index_USB*/,
@@ -746,6 +745,8 @@ outer();
                                      OP_POP,
                                      OP_GET_LOCAL, 0, 0,
                                      OP_PRINT,
+                                     OP_POP,
+                                     OP_CLOSE_UPVALUE,
                                      OP_NIL,
                                      OP_RETURN },
         function_map.at("outer")->chunk.byte_code));

@@ -327,9 +327,7 @@ auto Compiler::statement() -> void
     if (m_parser_state.Match(TokenType::PRINT)) {
         printStatement();
     } else if (m_parser_state.Match(TokenType::LEFT_BRACE)) {
-        beginScope();
         block();
-        endScope();
     } else if (m_parser_state.Match(TokenType::IF)) {
         ifStatement();
     } else if (m_parser_state.Match(TokenType::WHILE)) {
@@ -539,6 +537,7 @@ auto Compiler::emitIndex(uint16_t index) -> void
 
 auto Compiler::block() -> void
 {
+    beginScope();
     if (!m_parser_state.Consume(TokenType::LEFT_BRACE)) {
         m_parser_state.ReportError(m_parser_state.PreviousToken()->line_number, GetTokenSpan(*m_parser_state.PreviousToken()), "Expected opening brace at the start of block statement");
     }
@@ -546,8 +545,10 @@ auto Compiler::block() -> void
         declaration();
     }
     if (!m_parser_state.Consume(TokenType::RIGHT_BRACE)) {
+        m_parser_state.ReportError(m_parser_state.PreviousToken()->line_number, GetTokenSpan(*m_parser_state.PreviousToken()), "Expected closing brace at the end of block statement");
         return;
     }
+    endScope();
 }
 
 auto Compiler::parseVariable(std::string_view error_message) -> ParseErrorOr<uint16_t>
