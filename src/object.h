@@ -69,6 +69,7 @@ struct Object {
     {
     }
 
+private:
     friend class Heap;
     ObjectType type {};
     Object* next = nullptr;
@@ -162,6 +163,10 @@ struct ClosureObject : public Object {
 };
 
 struct ClassObject : public Object {
+    ClassObject()
+        : Object(ObjectType::CLASS)
+    {
+    }
     ClassObject(std::string_view cls_name)
         : Object(ObjectType::CLASS)
         , class_name(cls_name)

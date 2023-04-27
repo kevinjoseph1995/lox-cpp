@@ -87,6 +87,16 @@ auto Heap::AllocateNativeUpvalueObject() -> UpvalueObject*
     return upvalue_obj_ptr;
 }
 
+auto Heap::AllocateClassObject(std::string_view class_name) -> ClassObject*
+{
+    auto* object_ptr = allocateObject(ObjectType::CLASS);
+    LOX_ASSERT(object_ptr->type == ObjectType::CLASS);
+    auto class_object_ptr = static_cast<ClassObject*>(object_ptr);
+    class_object_ptr->class_name = class_name;
+    m_bytes_allocated += sizeof(ClassObject);
+    return class_object_ptr;
+}
+
 auto Heap::allocateObject(ObjectType type) -> Object*
 {
 #ifdef STRESS_TEST_GC
@@ -116,7 +126,7 @@ auto Heap::allocateObject(ObjectType type) -> Object*
             return new UpvalueObject;
         case ObjectType::CLASS:
             GCDebugLog("Heap::allocateObject ObjectType::CLASS");
-            return new UpvalueObject;
+            return new ClassObject;
         }
     }());
 }
@@ -207,8 +217,8 @@ auto Heap::freeObject(Object* object) -> void
         break;
     case ObjectType::CLASS: {
         GCDebugLog("Freeing object of type CLASS");
-        delete static_cast<ClosureObject*>(object);
-        m_bytes_allocated -= sizeof(ClosureObject);
+        delete static_cast<ClassObject*>(object);
+        m_bytes_allocated -= sizeof(ClassObject);
         break;
     }
     }

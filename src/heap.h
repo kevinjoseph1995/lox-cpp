@@ -23,6 +23,7 @@ public:
     [[nodiscard]] auto AllocateClosureObject(FunctionObject* function) -> ClosureObject*;
     [[nodiscard]] auto AllocateNativeFunctionObject(NativeFunction) -> NativeFunctionObject*;
     [[nodiscard]] auto AllocateNativeUpvalueObject() -> UpvalueObject*;
+    [[nodiscard]] auto AllocateClassObject(std::string_view class_name) -> ClassObject*;
     auto SetCompilerContext(Compiler* current_compiler) -> void;
 
 protected:

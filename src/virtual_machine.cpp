@@ -288,7 +288,10 @@ auto VirtualMachine::run() -> RuntimeErrorOr<VoidType>
             break;
         }
         case OP_CLASS: {
-            LOX_ASSERT(false, "TODO");
+            auto value = readConstant();
+            LOX_ASSERT(value.IsObject());
+            auto string_object_ptr = static_cast<StringObject*>(value.AsObjectPtr());
+            m_value_stack.push_back(m_heap->AllocateClassObject(string_object_ptr->data));
             break;
         }
         }
