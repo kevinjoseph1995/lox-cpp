@@ -6,6 +6,7 @@
 #define LOX_CPP_PARSER_STATE_H
 
 #include "scanner.h"
+
 #include <optional>
 
 class ParserState {

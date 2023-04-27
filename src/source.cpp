@@ -3,7 +3,8 @@
 //
 
 #include "source.h"
-#include "fmt/core.h"
+
+#include <fmt/core.h>
 #include <fstream>
 auto Source::ReadFromFile(std::string_view filename) -> bool
 {

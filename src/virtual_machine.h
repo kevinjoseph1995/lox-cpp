@@ -4,6 +4,7 @@
 
 #ifndef LOX_CPP_VIRTUAL_MACHINE_H
 #define LOX_CPP_VIRTUAL_MACHINE_H
+
 #include <cstdint>
 #include <list>
 #include <memory>

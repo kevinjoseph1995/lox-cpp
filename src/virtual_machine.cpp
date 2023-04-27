@@ -14,8 +14,6 @@
 #include "value_formatter.h"
 #include "virtual_machine.h"
 
-// #define DEBUG_TRACE_EXECUTION
-
 static auto IsFalsy(Value const& value) -> bool
 {
     return value.IsNil() || (value.IsBool() && !value.AsBool());

@@ -2,6 +2,7 @@
 // Created by kevin on 11/6/22.
 //
 #include "parser_state.h"
+
 #include <cstdint>
 
 auto ParserState::Initialize(Source const& source) -> void

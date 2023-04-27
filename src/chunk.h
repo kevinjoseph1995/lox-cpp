@@ -5,13 +5,13 @@
 #ifndef LOX_CPP_CHUNK_H
 #define LOX_CPP_CHUNK_H
 
+#include "error.h"
+#include "value.h"
+
 #include <cstdint>
 #include <limits>
 #include <variant>
 #include <vector>
-
-#include "error.h"
-#include "value.h"
 
 enum OpCode : uint8_t {
     OP_RETURN,

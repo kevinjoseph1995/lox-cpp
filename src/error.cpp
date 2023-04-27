@@ -3,6 +3,7 @@
 //
 
 #include "error.h"
+
 #include <exception>
 
 void PrintAssertionMessage(char const* file, int line, char const* function_name, char const* message)

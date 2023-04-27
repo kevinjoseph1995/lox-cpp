@@ -4,9 +4,6 @@
 
 #ifndef LOX_CPP_COMPILER_H
 #define LOX_CPP_COMPILER_H
-#include <array>
-#include <cstdint>
-#include <optional>
 
 #include "chunk.h"
 #include "error.h"
@@ -14,6 +11,10 @@
 #include "parser_state.h"
 #include "scanner.h"
 #include "source.h"
+
+#include <array>
+#include <cstdint>
+#include <optional>
 
 // clang-format off
 enum  Precedence {

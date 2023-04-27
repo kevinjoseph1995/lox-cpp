@@ -2,6 +2,8 @@
 // Created by kevin on 8/12/22.
 //
 
+#include "compiler.h"
+
 #include <cstddef>
 #include <cstdint>
 #include <functional>
@@ -10,7 +12,6 @@
 #include <ranges>
 
 #include "chunk.h"
-#include "compiler.h"
 #include "error.h"
 #include "fmt/core.h"
 #include "heap.h"
