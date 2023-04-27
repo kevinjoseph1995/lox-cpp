@@ -45,7 +45,8 @@ enum OpCode : uint8_t {
     OP_LOOP,
     OP_CALL,
     OP_CLOSURE,
-    OP_CLOSE_UPVALUE
+    OP_CLOSE_UPVALUE,
+    OP_CLASS
 };
 
 static constexpr auto MAX_INDEX_SIZE = std::numeric_limits<uint16_t>::max();

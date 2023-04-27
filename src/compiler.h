@@ -115,6 +115,7 @@ private:
     auto printStatement() -> void;
     auto functionDeclaration() -> void;
     auto returnStatement() -> void;
+    auto classDeclaration() -> void;
     auto function() -> void;
     auto setFunctionName() -> void;
     auto ifStatement() -> void;

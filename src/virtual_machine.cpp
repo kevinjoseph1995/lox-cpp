@@ -287,6 +287,10 @@ auto VirtualMachine::run() -> RuntimeErrorOr<VoidType>
             static_cast<void>(_);
             break;
         }
+        case OP_CLASS: {
+            LOX_ASSERT(false, "TODO");
+            break;
+        }
         }
     }
 }

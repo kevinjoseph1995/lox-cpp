@@ -18,6 +18,8 @@
 #include "scanner.h"
 #include "value.h"
 
+using namespace std::string_literals;
+
 consteval auto GenerateParseTable() -> ParseTable
 {
     ParseTable table;
@@ -288,6 +290,24 @@ auto Compiler::string(bool) -> void
     this->addConstant(string_object);
 }
 
+auto Compiler::classDeclaration() -> void
+{
+    LOX_ASSERT(m_parser_state.Match(TokenType::CLASS));
+    m_parser_state.Consume(TokenType::CLASS);
+
+    if (!m_parser_state.Consume(TokenType::IDENTIFIER)) {
+        m_parser_state.ReportError(m_parser_state.PreviousToken()->line_number, GetTokenSpan(m_parser_state.PreviousToken().value()), "Expected class name after the class keyword");
+        return;
+    }
+    auto constant_index_result = identifierConstant(m_parser_state.PreviousToken().value());
+    declareVariable();
+    emitByte(OP_CLASS);
+    emitIndex(constant_index_result);
+    defineVariable(constant_index_result);
+    m_parser_state.Consume(TokenType::LEFT_BRACE);
+    m_parser_state.Consume(TokenType::RIGHT_BRACE);
+}
+
 auto Compiler::declaration() -> void
 {
     if (m_parser_state.Match(TokenType::VAR)) {
@@ -296,6 +316,8 @@ auto Compiler::declaration() -> void
         functionDeclaration();
     } else if (m_parser_state.Match(TokenType::RETURN)) {
         returnStatement();
+    } else if (m_parser_state.Match(TokenType::CLASS)) {
+        classDeclaration();
     } else {
         statement();
     }

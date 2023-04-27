@@ -114,6 +114,9 @@ auto Heap::allocateObject(ObjectType type) -> Object*
         case ObjectType::UPVALUE:
             GCDebugLog("Heap::allocateObject ObjectType::UPVALUE");
             return new UpvalueObject;
+        case ObjectType::CLASS:
+            GCDebugLog("Heap::allocateObject ObjectType::CLASS");
+            return new UpvalueObject;
         }
     }());
 }
@@ -202,6 +205,12 @@ auto Heap::freeObject(Object* object) -> void
         delete static_cast<UpvalueObject*>(object);
         m_bytes_allocated -= sizeof(UpvalueObject);
         break;
+    case ObjectType::CLASS: {
+        GCDebugLog("Freeing object of type CLASS");
+        delete static_cast<ClosureObject*>(object);
+        m_bytes_allocated -= sizeof(ClosureObject);
+        break;
+    }
     }
 }
 
@@ -290,6 +299,10 @@ auto Heap::blackenObject(Object* object) -> void
         for (auto* upvalue : closure->upvalues) {
             markRoot(upvalue);
         }
+        break;
+    }
+    case ObjectType::CLASS: {
+        // TODO
         break;
     }
     }

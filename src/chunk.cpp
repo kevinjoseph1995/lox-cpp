@@ -175,6 +175,9 @@ auto Disassemble_instruction(Chunk const& chunk, uint64_t offset) -> uint64_t
         fmt::print("{:#08x} OP_CLOSE_UPVALUE\n", offset);
         return ++offset;
     }
+    case OP_CLASS:
+        fmt::print("{:#08x} OP_CLASS\n", offset);
+        return ++offset;
     }
     LOX_ASSERT(false);
 }

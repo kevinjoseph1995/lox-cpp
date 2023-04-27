@@ -55,6 +55,11 @@ struct fmt::formatter<Value> {
                 return fmt::format_to(ctx.out(), "upvalue_object");
                 break;
             }
+            case ObjectType::CLASS: {
+                auto class_object = *static_cast<ClassObject const*>(object_ptr);
+                return fmt::format_to(ctx.out(), "class_object[{}]", class_object.class_name);
+                break;
+            }
             }
             [[fallthrough]];
         }

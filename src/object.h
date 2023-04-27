@@ -18,7 +18,8 @@ enum class ObjectType {
     FUNCTION,
     CLOSURE,
     NATIVE_FUNCTION,
-    UPVALUE
+    UPVALUE,
+    CLASS
 };
 
 template<>
@@ -42,6 +43,9 @@ struct fmt::formatter<ObjectType> {
             return fmt::format_to(ctx.out(), "ObjectType::NATIVE_FUNCTION");
         case ObjectType::UPVALUE:
             return fmt::format_to(ctx.out(), "ObjectType::UPVALUE");
+        case ObjectType::CLASS:
+            return fmt::format_to(ctx.out(), "ObjectType::CLASS");
+            break;
         }
     }
 };
@@ -155,5 +159,14 @@ struct ClosureObject : public Object {
     }
     std::vector<UpvalueObject*> upvalues {};
     FunctionObject* function = nullptr;
+};
+
+struct ClassObject : public Object {
+    ClassObject(std::string_view cls_name)
+        : Object(ObjectType::CLASS)
+        , class_name(cls_name)
+    {
+    }
+    std::string class_name;
 };
 #endif // LOX_CPP_OBJECT_H
