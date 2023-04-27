@@ -16,10 +16,9 @@ add_library(lox_compiler STATIC
         error.cpp
         parser_state.cpp
         native_function.cpp)
+
 target_include_directories(lox_compiler PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
-
-target_link_libraries(lox_compiler fmt)
-
+target_link_libraries(lox_compiler fmt Backward::Backward)
 target_compile_definitions(lox_compiler PRIVATE
         $<$<STREQUAL:${DEBUG_GC_LOGGING},ON>:DEBUG_GC_LOGGING=1>
         $<$<STREQUAL:${STRESS_TEST_GC},ON>:STRESS_TEST_GC=1>

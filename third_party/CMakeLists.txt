@@ -8,5 +8,5 @@ if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-restrict")
 endif ()
 
-
+add_subdirectory(backward-cpp)
 add_subdirectory(googletest)

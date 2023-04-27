@@ -5,7 +5,8 @@
 #ifndef LOX_CPP_ERROR_H
 #define LOX_CPP_ERROR_H
 
-#include "fmt/core.h"
+#include <backward.hpp>
+#include <fmt/core.h>
 
 #include <expected>
 #include <stdio.h>
@@ -14,13 +15,15 @@
 
 auto PrintAssertionMessage(char const* file, int line, char const* function_name, char const* message = nullptr) -> void;
 
-// TODO: Print stack-trace here, research available solutions
-// Look into: https://github.com/bombela/backward-cpp/blob/master/backward.hpp
-#define unlikely(x) __builtin_expect(!!(x), 0)
 #define LOX_ASSERT(expr, ...)                                                               \
     do {                                                                                    \
         if ((!(expr))) [[unlikely]] {                                                       \
             PrintAssertionMessage(__FILE__, __LINE__, __func__ __VA_OPT__(, ) __VA_ARGS__); \
+            using namespace backward;                                                       \
+            StackTrace st;                                                                  \
+            st.load_here(32);                                                               \
+            Printer p;                                                                      \
+            p.print(st);                                                                    \
             __builtin_trap();                                                               \
         }                                                                                   \
     } while (0)

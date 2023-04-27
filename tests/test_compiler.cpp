@@ -2,6 +2,7 @@
 // Created by kevin on 8/11/22.
 //
 
+#include "error.h"
 #include "fmt/core.h"
 #include "gtest/gtest.h"
 #include <memory>
