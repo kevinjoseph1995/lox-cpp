@@ -4,6 +4,7 @@ set(CMAKE_CXX_STANDARD 23)
 option(DEBUG_GC_LOGGING "Enable Garbage collection logging" ON)
 option(STRESS_TEST_GC "Stress test garbage collector" ON)
 option(DEBUG_TRACE_EXECUTION "Log op's being executed in the VM" OFF)
+option(ENABLE_BACKTRACE "Enable backtrace" OFF)
 
 add_library(lox_compiler STATIC
         chunk.cpp
@@ -18,11 +19,12 @@ add_library(lox_compiler STATIC
         native_function.cpp)
 
 target_include_directories(lox_compiler PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
-target_link_libraries(lox_compiler fmt Backward::Backward)
+target_link_libraries(lox_compiler PUBLIC fmt $<$<STREQUAL:${ENABLE_BACKTRACE},ON>:Backward::Backward>)
 target_compile_definitions(lox_compiler PRIVATE
         $<$<STREQUAL:${DEBUG_GC_LOGGING},ON>:DEBUG_GC_LOGGING=1>
         $<$<STREQUAL:${STRESS_TEST_GC},ON>:STRESS_TEST_GC=1>
         $<$<STREQUAL:${DEBUG_TRACE_EXECUTION},ON>:DEBUG_TRACE_EXECUTION=1>
+        $<$<STREQUAL:${ENABLE_BACKTRACE},ON>:ENABLE_BACKTRACE=1>
 )
 target_compile_options(lox_compiler PUBLIC
         -Wall -Wextra -Werror -fno-exceptions -Wconversion -march=native
