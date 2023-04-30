@@ -64,7 +64,6 @@ struct fmt::formatter<ObjectType> {
             return fmt::format_to(ctx.out(), "ObjectType::UPVALUE");
         case ObjectType::CLASS:
             return fmt::format_to(ctx.out(), "ObjectType::CLASS");
-            break;
         }
     }
 };

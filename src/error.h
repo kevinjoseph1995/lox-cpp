@@ -24,15 +24,16 @@
 #ifndef LOX_CPP_ERROR_H
 #define LOX_CPP_ERROR_H
 
-#include <fmt/core.h>
-
+#include <cstdint>
 #include <expected>
 #include <stdio.h>
 #include <string>
 #include <variant>
 
+#include <fmt/core.h>
+
 auto PrintAssertionMessage(char const* file, int line, char const* function_name, char const* message = nullptr) -> void;
-__attribute__((always_inline)) auto PrintBackTrace() -> void;
+auto PrintBackTrace() -> void;
 
 #define LOX_ASSERT(expr, ...)                                                               \
     do {                                                                                    \

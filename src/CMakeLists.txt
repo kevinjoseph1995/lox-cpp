@@ -27,7 +27,7 @@ target_compile_definitions(lox_compiler PRIVATE
         $<$<STREQUAL:${ENABLE_BACKTRACE},ON>:ENABLE_BACKTRACE=1>
 )
 target_compile_options(lox_compiler PUBLIC
-        -Wall -Wextra -Werror -fno-exceptions -Wconversion -march=native
+        -Wall -Wextra -Werror -fno-exceptions -Wconversion -march=native  $<$<STREQUAL:${CMAKE_CXX_COMPILER_ID},GNU>:-Wno-dangling-reference>
         $<$<CONFIG:Debug>:-fsanitize=address;-fsanitize=undefined;-fsanitize=signed-integer-overflow;-fsanitize=null;-fsanitize=float-cast-overflow;-fsanitize=alignment>)
 target_link_options(lox_compiler PUBLIC
         $<$<CONFIG:Debug>:-fsanitize=address;-fsanitize=undefined>)
@@ -37,7 +37,7 @@ add_executable(lox_cpp main.cpp)
 target_link_libraries(lox_cpp lox_compiler)
 
 target_compile_options(lox_cpp PUBLIC
-        -Wall -Wextra -Werror -fno-exceptions -Wconversion -march=native
+        -Wall -Wextra -Werror -fno-exceptions -Wconversion -march=native $<$<STREQUAL:${CMAKE_CXX_COMPILER_ID},GNU>:-Wno-dangling-reference>
         $<$<CONFIG:Debug>:-fsanitize=address;-fsanitize=undefined;-fsanitize=signed-integer-overflow;-fsanitize=null;-fsanitize=float-cast-overflow;-fsanitize=alignment>)
 target_link_options(lox_cpp PUBLIC
         $<$<CONFIG:Debug>:-fsanitize=address;-fsanitize=undefined>)

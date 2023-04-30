@@ -146,6 +146,8 @@ auto Heap::allocateObject(ObjectType type) -> Object*
         case ObjectType::CLASS:
             GCDebugLog("Heap::allocateObject ObjectType::CLASS");
             return new ClassObject;
+        default:
+            return nullptr;
         }
     }());
 }
