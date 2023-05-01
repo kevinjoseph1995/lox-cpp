@@ -27,10 +27,14 @@
 #include "chunk.h"
 #include "error.h"
 #include "value.h"
+
 #include <cstdint>
 #include <string>
 #include <string_view>
+#include <unordered_map>
 #include <variant>
+
+using Table = std::unordered_map<std::string, Value>;
 
 enum class ObjectType {
     STRING,
@@ -38,7 +42,8 @@ enum class ObjectType {
     CLOSURE,
     NATIVE_FUNCTION,
     UPVALUE,
-    CLASS
+    CLASS,
+    INSTANCE
 };
 
 template<>
@@ -64,6 +69,8 @@ struct fmt::formatter<ObjectType> {
             return fmt::format_to(ctx.out(), "ObjectType::UPVALUE");
         case ObjectType::CLASS:
             return fmt::format_to(ctx.out(), "ObjectType::CLASS");
+        case ObjectType::INSTANCE:
+            return fmt::format_to(ctx.out(), "ObjectType::INSTANCE");
         }
     }
 };
@@ -191,5 +198,19 @@ struct ClassObject : public Object {
     {
     }
     std::string class_name;
+};
+
+struct InstanceObject : public Object {
+    InstanceObject()
+        : Object(ObjectType::INSTANCE)
+    {
+    }
+    InstanceObject(ClassObject* cls)
+        : Object(ObjectType::INSTANCE)
+        , class_(cls)
+    {
+    }
+    ClassObject* class_ = nullptr;
+    Table fields {};
 };
 #endif // LOX_CPP_OBJECT_H

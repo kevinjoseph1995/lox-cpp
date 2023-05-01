@@ -116,6 +116,16 @@ auto Heap::AllocateClassObject(std::string_view class_name) -> ClassObject*
     return class_object_ptr;
 }
 
+auto Heap::AllocateInstanceObject(ClassObject* class_) -> InstanceObject*
+{
+    auto* object_ptr = allocateObject(ObjectType::INSTANCE);
+    LOX_ASSERT(object_ptr->type == ObjectType::INSTANCE);
+    auto instance_object_ptr = static_cast<InstanceObject*>(object_ptr);
+    instance_object_ptr->class_ = class_;
+    m_bytes_allocated += sizeof(InstanceObject);
+    return instance_object_ptr;
+}
+
 auto Heap::allocateObject(ObjectType type) -> Object*
 {
 #ifdef STRESS_TEST_GC
@@ -146,8 +156,9 @@ auto Heap::allocateObject(ObjectType type) -> Object*
         case ObjectType::CLASS:
             GCDebugLog("Heap::allocateObject ObjectType::CLASS");
             return new ClassObject;
-        default:
-            return nullptr;
+        case ObjectType::INSTANCE:
+            GCDebugLog("Heap::allocateObject ObjectType::INSTANCE");
+            return new InstanceObject;
         }
     }());
 }
@@ -242,6 +253,12 @@ auto Heap::freeObject(Object* object) -> void
         m_bytes_allocated -= sizeof(ClassObject);
         break;
     }
+    case ObjectType::INSTANCE: {
+        GCDebugLog("Freeing object of type Instance");
+        delete static_cast<InstanceObject*>(object);
+        m_bytes_allocated -= sizeof(InstanceObject);
+        break;
+    }
     }
 }
 
@@ -309,6 +326,7 @@ auto Heap::blackenObject(Object* object) -> void
     switch (object->type) {
     case ObjectType::STRING:
     case ObjectType::NATIVE_FUNCTION:
+    case ObjectType::CLASS:
         break; // No outgoing references nothing to do
     case ObjectType::UPVALUE: {
         auto upvalue = static_cast<UpvalueObject*>(object);
@@ -332,8 +350,11 @@ auto Heap::blackenObject(Object* object) -> void
         }
         break;
     }
-    case ObjectType::CLASS: {
-        // TODO
+    case ObjectType::INSTANCE: {
+        auto instance = static_cast<InstanceObject*>(object);
+        for (auto const& [_, value] : instance->fields) {
+            markRoot(value);
+        }
         break;
     }
     }

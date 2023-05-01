@@ -794,3 +794,16 @@ print MyClass;
     static constexpr auto EXPECTED_OUTPUT = "class_object[MyClass]\n";
     ASSERT_EQ(m_vm_output_stream, EXPECTED_OUTPUT);
 }
+
+TEST_F(VMTest, InstanceTest1)
+{
+    m_source.Append(R"(
+class MyClass {}
+
+print MyClass();
+)");
+    auto result = m_vm->Interpret(m_source);
+    ASSERT_TRUE(result.has_value());
+    static constexpr auto EXPECTED_OUTPUT = "instance[class[MyClass]]\n";
+    ASSERT_EQ(m_vm_output_stream, EXPECTED_OUTPUT);
+}

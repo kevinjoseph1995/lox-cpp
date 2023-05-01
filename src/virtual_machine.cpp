@@ -30,6 +30,7 @@
 #include "heap.h"
 #include "native_function.h"
 #include "object.h"
+#include "value.h"
 #include "value_formatter.h"
 #include "virtual_machine.h"
 
@@ -500,6 +501,11 @@ auto VirtualMachine::call(Value& callable, uint16_t num_arguments) -> RuntimeErr
                }()
                : /* Error branch*/
                std::unexpected(return_value.error()) /*Error*/;
+    }
+    case ObjectType::CLASS: {
+        auto class_ptr = static_cast<ClassObject*>(object_ptr);
+        m_value_stack.push_back(m_heap->AllocateInstanceObject(class_ptr));
+        return VoidType {};
     }
     default:
         return std::unexpected(RuntimeError { .error_message = "Not a callable_object" });

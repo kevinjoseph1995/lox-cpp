@@ -43,6 +43,7 @@ public:
     [[nodiscard]] auto AllocateNativeFunctionObject(NativeFunction) -> NativeFunctionObject*;
     [[nodiscard]] auto AllocateNativeUpvalueObject() -> UpvalueObject*;
     [[nodiscard]] auto AllocateClassObject(std::string_view class_name) -> ClassObject*;
+    [[nodiscard]] auto AllocateInstanceObject(ClassObject* class_) -> InstanceObject*;
     auto SetCompilerContext(Compiler* current_compiler) -> void;
 
 protected:

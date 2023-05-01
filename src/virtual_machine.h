@@ -37,8 +37,6 @@
 #include "object.h"
 #include "source.h"
 
-using GlobalTable = std::unordered_map<std::string, Value>;
-
 class VirtualMachine {
 public:
     VirtualMachine(std::string* external_stream = nullptr);
@@ -81,7 +79,7 @@ private:
     std::string* const m_external_stream = nullptr;
 
     std::vector<Value> m_value_stack;
-    GlobalTable m_globals;
+    Table m_globals;
     std::list<UpvalueObject*> m_open_upvalues;
     // Make sure the heap is the last object that's destroyed as it's the owner of all lox Objects
     std::unique_ptr<Heap> m_heap { nullptr };

@@ -70,16 +70,18 @@ struct fmt::formatter<Value> {
             }
             case ObjectType::NATIVE_FUNCTION: {
                 return fmt::format_to(ctx.out(), "native_function");
-                break;
             }
             case ObjectType::UPVALUE: {
                 return fmt::format_to(ctx.out(), "upvalue_object");
-                break;
             }
             case ObjectType::CLASS: {
                 auto class_object = *static_cast<ClassObject const*>(object_ptr);
                 return fmt::format_to(ctx.out(), "class_object[{}]", class_object.class_name);
-                break;
+            }
+            case ObjectType::INSTANCE: {
+                // TODO: Figure out how to print the fields as well
+                auto const instance = *static_cast<InstanceObject const*>(object_ptr);
+                return fmt::format_to(ctx.out(), "instance[class[{}]]", instance.class_->class_name);
             }
             }
             [[fallthrough]];
