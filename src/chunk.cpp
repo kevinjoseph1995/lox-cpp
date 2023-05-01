@@ -194,9 +194,20 @@ auto Disassemble_instruction(Chunk const& chunk, uint64_t offset) -> uint64_t
         fmt::print("{:#08x} OP_CLOSE_UPVALUE\n", offset);
         return ++offset;
     }
-    case OP_CLASS:
+    case OP_CLASS: {
         fmt::print("{:#08x} OP_CLASS\n", offset);
         return ++offset;
+    }
+    case OP_GET_PROPERTY: {
+        fmt::print("{:#08x} OP_GET_PROPERTY {}\n", offset, getIndex(chunk.byte_code[offset + 1], chunk.byte_code[offset + 2]));
+        offset += 3;
+        return offset;
+    }
+    case OP_SET_PROPERTY: {
+        fmt::print("{:#08x} OP_SET_PROPERTY {}\n", offset, getIndex(chunk.byte_code[offset + 1], chunk.byte_code[offset + 2]));
+        offset += 3;
+        return offset;
+    }
     }
     LOX_ASSERT(false);
 }

@@ -314,6 +314,14 @@ auto VirtualMachine::run() -> RuntimeErrorOr<VoidType>
             m_value_stack.push_back(m_heap->AllocateClassObject(string_object_ptr->data));
             break;
         }
+        case OP_GET_PROPERTY: {
+            LOX_ASSERT(false, "TODO");
+            break;
+        }
+        case OP_SET_PROPERTY: {
+            LOX_ASSERT(false, "TODO");
+            break;
+        }
         }
     }
 }

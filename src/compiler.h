@@ -159,6 +159,7 @@ private:
     // Non-terminals
     auto expression() -> void;
     auto call(bool can_assign) -> void;
+    auto dot(bool can_assign) -> void;
     auto binary(bool can_assign) -> void;
     auto grouping(bool can_assign) -> void;
     auto unary(bool can_assign) -> void;
