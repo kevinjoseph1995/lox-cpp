@@ -159,6 +159,7 @@ auto Heap::allocateObject(ObjectType type) -> Object*
             GCDebugLog("Heap::allocateObject ObjectType::INSTANCE");
             return new InstanceObject;
         }
+        __builtin_unreachable();
     }());
 }
 

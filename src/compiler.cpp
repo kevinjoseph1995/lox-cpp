@@ -47,7 +47,7 @@ consteval auto GenerateParseTable() -> ParseTable
     table[LEFT_BRACE]    = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
     table[RIGHT_BRACE]   = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
     table[COMMA]         = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
-    table[DOT]           = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_CALL };
+    table[DOT]           = { .prefix = nullptr,             .infix = &Compiler::dot,    .precedence = PREC_CALL };
     table[MINUS]         = { .prefix = &Compiler::unary,    .infix = &Compiler::binary, .precedence = PREC_TERM };
     table[PLUS]          = { .prefix = nullptr,             .infix = &Compiler::binary, .precedence = PREC_TERM };
     table[SEMICOLON]     = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
@@ -893,8 +893,9 @@ auto Compiler::call(bool) -> void
 
 auto Compiler::dot(bool can_assign) -> void
 {
-    LOX_ASSERT(false, "TODO");
     if (!m_parser_state.Consume(TokenType::IDENTIFIER)) {
+        m_parser_state.ReportError(m_parser_state.PreviousToken()->line_number, GetTokenSpan(m_parser_state.PreviousToken().value()), "Expected identifier after the dot operator");
+        return;
     }
     auto constant_index = identifierConstant(m_parser_state.PreviousToken().value());
     if (can_assign && m_parser_state.Match(TokenType::EQUAL)) {

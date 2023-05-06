@@ -807,3 +807,30 @@ print MyClass();
     static constexpr auto EXPECTED_OUTPUT = "instance[class[MyClass]]\n";
     ASSERT_EQ(m_vm_output_stream, EXPECTED_OUTPUT);
 }
+
+TEST_F(VMTest, InstanceTest2)
+{
+    m_source.Append(R"(
+class MyClass {}
+var my_instance = MyClass();
+my_instance.field1 = 10;
+print my_instance.field1;
+)");
+    auto result = m_vm->Interpret(m_source);
+    ASSERT_TRUE(result.has_value());
+    static constexpr auto EXPECTED_OUTPUT = "10\n";
+    ASSERT_EQ(m_vm_output_stream, EXPECTED_OUTPUT);
+}
+
+TEST_F(VMTest, InstanceTest3)
+{
+    m_source.Append(R"(
+class Toast {}
+var toast = Toast();
+print toast.jam = "grape"; // Prints "grape".
+)");
+    auto result = m_vm->Interpret(m_source);
+    ASSERT_TRUE(result.has_value());
+    static constexpr auto EXPECTED_OUTPUT = "grape\n";
+    ASSERT_EQ(m_vm_output_stream, EXPECTED_OUTPUT);
+}

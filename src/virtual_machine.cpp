@@ -315,11 +315,31 @@ auto VirtualMachine::run() -> RuntimeErrorOr<VoidType>
             break;
         }
         case OP_GET_PROPERTY: {
-            LOX_ASSERT(false, "TODO");
+            auto instance = popStack();
+            if (not(instance.IsObject() && instance.AsObject().GetType() == ObjectType::INSTANCE)) {
+                return std::unexpected(RuntimeError { .error_message = "Can only get property for instance types" });
+            }
+            auto instance_object_ptr = static_cast<InstanceObject const*>(instance.AsObjectPtr());
+            auto property = readConstant();
+            LOX_ASSERT(property.IsObject() && property.AsObject().GetType() == ObjectType::STRING);
+            auto const& property_name = static_cast<StringObject&>(property.AsObject()).data;
+            if (!instance_object_ptr->fields.contains(property_name)) {
+                return std::unexpected(RuntimeError { .error_message = fmt::format("\"{}\" property does not exist", property_name) });
+            }
+            m_value_stack.push_back(instance_object_ptr->fields.at(property_name));
             break;
         }
         case OP_SET_PROPERTY: {
-            LOX_ASSERT(false, "TODO");
+            auto const rhs = popStack();
+            auto instance = popStack();
+            if (not(instance.IsObject() && instance.AsObject().GetType() == ObjectType::INSTANCE)) {
+                return std::unexpected(RuntimeError { .error_message = "Can only set property for instance types" });
+            }
+            auto instance_object_ptr = static_cast<InstanceObject*>(instance.AsObjectPtr());
+            auto property = readConstant();
+            LOX_ASSERT(property.IsObject() && property.AsObject().GetType() == ObjectType::STRING);
+            instance_object_ptr->fields[static_cast<StringObject&>(property.AsObject()).data] = rhs; // Will either add/update the propery to the instance
+            m_value_stack.push_back(rhs);
             break;
         }
         }
