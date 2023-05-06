@@ -28,11 +28,13 @@
 #include <limits>
 #include <optional>
 #include <ranges>
+#include <string_view>
 
 #include "chunk.h"
 #include "error.h"
 #include "fmt/core.h"
 #include "heap.h"
+#include "object.h"
 #include "scanner.h"
 #include "value.h"
 
@@ -317,13 +319,41 @@ auto Compiler::classDeclaration() -> void
         m_parser_state.ReportError(m_parser_state.PreviousToken()->line_number, GetTokenSpan(m_parser_state.PreviousToken().value()), "Expected class name after the class keyword");
         return;
     }
-    auto constant_index_result = identifierConstant(m_parser_state.PreviousToken().value());
+    auto class_identifier_token = m_parser_state.PreviousToken().value();
+    auto constant_index_result = identifierConstant(class_identifier_token);
     declareVariable();
     emitByte(OP_CLASS);
     emitIndex(constant_index_result);
     defineVariable(constant_index_result);
-    m_parser_state.Consume(TokenType::LEFT_BRACE);
-    m_parser_state.Consume(TokenType::RIGHT_BRACE);
+
+    // Emit instructions to leave the class on top of the stack
+    std::string_view class_name { m_source->GetSource().data() + class_identifier_token.start, class_identifier_token.length };
+    this->namedVariable(class_name, false);
+
+    if (not m_parser_state.Consume(TokenType::LEFT_BRACE)) {
+        m_parser_state.ReportError(m_parser_state.PreviousToken()->line_number,
+            GetTokenSpan(*m_parser_state.PreviousToken()), "Expected \"{\" after the class identifier");
+    }
+    while (m_parser_state.CurrentToken()->type != TokenType::RIGHT_BRACE && m_parser_state.CurrentToken()->type != TokenType::TOKEN_EOF) {
+        method();
+    }
+    if (not m_parser_state.Consume(TokenType::RIGHT_BRACE)) {
+        m_parser_state.ReportError(m_parser_state.PreviousToken()->line_number,
+            GetTokenSpan(*m_parser_state.PreviousToken()), "Expected \"}\" to end the class declaration");
+    }
+    emitByte(OP_POP); // Pop the class of the stack
+}
+
+auto Compiler::method() -> void
+{
+    if (!m_parser_state.Consume(TokenType::IDENTIFIER)) {
+        m_parser_state.ReportError(m_parser_state.PreviousToken()->line_number, GetTokenSpan(m_parser_state.PreviousToken().value()), "Expected method identifier");
+        return;
+    }
+    auto constant_index_result = identifierConstant(m_parser_state.PreviousToken().value());
+    function(); // When executed will leave a closure on top of the stack
+    emitByte(OP_METHOD);
+    emitIndex(constant_index_result);
 }
 
 auto Compiler::declaration() -> void
@@ -520,12 +550,8 @@ auto Compiler::variableDeclaration() -> void
     defineVariable(identifier_index_in_constant_pool.value());
 }
 
-auto Compiler::variable(bool can_assign) -> void
+auto Compiler::namedVariable(std::string_view new_local_identifier_name, bool can_assign) -> void
 {
-    auto start_offset = static_cast<std::string::difference_type>(m_parser_state.PreviousToken().value().start);
-    auto end_offset = start_offset + static_cast<std::string::difference_type>(m_parser_state.PreviousToken()->length);
-    std::string_view new_local_identifier_name { m_source->GetSource().begin() + start_offset, m_source->GetSource().begin() + end_offset };
-
     OpCode set_op;
     OpCode get_op;
     uint16_t index;
@@ -558,6 +584,14 @@ auto Compiler::variable(bool can_assign) -> void
         emitByte(get_op);
         emitIndex(index);
     }
+}
+
+auto Compiler::variable(bool can_assign) -> void
+{
+    auto start_offset = static_cast<std::string::difference_type>(m_parser_state.PreviousToken().value().start);
+    auto end_offset = start_offset + static_cast<std::string::difference_type>(m_parser_state.PreviousToken()->length);
+    std::string_view new_local_identifier_name { m_source->GetSource().begin() + start_offset, m_source->GetSource().begin() + end_offset };
+    namedVariable(new_local_identifier_name, can_assign);
 }
 
 auto Compiler::identifierConstant(Token const& token) -> uint16_t

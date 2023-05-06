@@ -342,6 +342,19 @@ auto VirtualMachine::run() -> RuntimeErrorOr<VoidType>
             m_value_stack.push_back(rhs);
             break;
         }
+        case OP_METHOD: {
+            auto object = peekStack(0);
+            LOX_ASSERT(object.IsObject() && object.AsObject().GetType() == ObjectType::CLOSURE);
+            auto closure_object_ptr = static_cast<ClosureObject*>(object.AsObjectPtr());
+            object = peekStack(1);
+            LOX_ASSERT(object.IsObject() && object.AsObject().GetType() == ObjectType::CLASS);
+            auto class_object_ptr = static_cast<ClassObject*>(object.AsObjectPtr());
+            object = readConstant();
+            LOX_ASSERT(object.IsObject() && object.AsObject().GetType() == ObjectType::STRING);
+            auto method_name = static_cast<StringObject*>(object.AsObjectPtr()); // Will add the  to the instance
+            class_object_ptr->methods[method_name->data] = closure_object_ptr;
+            break;
+        }
         }
     }
 }

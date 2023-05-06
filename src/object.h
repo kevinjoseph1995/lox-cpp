@@ -25,6 +25,7 @@
 
 #include "chunk.h"
 #include "error.h"
+#include "native_function.h"
 #include "value.h"
 
 #include <cstdint>
@@ -196,6 +197,7 @@ struct ClassObject : public Object {
         , class_name(cls_name)
     {
     }
+    std::unordered_map<std::string, ClosureObject*> methods;
     std::string class_name;
 };
 

@@ -23,6 +23,7 @@
 #ifndef LOX_CPP_NATIVE_FUNCTION_H
 #define LOX_CPP_NATIVE_FUNCTION_H
 
+#include "error.h"
 #include "value.h"
 
 [[nodiscard]] auto SystemTimeNow(uint32_t num_arguments, Value* values) -> RuntimeErrorOr<Value>;

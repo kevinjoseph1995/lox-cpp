@@ -208,6 +208,9 @@ auto Disassemble_instruction(Chunk const& chunk, uint64_t offset) -> uint64_t
         offset += 3;
         return offset;
     }
+    case OP_METHOD:
+        fmt::print("{:#08x} OP_METHOD\n", offset);
+        return ++offset;
     }
     LOX_ASSERT(false);
 }

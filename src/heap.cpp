@@ -326,7 +326,6 @@ auto Heap::blackenObject(Object* object) -> void
     switch (object->type) {
     case ObjectType::STRING:
     case ObjectType::NATIVE_FUNCTION:
-    case ObjectType::CLASS:
         break; // No outgoing references nothing to do
     case ObjectType::UPVALUE: {
         auto upvalue = static_cast<UpvalueObject*>(object);
@@ -347,6 +346,13 @@ auto Heap::blackenObject(Object* object) -> void
         markRoot(closure->function);
         for (auto* upvalue : closure->upvalues) {
             markRoot(upvalue);
+        }
+        break;
+    }
+    case ObjectType::CLASS: {
+        auto class_obj_ptr = static_cast<ClassObject*>(object);
+        for (auto& [_, method] : class_obj_ptr->methods) {
+            markRoot(method);
         }
         break;
     }

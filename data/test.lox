@@ -1,4 +1,4 @@
-class MyClass {}
-var my_instance = MyClass();
-my_instance.field1 = 10;
-print my_instance.field1;
+class Toast{
+    function() {
+    }
+}

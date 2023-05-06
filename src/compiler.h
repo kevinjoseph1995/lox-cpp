@@ -33,6 +33,7 @@
 #include <array>
 #include <cstdint>
 #include <optional>
+#include <string_view>
 
 // clang-format off
 enum  Precedence {
@@ -135,6 +136,7 @@ private:
     auto returnStatement() -> void;
     auto classDeclaration() -> void;
     auto function() -> void;
+    auto method() -> void;
     auto setFunctionName() -> void;
     auto ifStatement() -> void;
     auto whileStatement() -> void;
@@ -168,6 +170,7 @@ private:
     auto literal(bool can_assign) -> void;
     auto number(bool can_assign) -> void;
     auto variable(bool can_assign) -> void;
+    auto namedVariable(std::string_view identifier_name, bool can_assign) -> void;
     auto string(bool can_assign) -> void;
 };
 
