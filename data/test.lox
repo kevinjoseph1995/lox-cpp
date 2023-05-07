@@ -1,11 +1,14 @@
-class Nested {
+class Outer {
   method() {
-    fun function() {
-      print "HEHEHE";
+    class Inner {
+      method() {
+        print this;
+      }
     }
-
-    function();
+    return Inner;
   }
 }
 
-Nested().method();
+var class_internal = Outer().method();
+var internal_instance = class_internal();
+internal_instance.method();

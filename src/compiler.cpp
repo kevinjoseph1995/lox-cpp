@@ -465,6 +465,7 @@ auto Compiler::setFunctionName() -> void
 auto Compiler::function(FunctionType function_type) -> void
 {
     Compiler function_compiler(m_heap, m_parser_state, function_type, this);
+    function_compiler.m_within_class = this->m_within_class;
     ///////////////////////////////////////////////// Compile the function body ////////////////////////////////////////////////////////////////////////////////////////////
     function_compiler.m_source = this->m_source;
     function_compiler.setFunctionName();

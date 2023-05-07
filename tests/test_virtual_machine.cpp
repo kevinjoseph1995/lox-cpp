@@ -834,3 +834,26 @@ print toast.jam = "grape"; // Prints "grape".
     static constexpr auto EXPECTED_OUTPUT = "grape\n";
     ASSERT_EQ(m_vm_output_stream, EXPECTED_OUTPUT);
 }
+
+TEST_F(VMTest, InstanceTest4)
+{
+    m_source.Append(R"(
+class Outer {
+  method() {
+    class Inner {
+      method() {
+        print this;
+      }
+    }
+    return Inner;
+  }
+}
+var class_internal = Outer().method();
+var internal_instance = class_internal();
+internal_instance.method();
+)");
+    auto result = m_vm->Interpret(m_source);
+    ASSERT_TRUE(result.has_value());
+    static constexpr auto EXPECTED_OUTPUT = "instance[class[Inner]]\n";
+    ASSERT_EQ(m_vm_output_stream, EXPECTED_OUTPUT);
+}
