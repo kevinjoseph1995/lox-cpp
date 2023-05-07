@@ -78,7 +78,7 @@ consteval auto GenerateParseTable() -> ParseTable
     table[PRINT]         = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
     table[RETURN]        = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
     table[SUPER]         = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
-    table[THIS]          = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
+    table[THIS]          = { .prefix = &Compiler::this_,    .infix = nullptr,           .precedence = PREC_NONE };
     table[TRUE]          = { .prefix = &Compiler::literal,  .infix = nullptr,           .precedence = PREC_NONE };
     table[VAR]           = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
     table[WHILE]         = { .prefix = nullptr,             .infix = nullptr,           .precedence = PREC_NONE };
@@ -89,6 +89,11 @@ consteval auto GenerateParseTable() -> ParseTable
 
 static constexpr auto PARSE_TABLE = GenerateParseTable();
 
+static constexpr auto GetRule(TokenType type) -> ParseRule const*
+{
+    return &PARSE_TABLE[type];
+}
+
 [[maybe_unused]] static auto PrintTokens(std::vector<Token> const& tokens, std::string const* source) -> void
 {
     for (auto token : tokens) {
@@ -96,24 +101,38 @@ static constexpr auto PARSE_TABLE = GenerateParseTable();
     }
 }
 
-static constexpr auto GetRule(TokenType type) -> ParseRule const*
-{
-    return &PARSE_TABLE[type];
-}
-
 Compiler::Compiler(Heap& heap, ParserState& parser_state, Compiler* parent_compiler)
     : m_parent_compiler(parent_compiler)
     , m_heap(heap)
     , m_parser_state(parser_state)
-
+    , m_function_type(Compiler::FunctionType::TOP_LEVEL_SCRIPT)
 {
-    if (parent_compiler != nullptr) {
+    init();
+}
+
+auto Compiler::init() -> void
+{
+    if (m_parent_compiler != nullptr) {
         // Not top level script an is function compiler
         m_function = m_heap.AllocateFunctionObject("_", 0);
     } else {
         m_function = m_heap.AllocateFunctionObject("TOP_LEVEL_SCRIPT", 0);
     }
-    m_locals_state.locals.emplace_back("", 0);
+    if (m_function_type == FunctionType::METHOD) {
+        m_locals_state.locals.emplace_back("this", 0);
+    } else {
+        m_locals_state.locals.emplace_back("", 0);
+    }
+}
+
+Compiler::Compiler(Heap& heap, ParserState& parser_state, FunctionType type, Compiler* parent_compiler)
+    : m_parent_compiler(parent_compiler)
+    , m_heap(heap)
+    , m_parser_state(parser_state)
+    , m_function_type(type)
+
+{
+    init();
 }
 
 auto Compiler::CompileSource(Source const& source) -> CompilationErrorOr<FunctionObject*>
@@ -351,7 +370,7 @@ auto Compiler::method() -> void
         return;
     }
     auto constant_index_result = identifierConstant(m_parser_state.PreviousToken().value());
-    function(); // When executed will leave a closure on top of the stack
+    function(FunctionType::METHOD); // When executed will leave a closure on top of the stack
     emitByte(OP_METHOD);
     emitIndex(constant_index_result);
 }
@@ -415,7 +434,7 @@ auto Compiler::functionDeclaration() -> void
     m_parser_state.Consume(TokenType::FUN);
     auto constant_index_result = parseVariable("Expected function identifier");
     markInitialized(); // Marking as initialized as functions can refer to them even as we are compiling the body of the function.
-    function();
+    function(FunctionType::FUNCTION);
     defineVariable(constant_index_result.value());
 }
 
@@ -430,9 +449,9 @@ auto Compiler::setFunctionName() -> void
     m_function->function_name = function_name;
 }
 
-auto Compiler::function() -> void
+auto Compiler::function(FunctionType function_type) -> void
 {
-    Compiler function_compiler(m_heap, m_parser_state, this);
+    Compiler function_compiler(m_heap, m_parser_state, function_type, this);
     ///////////////////////////////////////////////// Compile the function body ////////////////////////////////////////////////////////////////////////////////////////////
     function_compiler.m_source = this->m_source;
     function_compiler.setFunctionName();
@@ -594,6 +613,11 @@ auto Compiler::variable(bool can_assign) -> void
     namedVariable(new_local_identifier_name, can_assign);
 }
 
+auto Compiler::this_(bool) -> void
+{
+    variable(false);
+}
+
 auto Compiler::identifierConstant(Token const& token) -> uint16_t
 {
     LOX_ASSERT(token.type == TokenType::IDENTIFIER);
@@ -741,7 +765,7 @@ auto Compiler::resolveVariable(std::string_view identifier_name) -> std::optiona
     if (it->local_scope_depth == -1) {
         m_parser_state.ReportError(m_parser_state.PreviousToken()->line_number, GetTokenSpan(*m_parser_state.PreviousToken()), "Can't read local variable in its own initializer.");
     }
-    auto index = std::distance(it, m_locals_state.locals.rend()) - 2;
+    auto index = std::distance(it, m_locals_state.locals.rend()) - 1;
     LOX_ASSERT(index >= 0);
     LOX_ASSERT(index < std::numeric_limits<uint16_t>::max());
     return static_cast<uint16_t>(index);
@@ -970,7 +994,7 @@ auto Compiler::resolveUpvalue(std::string_view identifier_name) -> std::optional
     // Check the immediately enclosing scope if we can find the identifier
     auto local_resolution_result = m_parent_compiler->resolveVariable(identifier_name);
     if (local_resolution_result.has_value()) {
-        m_parent_compiler->m_locals_state.locals.at(local_resolution_result.value() + 1).is_captured = true;
+        m_parent_compiler->m_locals_state.locals.at(local_resolution_result.value()).is_captured = true;
         return addUpvalue(local_resolution_result.value(), Upvalue::Type::Local);
     }
     // Since we didn't find it as a local variable in the immediately enclosing scope, we recursively search the other enclosing compilers.

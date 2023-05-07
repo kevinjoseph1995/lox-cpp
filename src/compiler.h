@@ -26,6 +26,7 @@
 #include "chunk.h"
 #include "error.h"
 #include "heap.h"
+#include "object.h"
 #include "parser_state.h"
 #include "scanner.h"
 #include "source.h"
@@ -61,9 +62,16 @@ struct ParseRule {
 using ParseTable = std::array<ParseRule, static_cast<int>(TokenType::NUMBER_OF_TOKEN_TYPES)>;
 
 class Compiler {
+    enum class FunctionType {
+        TOP_LEVEL_SCRIPT,
+        FUNCTION,
+        METHOD
+    };
+
 public:
     Compiler() = delete;
     Compiler(Heap& heap, ParserState& parser_state, Compiler* parent_compiler = nullptr);
+    Compiler(Heap& heap, ParserState& parser_state, FunctionType type, Compiler* parent_compiler = nullptr);
     [[nodiscard]] auto CompileSource(Source const& source) -> CompilationErrorOr<FunctionObject*>;
     [[maybe_unused]] auto DumpCompiledChunk() const -> void;
 
@@ -112,7 +120,11 @@ private:
     };
     std::vector<Upvalue> m_upvalues {};
 
+    FunctionType m_function_type = FunctionType::TOP_LEVEL_SCRIPT;
+
 private:
+    auto init() -> void;
+
     friend consteval auto GenerateParseTable() -> ParseTable;
 
     auto synchronizeError() -> void;
@@ -135,7 +147,7 @@ private:
     auto functionDeclaration() -> void;
     auto returnStatement() -> void;
     auto classDeclaration() -> void;
-    auto function() -> void;
+    auto function(FunctionType function_type) -> void;
     auto method() -> void;
     auto setFunctionName() -> void;
     auto ifStatement() -> void;
@@ -170,6 +182,7 @@ private:
     auto literal(bool can_assign) -> void;
     auto number(bool can_assign) -> void;
     auto variable(bool can_assign) -> void;
+    auto this_(bool can_assign) -> void;
     auto namedVariable(std::string_view identifier_name, bool can_assign) -> void;
     auto string(bool can_assign) -> void;
 };

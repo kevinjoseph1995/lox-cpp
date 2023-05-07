@@ -27,6 +27,7 @@
 #include <list>
 #include <memory>
 #include <stack>
+#include <string_view>
 #include <unordered_map>
 
 #include "chunk.h"

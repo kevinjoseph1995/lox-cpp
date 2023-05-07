@@ -1,4 +1,8 @@
-class Toast{
-    function() {
-    }
+class Scone {
+  topping() {
+    print this;
+  }
 }
+
+var scone = Scone();
+scone.topping();

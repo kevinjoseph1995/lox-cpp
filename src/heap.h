@@ -43,6 +43,7 @@ public:
     [[nodiscard]] auto AllocateNativeUpvalueObject() -> UpvalueObject*;
     [[nodiscard]] auto AllocateClassObject(std::string_view class_name) -> ClassObject*;
     [[nodiscard]] auto AllocateInstanceObject(ClassObject* class_) -> InstanceObject*;
+    [[nodiscard]] auto AllocateBoundMethodObject(InstanceObject* instance, ClosureObject* method) -> BoundMethodObject*;
     auto SetCompilerContext(Compiler* current_compiler) -> void;
 
 protected:

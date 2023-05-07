@@ -224,12 +224,12 @@ auto VirtualMachine::run() -> RuntimeErrorOr<VoidType>
             break;
         }
         case OP_GET_LOCAL: {
-            auto const slotIndex = m_frames.rbegin()->slot + readIndex();
+            auto const slotIndex = m_frames.rbegin()->slot + readIndex() - 1;
             m_value_stack.push_back(m_value_stack.at(slotIndex));
             break;
         }
         case OP_SET_LOCAL: {
-            auto const slotIndex = m_frames.rbegin()->slot + readIndex();
+            auto const slotIndex = m_frames.rbegin()->slot + readIndex() - 1;
             m_value_stack.at(slotIndex) = peekStack(0);
             break;
         }
@@ -269,7 +269,7 @@ auto VirtualMachine::run() -> RuntimeErrorOr<VoidType>
                 auto const is_local = static_cast<bool>(readByte());
                 auto const index = readIndex();
                 if (is_local) {
-                    upvalues.push_back(captureUpvalue(static_cast<uint16_t>(m_frames.back().slot) + index));
+                    upvalues.push_back(captureUpvalue(static_cast<uint16_t>(m_frames.back().slot) + index - 1));
                 } else {
                     upvalues.push_back(m_frames.back().closure->upvalues.at(index));
                 }
@@ -319,14 +319,20 @@ auto VirtualMachine::run() -> RuntimeErrorOr<VoidType>
             if (not(instance.IsObject() && instance.AsObject().GetType() == ObjectType::INSTANCE)) {
                 return std::unexpected(RuntimeError { .error_message = "Can only get property for instance types" });
             }
-            auto instance_object_ptr = static_cast<InstanceObject const*>(instance.AsObjectPtr());
+            auto instance_object_ptr = static_cast<InstanceObject*>(instance.AsObjectPtr());
             auto property = readConstant();
             LOX_ASSERT(property.IsObject() && property.AsObject().GetType() == ObjectType::STRING);
             auto const& property_name = static_cast<StringObject&>(property.AsObject()).data;
-            if (!instance_object_ptr->fields.contains(property_name)) {
-                return std::unexpected(RuntimeError { .error_message = fmt::format("\"{}\" property does not exist", property_name) });
+            if (instance_object_ptr->fields.contains(property_name)) {
+                m_value_stack.push_back(instance_object_ptr->fields.at(property_name));
+                break;
             }
-            m_value_stack.push_back(instance_object_ptr->fields.at(property_name));
+            // The field was not found in the instance property table
+            // Check if this is a class method
+            if (not instance_object_ptr->class_->methods.contains(property_name)) {
+                return std::unexpected(RuntimeError { .error_message = fmt::format("{} not found", property_name) });
+            }
+            m_value_stack.push_back(m_heap->AllocateBoundMethodObject(instance_object_ptr, instance_object_ptr->class_->methods.at(property_name)));
             break;
         }
         case OP_SET_PROPERTY: {
@@ -435,15 +441,13 @@ auto VirtualMachine::binaryOperation(OpCode op) -> ErrorOr<VoidType>
         if (!lhs.IsObject()) {
             return std::unexpected(runtimeError(fmt::format("LHS of \"+\" is not a string type.")));
         }
-        auto const& lhs_object = lhs.AsObject();
+        auto& lhs_object = lhs.AsObject();
         if (lhs_object.GetType() != ObjectType::STRING) {
             return std::unexpected(runtimeError(fmt::format("LHS of \"+\" is not a string type.")));
         }
-        auto new_string_object = m_heap->AllocateStringObject("");
-        LOX_ASSERT(new_string_object->GetType() == ObjectType::STRING);
-        new_string_object->data.append(static_cast<StringObject const*>(&lhs_object)->data);
-        new_string_object->data.append(static_cast<StringObject const*>(&rhs_object)->data);
-        m_value_stack.emplace_back(static_cast<Object*>(new_string_object));
+        auto lhs_string_object = static_cast<StringObject*>(&lhs_object);
+        lhs_string_object->data += static_cast<StringObject const*>(&rhs_object)->data;
+        m_value_stack.emplace_back(static_cast<Object*>(lhs_string_object));
         return VoidType {};
     };
 
@@ -546,6 +550,22 @@ auto VirtualMachine::call(Value& callable, uint16_t num_arguments) -> RuntimeErr
     case ObjectType::CLASS: {
         auto class_ptr = static_cast<ClassObject*>(object_ptr);
         m_value_stack.push_back(m_heap->AllocateInstanceObject(class_ptr));
+        return VoidType {};
+    }
+    case ObjectType::BOUND_METHOD: {
+        auto bound_object_ptr = static_cast<BoundMethodObject*>(object_ptr);
+        if (bound_object_ptr->method->function->arity != num_arguments) {
+            return std::unexpected(RuntimeError { .error_message = "Number of arguments provided does not match the number of function parameters" });
+        }
+
+        // At this point the state of the stack is as follows:
+        // | | | | ... | <ClosureObject> | param_1 | param_2 | ... | param_n |
+
+        // Set up the new call frame
+        m_value_stack.at(m_value_stack.size() - num_arguments - 1) = bound_object_ptr->receiver;
+        // At this point the state of the stack is as follows:
+        // | | | | ... | InstanceObject | param_1 | param_2 | ... | param_n |
+        m_frames.emplace_back(bound_object_ptr->method, 0, m_value_stack.size() - num_arguments);
         return VoidType {};
     }
     default:

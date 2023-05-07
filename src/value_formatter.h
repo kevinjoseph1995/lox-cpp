@@ -79,8 +79,13 @@ struct fmt::formatter<Value> {
             }
             case ObjectType::INSTANCE: {
                 // TODO: Figure out how to print the fields as well
-                auto const instance = *static_cast<InstanceObject const*>(object_ptr);
+                auto const& instance = *static_cast<InstanceObject const*>(object_ptr);
                 return fmt::format_to(ctx.out(), "instance[class[{}]]", instance.class_->class_name);
+            }
+            case ObjectType::BOUND_METHOD: {
+                auto const& bound_method = *static_cast<BoundMethodObject const*>(object_ptr);
+                return fmt::format_to(ctx.out(), "instance[class[{}]]", bound_method.receiver->class_->class_name);
+                break;
             }
             }
             [[fallthrough]];

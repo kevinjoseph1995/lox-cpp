@@ -43,7 +43,8 @@ enum class ObjectType {
     NATIVE_FUNCTION,
     UPVALUE,
     CLASS,
-    INSTANCE
+    INSTANCE,
+    BOUND_METHOD
 };
 
 template<>
@@ -71,6 +72,8 @@ struct fmt::formatter<ObjectType> {
             return fmt::format_to(ctx.out(), "ObjectType::CLASS");
         case ObjectType::INSTANCE:
             return fmt::format_to(ctx.out(), "ObjectType::INSTANCE");
+        case ObjectType::BOUND_METHOD:
+            return fmt::format_to(ctx.out(), "ObjectType::BOUND_METHOD");
         }
     }
 };
@@ -213,5 +216,14 @@ struct InstanceObject : public Object {
     }
     ClassObject* class_ = nullptr;
     Table fields {};
+};
+
+struct BoundMethodObject : public Object {
+    BoundMethodObject()
+        : Object(ObjectType::BOUND_METHOD)
+    {
+    }
+    InstanceObject* receiver {};
+    ClosureObject* method {};
 };
 #endif // LOX_CPP_OBJECT_H

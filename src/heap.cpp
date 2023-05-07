@@ -62,7 +62,7 @@ auto Heap::AllocateStringObject(std::string_view string_data) -> StringObject*
     LOX_ASSERT(object_ptr->type == ObjectType::STRING);
     auto string_object_ptr = static_cast<StringObject*>(object_ptr);
     string_object_ptr->data = string_data;
-    m_bytes_allocated += sizeof(StringObject);
+    ;
     return string_object_ptr;
 }
 
@@ -73,7 +73,7 @@ auto Heap::AllocateFunctionObject(std::string_view function_name, uint32_t arity
     auto function_object_ptr = static_cast<FunctionObject*>(object_ptr);
     function_object_ptr->function_name = function_name;
     function_object_ptr->arity = arity;
-    m_bytes_allocated += sizeof(FunctionObject);
+    ;
     return function_object_ptr;
 }
 
@@ -83,7 +83,7 @@ auto Heap::AllocateClosureObject(FunctionObject* function) -> ClosureObject*
     LOX_ASSERT(object_ptr->type == ObjectType::CLOSURE);
     auto closure_object_ptr = static_cast<ClosureObject*>(object_ptr);
     closure_object_ptr->function = function;
-    m_bytes_allocated += sizeof(ClosureObject);
+    ;
     return closure_object_ptr;
 }
 
@@ -93,7 +93,7 @@ auto Heap::AllocateNativeFunctionObject(NativeFunction function) -> NativeFuncti
     LOX_ASSERT(object_ptr->type == ObjectType::NATIVE_FUNCTION);
     auto native_function_object_ptr = static_cast<NativeFunctionObject*>(object_ptr);
     native_function_object_ptr->native_function = function;
-    m_bytes_allocated += sizeof(NativeFunctionObject);
+    ;
     return native_function_object_ptr;
 }
 auto Heap::AllocateNativeUpvalueObject() -> UpvalueObject*
@@ -101,7 +101,7 @@ auto Heap::AllocateNativeUpvalueObject() -> UpvalueObject*
     auto* object_ptr = allocateObject(ObjectType::UPVALUE);
     LOX_ASSERT(object_ptr->type == ObjectType::UPVALUE);
     auto upvalue_obj_ptr = static_cast<UpvalueObject*>(object_ptr);
-    m_bytes_allocated += sizeof(UpvalueObject);
+    ;
     return upvalue_obj_ptr;
 }
 
@@ -111,7 +111,7 @@ auto Heap::AllocateClassObject(std::string_view class_name) -> ClassObject*
     LOX_ASSERT(object_ptr->type == ObjectType::CLASS);
     auto class_object_ptr = static_cast<ClassObject*>(object_ptr);
     class_object_ptr->class_name = class_name;
-    m_bytes_allocated += sizeof(ClassObject);
+    ;
     return class_object_ptr;
 }
 
@@ -121,8 +121,18 @@ auto Heap::AllocateInstanceObject(ClassObject* class_) -> InstanceObject*
     LOX_ASSERT(object_ptr->type == ObjectType::INSTANCE);
     auto instance_object_ptr = static_cast<InstanceObject*>(object_ptr);
     instance_object_ptr->class_ = class_;
-    m_bytes_allocated += sizeof(InstanceObject);
+    ;
     return instance_object_ptr;
+}
+auto Heap::AllocateBoundMethodObject(InstanceObject* instance, ClosureObject* method) -> BoundMethodObject*
+{
+    auto* object_ptr = allocateObject(ObjectType::BOUND_METHOD);
+    LOX_ASSERT(object_ptr->type == ObjectType::BOUND_METHOD);
+    auto bound_method_object_ptr = static_cast<BoundMethodObject*>(object_ptr);
+    bound_method_object_ptr->method = method;
+    bound_method_object_ptr->receiver = instance;
+    ;
+    return bound_method_object_ptr;
 }
 
 auto Heap::allocateObject(ObjectType type) -> Object*
@@ -135,29 +145,56 @@ auto Heap::allocateObject(ObjectType type) -> Object*
     }
 #endif
     ++m_number_of_heap_objects_allocated;
-    return insertAtHead([type]() -> Object* {
+    return insertAtHead([type, this]() -> Object* {
         switch (type) {
-        case ObjectType::STRING:
+        case ObjectType::STRING: {
             GCDebugLog("Heap::allocateObject ObjectType::STRING");
-            return new StringObject;
-        case ObjectType::FUNCTION:
+            auto ptr = new StringObject;
+            m_bytes_allocated += sizeof(*ptr);
+            return ptr;
+        }
+        case ObjectType::FUNCTION: {
             GCDebugLog("Heap::allocateObject ObjectType::FUNCTION");
-            return new FunctionObject;
-        case ObjectType::CLOSURE:
+            auto ptr = new FunctionObject;
+            m_bytes_allocated += sizeof(*ptr);
+            return ptr;
+        }
+        case ObjectType::CLOSURE: {
             GCDebugLog("Heap::allocateObject ObjectType::CLOSURE");
-            return new ClosureObject;
-        case ObjectType::NATIVE_FUNCTION:
+            auto ptr = new ClosureObject;
+            m_bytes_allocated += sizeof(*ptr);
+            return ptr;
+        }
+        case ObjectType::NATIVE_FUNCTION: {
             GCDebugLog("Heap::allocateObject ObjectType::NATIVE_FUNCTION");
-            return new NativeFunctionObject;
-        case ObjectType::UPVALUE:
+            auto ptr = new NativeFunctionObject;
+            m_bytes_allocated += sizeof(*ptr);
+            return ptr;
+        }
+        case ObjectType::UPVALUE: {
             GCDebugLog("Heap::allocateObject ObjectType::UPVALUE");
-            return new UpvalueObject;
-        case ObjectType::CLASS:
+            auto ptr = new UpvalueObject;
+            m_bytes_allocated += sizeof(*ptr);
+            return ptr;
+        }
+        case ObjectType::CLASS: {
             GCDebugLog("Heap::allocateObject ObjectType::CLASS");
-            return new ClassObject;
-        case ObjectType::INSTANCE:
+            auto ptr = new ClassObject;
+            m_bytes_allocated += sizeof(*ptr);
+            return ptr;
+        }
+        case ObjectType::INSTANCE: {
             GCDebugLog("Heap::allocateObject ObjectType::INSTANCE");
-            return new InstanceObject;
+            auto ptr = new InstanceObject;
+            m_bytes_allocated += sizeof(*ptr);
+            return ptr;
+        }
+        case ObjectType::BOUND_METHOD: {
+            GCDebugLog("Heap::allocateObject ObjectType::BOUND_METHOD");
+            auto ptr = new BoundMethodObject;
+            m_bytes_allocated += sizeof(*ptr);
+            return ptr;
+        }
         }
         __builtin_unreachable();
     }());
@@ -257,6 +294,12 @@ auto Heap::freeObject(Object* object) -> void
         GCDebugLog("Freeing object of type Instance");
         delete static_cast<InstanceObject*>(object);
         m_bytes_allocated -= sizeof(InstanceObject);
+        break;
+    }
+    case ObjectType::BOUND_METHOD: {
+        GCDebugLog("Freeing object of type BoundMethod");
+        delete static_cast<BoundMethodObject*>(object);
+        m_bytes_allocated -= sizeof(BoundMethodObject);
         break;
     }
     }
@@ -361,6 +404,12 @@ auto Heap::blackenObject(Object* object) -> void
         for (auto const& [_, value] : instance->fields) {
             markRoot(value);
         }
+        break;
+    }
+    case ObjectType::BOUND_METHOD: {
+        auto const& bound_method = static_cast<BoundMethodObject const*>(object);
+        markRoot(bound_method->receiver);
+        markRoot(bound_method->method);
         break;
     }
     }
