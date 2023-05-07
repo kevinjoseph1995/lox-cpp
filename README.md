@@ -60,3 +60,20 @@ main();
 globalOne();
 globalTwo();
 ```
+
+Classes:
+```
+class Outer {
+  method() {
+    class Inner {
+      method() {
+        print this;
+      }
+    }
+    return Inner;
+  }
+}
+var class_internal = Outer().method();
+var internal_instance = class_internal();
+internal_instance.method();
+```
