@@ -1,3 +1,11 @@
-fun function() {
-    this;
+class Nested {
+  method() {
+    fun function() {
+      print "HEHEHE";
+    }
+
+    function();
+  }
 }
+
+Nested().method();

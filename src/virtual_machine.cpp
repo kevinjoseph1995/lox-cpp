@@ -315,7 +315,7 @@ auto VirtualMachine::run() -> RuntimeErrorOr<VoidType>
             break;
         }
         case OP_GET_PROPERTY: {
-            auto instance = popStack();
+            auto instance = peekStack(0);
             if (not(instance.IsObject() && instance.AsObject().GetType() == ObjectType::INSTANCE)) {
                 return std::unexpected(RuntimeError { .error_message = "Can only get property for instance types" });
             }
@@ -324,6 +324,7 @@ auto VirtualMachine::run() -> RuntimeErrorOr<VoidType>
             LOX_ASSERT(property.IsObject() && property.AsObject().GetType() == ObjectType::STRING);
             auto const& property_name = static_cast<StringObject&>(property.AsObject()).data;
             if (instance_object_ptr->fields.contains(property_name)) {
+                static_cast<void>(popStack());
                 m_value_stack.push_back(instance_object_ptr->fields.at(property_name));
                 break;
             }
@@ -332,7 +333,9 @@ auto VirtualMachine::run() -> RuntimeErrorOr<VoidType>
             if (not instance_object_ptr->class_->methods.contains(property_name)) {
                 return std::unexpected(RuntimeError { .error_message = fmt::format("{} not found", property_name) });
             }
-            m_value_stack.push_back(m_heap->AllocateBoundMethodObject(instance_object_ptr, instance_object_ptr->class_->methods.at(property_name)));
+            auto bound_method = m_heap->AllocateBoundMethodObject(instance_object_ptr, instance_object_ptr->class_->methods.at(property_name));
+            static_cast<void>(popStack());
+            m_value_stack.push_back(bound_method);
             break;
         }
         case OP_SET_PROPERTY: {

@@ -131,7 +131,6 @@ auto Heap::AllocateBoundMethodObject(InstanceObject* instance, ClosureObject* me
     auto bound_method_object_ptr = static_cast<BoundMethodObject*>(object_ptr);
     bound_method_object_ptr->method = method;
     bound_method_object_ptr->receiver = instance;
-    ;
     return bound_method_object_ptr;
 }
 
