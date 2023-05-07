@@ -7,11 +7,11 @@ Work in progress
 - [x] Functions
 - [x] Closures
 - [x] Garbage Collection
-- [ ] Classes and Instances
+- [x] Classes and Instances (Partial WIP)
 - [ ] Methods and Initializers
 - [ ] Superclasses
 
-```
+```lox
 var sum = 0;
 {
      for(var i = 1; i <= 3; i = i + 1){
@@ -24,7 +24,7 @@ sum = 1;
 print sum;
 ```
 
-```
+```lox
 fun Fib(n) {
     if( n<= 1) {
         return n;
@@ -34,7 +34,7 @@ fun Fib(n) {
 print Fib(10);
 ```
 
-```
+```lox
 var globalOne;
 var globalTwo;
 
@@ -61,8 +61,7 @@ globalOne();
 globalTwo();
 ```
 
-Classes:
-```
+```lox
 class Outer {
   method() {
     class Inner {
