@@ -345,6 +345,19 @@ auto Compiler::classDeclaration() -> void
     emitIndex(constant_index_result);
     defineVariable(constant_index_result);
 
+    struct Defer {
+        Defer(Compiler* compiler)
+            : m_compiler(compiler)
+        {
+            m_compiler->m_within_class = true;
+        }
+        ~Defer()
+        {
+            m_compiler->m_within_class = false;
+        }
+        Compiler* m_compiler;
+    } _(this);
+
     // Emit instructions to leave the class on top of the stack
     std::string_view class_name { m_source->GetSource().data() + class_identifier_token.start, class_identifier_token.length };
     this->namedVariable(class_name, false);
@@ -615,6 +628,12 @@ auto Compiler::variable(bool can_assign) -> void
 
 auto Compiler::this_(bool) -> void
 {
+    if (not m_within_class) {
+        m_parser_state.ReportError(m_parser_state.PreviousToken()->line_number,
+            GetTokenSpan(*m_parser_state.PreviousToken()),
+            "Cannot refer to \"this\" outside of class methods");
+        return;
+    }
     variable(false);
 }
 

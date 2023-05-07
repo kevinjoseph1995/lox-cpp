@@ -83,6 +83,12 @@ private:
     FunctionObject* m_function = nullptr;
     Compiler* m_parent_compiler = nullptr;
 
+    struct ClassCompiler {
+        ClassCompiler* enclosing = nullptr;
+    };
+
+    bool m_within_class = false;
+
     Heap& m_heap;
     ParserState& m_parser_state;
 
