@@ -142,7 +142,12 @@ auto Compiler::CompileSource(Source const& source) -> CompilationErrorOr<Functio
 
 auto Compiler::endCompiler() -> FunctionObject*
 {
-    emitByte(OP_NIL);
+    if (m_function_type == FunctionCompilerType::INITIALIZER) {
+        emitByte(OP_GET_LOCAL);
+        emitIndex(0); // The instance object is here
+    } else {
+        emitByte(OP_NIL);
+    }
     emitByte(OP_RETURN); // This return wouldn't be executed in the case we already emitted a return.
     // However this return handles the case where functions don't have explicit return types and also the top-level script
     LOX_ASSERT(m_upvalues.size() <= MAX_INDEX_SIZE);
@@ -396,9 +401,15 @@ auto Compiler::declaration() -> void
 auto Compiler::returnStatement() -> void
 {
     LOX_ASSERT(m_parser_state.Match(TokenType::RETURN));
+    if (m_function_type == FunctionCompilerType::INITIALIZER) {
+        m_parser_state.ReportError(m_parser_state.CurrentToken()->line_number,
+            GetTokenSpan(*m_parser_state.CurrentToken()), "Cannot explicitly return from \"init\" method");
+        return;
+    }
     m_parser_state.Consume(TokenType::RETURN);
     if (m_parent_compiler == nullptr) {
-        m_parser_state.ReportError(m_parser_state.PreviousToken()->line_number, GetTokenSpan(*m_parser_state.PreviousToken()), "Cannot return from top-level script");
+        m_parser_state.ReportError(m_parser_state.PreviousToken()->line_number,
+            GetTokenSpan(*m_parser_state.PreviousToken()), "Cannot return from top-level script");
         return;
     }
     if (m_parser_state.Match(TokenType::SEMICOLON)) {
@@ -407,7 +418,8 @@ auto Compiler::returnStatement() -> void
         expression();
     }
     if (!m_parser_state.Consume(TokenType::SEMICOLON)) {
-        m_parser_state.ReportError(m_parser_state.PreviousToken()->line_number, GetTokenSpan(*m_parser_state.PreviousToken()), "Expected semi-colon at the end of return statement");
+        m_parser_state.ReportError(m_parser_state.PreviousToken()->line_number,
+            GetTokenSpan(*m_parser_state.PreviousToken()), "Expected semi-colon at the end of return statement");
         return;
     }
     emitByte(OP_RETURN);
@@ -457,6 +469,9 @@ auto Compiler::function(FunctionCompilerType function_type) -> void
     function_compiler.m_within_class = this->m_within_class;
     function_compiler.m_source = this->m_source;
     function_compiler.setFunctionName();
+    if (function_compiler.m_function->function_name == "init") {
+        function_compiler.m_function_type = FunctionCompilerType::INITIALIZER;
+    }
     ///////////////////////////////////////////////// Compile the function body ////////////////////////////////////////////////////////////////////////////////////////////
     HeapContextManager heap_context_manager(m_heap, this, &function_compiler);
 

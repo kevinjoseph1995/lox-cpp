@@ -857,3 +857,22 @@ internal_instance.method();
     static constexpr auto EXPECTED_OUTPUT = "instance[class[Inner]]\n";
     ASSERT_EQ(m_vm_output_stream, EXPECTED_OUTPUT);
 }
+
+TEST_F(VMTest, InstanceTest5)
+{
+    m_source.Append(R"(
+class Klass {
+    init(a, b) {
+        this.a = a;
+        this.b = b;
+    }
+}
+var instance = Klass(1,2);
+print instance.a;
+print instance.b;
+)");
+    auto result = m_vm->Interpret(m_source);
+    ASSERT_TRUE(result.has_value());
+    static constexpr auto EXPECTED_OUTPUT = "1\n2\n";
+    ASSERT_EQ(m_vm_output_stream, EXPECTED_OUTPUT);
+}

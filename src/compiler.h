@@ -66,7 +66,8 @@ public:
     enum class FunctionCompilerType {
         TOP_LEVEL_SCRIPT,
         FUNCTION,
-        METHOD
+        METHOD,
+        INITIALIZER
     };
 
     Compiler() = delete;

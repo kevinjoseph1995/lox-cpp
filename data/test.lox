@@ -1,14 +1,9 @@
-class Outer {
-  method() {
-    class Inner {
-      method() {
-        print this;
-      }
+class Klass {
+    init(a, b) {
+        this.a = a;
+        this.b = b;
     }
-    return Inner;
-  }
 }
-
-var class_internal = Outer().method();
-var internal_instance = class_internal();
-internal_instance.method();
+var instance = Klass(1,2);
+print instance.a;
+print instance.b;

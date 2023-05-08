@@ -20,7 +20,9 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+#include <__expected/unexpected.h>
 #include <cstdio>
+#include <cstdlib>
 #include <fmt/core.h>
 #include <iterator>
 #include <memory>
@@ -552,7 +554,14 @@ auto VirtualMachine::call(Value& callable, uint16_t num_arguments) -> RuntimeErr
     }
     case ObjectType::CLASS: {
         auto class_ptr = static_cast<ClassObject*>(object_ptr);
-        m_value_stack.push_back(m_heap->AllocateInstanceObject(class_ptr));
+        auto new_instance = m_heap->AllocateInstanceObject(class_ptr);
+        m_value_stack.at(m_value_stack.size() - num_arguments - 1) = new_instance;
+        if (new_instance->class_->methods.contains("init")) {
+            Value method = new_instance->class_->methods.at("init");
+            return this->call(method, num_arguments);
+        } else if (num_arguments != 0) {
+            return std::unexpected { RuntimeError { .error_message = "Number of arguments given to initializer does not match" } };
+        }
         return VoidType {};
     }
     case ObjectType::BOUND_METHOD: {
