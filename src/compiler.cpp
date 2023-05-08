@@ -101,16 +101,14 @@ static constexpr auto GetRule(TokenType type) -> ParseRule const*
     }
 }
 
-Compiler::Compiler(Heap& heap, ParserState& parser_state, Compiler* parent_compiler)
+Compiler::Compiler(Heap& heap,
+    ParserState& parser_state,
+    Compiler* parent_compiler,
+    FunctionCompilerType function_type)
     : m_parent_compiler(parent_compiler)
     , m_heap(heap)
     , m_parser_state(parser_state)
-    , m_function_type(Compiler::FunctionType::TOP_LEVEL_SCRIPT)
-{
-    init();
-}
-
-auto Compiler::init() -> void
+    , m_function_type(function_type)
 {
     if (m_parent_compiler != nullptr) {
         // Not top level script an is function compiler
@@ -118,21 +116,11 @@ auto Compiler::init() -> void
     } else {
         m_function = m_heap.AllocateFunctionObject("TOP_LEVEL_SCRIPT", 0);
     }
-    if (m_function_type == FunctionType::METHOD) {
+    if (m_function_type == FunctionCompilerType::METHOD) {
         m_locals_state.locals.emplace_back("this", 0);
     } else {
         m_locals_state.locals.emplace_back("", 0);
     }
-}
-
-Compiler::Compiler(Heap& heap, ParserState& parser_state, FunctionType type, Compiler* parent_compiler)
-    : m_parent_compiler(parent_compiler)
-    , m_heap(heap)
-    , m_parser_state(parser_state)
-    , m_function_type(type)
-
-{
-    init();
 }
 
 auto Compiler::CompileSource(Source const& source) -> CompilationErrorOr<FunctionObject*>
@@ -383,7 +371,7 @@ auto Compiler::method() -> void
         return;
     }
     auto constant_index_result = identifierConstant(m_parser_state.PreviousToken().value());
-    function(FunctionType::METHOD); // When executed will leave a closure on top of the stack
+    function(FunctionCompilerType::METHOD); // When executed will leave a closure on top of the stack
     emitByte(OP_METHOD);
     emitIndex(constant_index_result);
 }
@@ -447,7 +435,7 @@ auto Compiler::functionDeclaration() -> void
     m_parser_state.Consume(TokenType::FUN);
     auto constant_index_result = parseVariable("Expected function identifier");
     markInitialized(); // Marking as initialized as functions can refer to them even as we are compiling the body of the function.
-    function(FunctionType::FUNCTION);
+    function(FunctionCompilerType::FUNCTION);
     defineVariable(constant_index_result.value());
 }
 
@@ -462,13 +450,14 @@ auto Compiler::setFunctionName() -> void
     m_function->function_name = function_name;
 }
 
-auto Compiler::function(FunctionType function_type) -> void
+auto Compiler::function(FunctionCompilerType function_type) -> void
 {
-    Compiler function_compiler(m_heap, m_parser_state, function_type, this);
+    // Setup the function compiler
+    Compiler function_compiler(m_heap, m_parser_state, this, function_type);
     function_compiler.m_within_class = this->m_within_class;
-    ///////////////////////////////////////////////// Compile the function body ////////////////////////////////////////////////////////////////////////////////////////////
     function_compiler.m_source = this->m_source;
     function_compiler.setFunctionName();
+    ///////////////////////////////////////////////// Compile the function body ////////////////////////////////////////////////////////////////////////////////////////////
     HeapContextManager heap_context_manager(m_heap, this, &function_compiler);
 
     function_compiler.beginScope();
